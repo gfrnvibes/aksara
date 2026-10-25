@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Enums\KeputusanKenaikan;
 use App\Enums\Semester;
+use App\Models\Concerns\CatatAktivitas;
+use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\RaporFactory;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -31,8 +33,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Guarded(['id'])]
-class Rapor extends Model
+class Rapor extends Model implements ProvidesActivityTitle
 {
+    use CatatAktivitas;
+
     /** @use HasFactory<RaporFactory> */
     use HasFactory;
 
@@ -89,5 +93,10 @@ class Rapor extends Model
     public function nilaiEkstrakurikuler(): HasMany
     {
         return $this->hasMany(NilaiEkstrakurikuler::class);
+    }
+
+    public function activityTitle(): ?string
+    {
+        return "{$this->siswa->nama_lengkap} - {$this->tahunAjaran->nama} {$this->semester->getLabel()}";
     }
 }

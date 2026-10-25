@@ -2,7 +2,9 @@
 
 namespace App\Providers\Filament;
 
+use App\Models\User;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use BokshornIt\FilamentActivityTimeline\ActivityTimelinePlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -32,6 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Emerald,
             ])
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->navigationGroups([
                 'Buku Induk',
                 'Master Data',
@@ -41,6 +44,17 @@ class AdminPanelProvider extends PanelProvider
                 FilamentShieldPlugin::make()
                     ->navigationGroup('Pengaturan')
                     ->navigationSort(2),
+                ActivityTimelinePlugin::make()
+                    ->navigationGroup('Pengaturan')
+                    ->navigationSort(4)
+                    ->dateFormat('d-m-Y')
+                    ->dateTimeFormat('d-m-Y H:i')
+                    ->causerIcons([User::class => 'heroicon-m-user'])
+                    ->events([
+                        'backup_dibuat' => ['icon' => 'heroicon-m-circle-stack', 'color' => 'info'],
+                        'backup_diunduh' => ['icon' => 'heroicon-m-arrow-down-tray', 'color' => 'warning'],
+                        'backup_dihapus' => ['icon' => 'heroicon-m-trash', 'color' => 'danger'],
+                    ]),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')

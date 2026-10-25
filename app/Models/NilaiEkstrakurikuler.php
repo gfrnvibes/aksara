@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\CatatAktivitas;
+use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\NilaiEkstrakurikulerFactory;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,8 +21,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Guarded(['id'])]
-class NilaiEkstrakurikuler extends Model
+class NilaiEkstrakurikuler extends Model implements ProvidesActivityTitle
 {
+    use CatatAktivitas;
+
     /** @use HasFactory<NilaiEkstrakurikulerFactory> */
     use HasFactory;
 
@@ -38,5 +42,10 @@ class NilaiEkstrakurikuler extends Model
     public function ekstrakurikuler(): BelongsTo
     {
         return $this->belongsTo(Ekstrakurikuler::class);
+    }
+
+    public function activityTitle(): ?string
+    {
+        return $this->ekstrakurikuler->nama;
     }
 }

@@ -181,14 +181,16 @@ it('offers one template per import type', function (string $aksi, string $namaFi
     'gabungan' => ['importGabungan', 'template-data-siswa-dan-nilai.xlsx'],
 ]);
 
-it('stores the guardian only when the guardian name is given', function () {
+it('rejects a row with guardian details but no guardian name', function () {
     jalankanImport(ListSiswas::class, 'importSiswa', fileCsv([
         ['NIS', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Pekerjaan Wali'],
         ['250001', 'Ahmad Fauzi', 'L', 'Pedagang'],
     ]));
 
     expect(Siswa::query()->count())->toBe(0);
+});
 
+it('stores the guardian when the guardian name is given', function () {
     jalankanImport(ListSiswas::class, 'importSiswa', fileCsv([
         ['NIS', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Nama Wali', 'Pekerjaan Wali'],
         ['250001', 'Ahmad Fauzi', 'L', 'Paman Ali', 'Pedagang'],

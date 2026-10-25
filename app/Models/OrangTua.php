@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Enums\Agama;
 use App\Enums\JenisOrangTua;
+use App\Models\Concerns\CatatAktivitas;
+use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\OrangTuaFactory;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -29,8 +31,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Guarded(['id'])]
-class OrangTua extends Model
+class OrangTua extends Model implements ProvidesActivityTitle
 {
+    use CatatAktivitas;
+
     /** @use HasFactory<OrangTuaFactory> */
     use HasFactory;
 
@@ -55,5 +59,10 @@ class OrangTua extends Model
     public function siswa(): BelongsTo
     {
         return $this->belongsTo(Siswa::class);
+    }
+
+    public function activityTitle(): ?string
+    {
+        return "{$this->jenis->getLabel()} {$this->nama}";
     }
 }

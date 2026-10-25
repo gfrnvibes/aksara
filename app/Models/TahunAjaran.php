@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\CatatAktivitas;
+use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\TahunAjaranFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,8 +19,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable(['nama', 'is_aktif'])]
-class TahunAjaran extends Model
+class TahunAjaran extends Model implements ProvidesActivityTitle
 {
+    use CatatAktivitas;
+
     /** @use HasFactory<TahunAjaranFactory> */
     use HasFactory;
 
@@ -55,5 +59,10 @@ class TahunAjaran extends Model
     public function rapor(): HasMany
     {
         return $this->hasMany(Rapor::class);
+    }
+
+    public function activityTitle(): ?string
+    {
+        return $this->nama;
     }
 }

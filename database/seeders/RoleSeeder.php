@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Filament\Pages\BackupData;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
 use Spatie\Permission\Models\Permission;
@@ -14,7 +15,7 @@ class RoleSeeder extends Seeder
      * Seed the Shield permissions plus the default roles.
      *
      * - super_admin: full access (handled by Shield).
-     * - operator: manages Buku Induk and master data, but not users or roles.
+     * - operator: manages Buku Induk and master data, but not users, roles, backups or the activity log.
      */
     public function run(): void
     {
@@ -34,6 +35,8 @@ class RoleSeeder extends Seeder
             Permission::query()
                 ->where('name', 'not like', '%:User')
                 ->where('name', 'not like', '%:Role')
+                ->where('name', 'not like', '%:Activity')
+                ->where('name', '!=', BackupData::IZIN)
                 ->get(),
         );
     }

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\CatatAktivitas;
+use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\NilaiRaporFactory;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,8 +25,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Guarded(['id', 'predikat_pengetahuan', 'predikat_keterampilan'])]
-class NilaiRapor extends Model
+class NilaiRapor extends Model implements ProvidesActivityTitle
 {
+    use CatatAktivitas;
+
     /** @use HasFactory<NilaiRaporFactory> */
     use HasFactory;
 
@@ -89,5 +93,10 @@ class NilaiRapor extends Model
     public function mataPelajaran(): BelongsTo
     {
         return $this->belongsTo(MataPelajaran::class);
+    }
+
+    public function activityTitle(): ?string
+    {
+        return $this->mataPelajaran->nama;
     }
 }

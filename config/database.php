@@ -97,6 +97,10 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'dump' => [
+                // Folder that holds pg_dump when it is not on the PATH (e.g. C:\laragon\bin\postgresql\...\bin).
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', ''),
+            ],
         ],
 
         'sqlsrv' => [

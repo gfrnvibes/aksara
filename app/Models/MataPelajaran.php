@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\KelompokMapel;
+use App\Models\Concerns\CatatAktivitas;
+use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\MataPelajaranFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -22,8 +24,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable(['nama', 'kelompok', 'kkm', 'urutan', 'is_aktif'])]
-class MataPelajaran extends Model
+class MataPelajaran extends Model implements ProvidesActivityTitle
 {
+    use CatatAktivitas;
+
     /** @use HasFactory<MataPelajaranFactory> */
     use HasFactory;
 
@@ -51,5 +55,10 @@ class MataPelajaran extends Model
     protected function aktifBerurutan(Builder $query): void
     {
         $query->where('is_aktif', true)->orderBy('kelompok')->orderBy('urutan');
+    }
+
+    public function activityTitle(): ?string
+    {
+        return $this->nama;
     }
 }

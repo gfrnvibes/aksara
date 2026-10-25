@@ -17,6 +17,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Process The Queue From The Scheduler
+    |--------------------------------------------------------------------------
+    |
+    | Shared hosting usually cannot keep a "queue:work" process running. When
+    | enabled, the per-minute cron that runs the scheduler also drains the
+    | queue (for example a backup started from the admin panel).
+    |
+    */
+
+    'run_via_scheduler' => (bool) env('QUEUE_RUN_VIA_SCHEDULER', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Queue Connections
     |--------------------------------------------------------------------------
     |

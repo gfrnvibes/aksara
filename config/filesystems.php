@@ -60,6 +60,17 @@ return [
             'report' => false,
         ],
 
+        // Off-site backup copy, registered in AppServiceProvider via masbug/flysystem-google-drive-ext.
+        'google' => [
+            'driver' => 'google',
+            'clientId' => env('GOOGLE_DRIVE_CLIENT_ID'),
+            'clientSecret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
+            'refreshToken' => env('GOOGLE_DRIVE_REFRESH_TOKEN'),
+            'folder' => env('GOOGLE_DRIVE_FOLDER', 'Backup Buku Induk'),
+            'throw' => true,
+            'report' => false,
+        ],
+
     ],
 
     /*

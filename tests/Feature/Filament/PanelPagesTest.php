@@ -1,5 +1,6 @@
 <?php
 
+use App\Filament\Pages\BackupData;
 use App\Filament\Resources\Ekstrakurikulers\EkstrakurikulerResource;
 use App\Filament\Resources\Kelas\KelasResource;
 use App\Filament\Resources\MataPelajarans\MataPelajaranResource;
@@ -10,6 +11,7 @@ use App\Filament\Resources\Users\UserResource;
 use App\Models\NilaiRapor;
 use App\Models\Rapor;
 use App\Models\User;
+use BokshornIt\FilamentActivityTimeline\Resources\ActivityResource;
 use Database\Seeders\RoleSeeder;
 
 use function Pest\Laravel\actingAs;
@@ -52,4 +54,11 @@ it('hides user management from an operator', function () {
         ->assertForbidden();
 
     $this->get(SiswaResource::getUrl())->assertOk();
+    $this->get(BackupData::getUrl())->assertForbidden();
+    $this->get(ActivityResource::getUrl())->assertForbidden();
+});
+
+it('renders the backup page and the activity log for a super admin', function () {
+    $this->get(BackupData::getUrl())->assertOk();
+    $this->get(ActivityResource::getUrl())->assertOk();
 });

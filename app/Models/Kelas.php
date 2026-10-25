@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\CatatAktivitas;
+use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\KelasFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
@@ -19,8 +21,10 @@ use Illuminate\Support\Carbon;
  */
 #[Table('kelas')]
 #[Fillable(['tingkat', 'nama'])]
-class Kelas extends Model
+class Kelas extends Model implements ProvidesActivityTitle
 {
+    use CatatAktivitas;
+
     /** @use HasFactory<KelasFactory> */
     use HasFactory;
 
@@ -38,5 +42,10 @@ class Kelas extends Model
     public function rapor(): HasMany
     {
         return $this->hasMany(Rapor::class);
+    }
+
+    public function activityTitle(): ?string
+    {
+        return $this->nama;
     }
 }
