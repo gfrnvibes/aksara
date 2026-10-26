@@ -10,6 +10,8 @@ use App\Models\Concerns\CatatAktivitas;
 use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\SiswaFactory;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -70,6 +72,76 @@ class Siswa extends Model implements ProvidesActivityTitle
     }
 
     /**
+     * Record the new current class in the class history whenever it is set or changed.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (Siswa $siswa): void {
+            if ($siswa->kelas_id !== null && ($siswa->wasRecentlyCreated || $siswa->wasChanged('kelas_id'))) {
+                $siswa->catatKelasSaatIni();
+            }
+        });
+    }
+
+    /**
+     * Write the current class onto the latest academic year of the class history: the active year, or a
+     * later year the student was already promoted into.
+     */
+    public function catatKelasSaatIni(): void
+    {
+        $tahunAktif = TahunAjaran::query()->where('is_aktif', true)->first();
+
+        $riwayatTerakhir = $this->riwayatKelas()
+            ->join('tahun_ajarans', 'tahun_ajarans.id', '=', 'riwayat_kelas.tahun_ajaran_id')
+            ->orderByDesc('tahun_ajarans.nama')
+            ->select('riwayat_kelas.*', 'tahun_ajarans.nama as nama_tahun_ajaran')
+            ->first();
+
+        if ($riwayatTerakhir && ($tahunAktif === null || strcmp($riwayatTerakhir->getAttribute('nama_tahun_ajaran'), $tahunAktif->nama) >= 0)) {
+            RiwayatKelas::query()->find($riwayatTerakhir->id)?->update(['kelas_id' => $this->kelas_id]);
+
+            return;
+        }
+
+        if ($tahunAktif) {
+            RiwayatKelas::query()->updateOrCreate(
+                ['siswa_id' => $this->id, 'tahun_ajaran_id' => $tahunAktif->id],
+                ['kelas_id' => $this->kelas_id],
+            );
+        }
+    }
+
+    /**
+     * The class the student sat in during the given academic year, falling back to the current class.
+     */
+    public function kelasPadaTahunAjaran(?int $tahunAjaranId): ?int
+    {
+        if ($tahunAjaranId === null) {
+            return $this->kelas_id;
+        }
+
+        return $this->riwayatKelas()->where('tahun_ajaran_id', $tahunAjaranId)->value('kelas_id') ?? $this->kelas_id;
+    }
+
+    /**
+     * Students who sat in the class during the academic year: from the class history, plus — for the active
+     * year — students currently in the class whose history has no row for that year yet.
+     *
+     * @param  Builder<Siswa>  $query
+     */
+    #[Scope]
+    protected function anggotaKelas(Builder $query, int $kelasId, int $tahunAjaranId): void
+    {
+        $tahunAktif = TahunAjaran::query()->whereKey($tahunAjaranId)->where('is_aktif', true)->exists();
+
+        $query->where(fn (Builder $anggota) => $anggota
+            ->whereHas('riwayatKelas', fn (Builder $riwayat) => $riwayat->where('kelas_id', $kelasId)->where('tahun_ajaran_id', $tahunAjaranId))
+            ->when($tahunAktif, fn (Builder $anggota) => $anggota->orWhere(fn (Builder $sekarang) => $sekarang
+                ->where('kelas_id', $kelasId)
+                ->whereDoesntHave('riwayatKelas', fn (Builder $riwayat) => $riwayat->where('tahun_ajaran_id', $tahunAjaranId)))));
+    }
+
+    /**
      * @return BelongsTo<Kelas, $this>
      */
     public function kelas(): BelongsTo
@@ -107,6 +179,14 @@ class Siswa extends Model implements ProvidesActivityTitle
     public function wali(): HasOne
     {
         return $this->hasOne(OrangTua::class)->where('jenis', JenisOrangTua::Wali);
+    }
+
+    /**
+     * @return HasMany<RiwayatKelas, $this>
+     */
+    public function riwayatKelas(): HasMany
+    {
+        return $this->hasMany(RiwayatKelas::class);
     }
 
     /**

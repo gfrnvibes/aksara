@@ -6,6 +6,7 @@ use App\Filament\Resources\Siswas\Pages\CreateSiswa;
 use App\Filament\Resources\Siswas\Pages\EditSiswa;
 use App\Filament\Resources\Siswas\Pages\ListSiswas;
 use App\Filament\Resources\Siswas\RelationManagers\RaporRelationManager;
+use App\Filament\Resources\Siswas\RelationManagers\RiwayatKelasRelationManager;
 use App\Filament\Resources\Siswas\Schemas\SiswaForm;
 use App\Filament\Resources\Siswas\Tables\SiswasTable;
 use App\Models\Siswa;
@@ -65,6 +66,7 @@ class SiswaResource extends Resource
     {
         return [
             RaporRelationManager::class,
+            RiwayatKelasRelationManager::class,
         ];
     }
 

@@ -64,7 +64,8 @@ class Rapor extends Model implements ProvidesActivityTitle
 
     /**
      * Copy the class's homeroom teacher onto a report card that names none, so the printed report keeps the
-     * teacher of that year even after the class gets a new one.
+     * teacher of that year even after the class gets a new one, and record the class in the student's class
+     * history when that year has none yet.
      */
     protected static function booted(): void
     {
@@ -75,6 +76,13 @@ class Rapor extends Model implements ProvidesActivityTitle
                 $rapor->wali_kelas = $kelas?->wali_kelas;
                 $rapor->nip_wali_kelas = $kelas?->wali_kelas ? $kelas->nip_wali_kelas : $rapor->nip_wali_kelas;
             }
+        });
+
+        static::saved(function (Rapor $rapor): void {
+            RiwayatKelas::query()->firstOrCreate(
+                ['siswa_id' => $rapor->siswa_id, 'tahun_ajaran_id' => $rapor->tahun_ajaran_id],
+                ['kelas_id' => $rapor->kelas_id],
+            );
         });
     }
 

@@ -67,13 +67,22 @@ class TahunAjaran extends Model implements ProvidesActivityTitle, TerlindungDari
         return $this->hasMany(Rapor::class);
     }
 
+    /**
+     * @return HasMany<RiwayatKelas, $this>
+     */
+    public function riwayatKelas(): HasMany
+    {
+        return $this->hasMany(RiwayatKelas::class);
+    }
+
     public function keteranganPemakaian(): ?string
     {
-        $jumlah = $this->rapor()->withTrashed()->count();
+        $jumlahRapor = $this->rapor()->withTrashed()->count();
+        $jumlahRiwayat = $this->riwayatKelas()->count();
 
-        return $jumlah === 0
+        return $jumlahRapor === 0 && $jumlahRiwayat === 0
             ? null
-            : "Tahun ajaran {$this->nama} masih dipakai oleh {$jumlah} rapor.";
+            : "Tahun ajaran {$this->nama} masih dipakai oleh {$jumlahRapor} rapor dan {$jumlahRiwayat} riwayat kelas.";
     }
 
     public function activityTitle(): ?string

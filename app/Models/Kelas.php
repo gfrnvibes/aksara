@@ -67,6 +67,14 @@ class Kelas extends Model implements ProvidesActivityTitle, TerlindungDariHapus
     }
 
     /**
+     * @return HasMany<RiwayatKelas, $this>
+     */
+    public function riwayatKelas(): HasMany
+    {
+        return $this->hasMany(RiwayatKelas::class);
+    }
+
+    /**
      * Classes offered for new students and report cards.
      *
      * @param  Builder<Kelas>  $query
@@ -94,12 +102,13 @@ class Kelas extends Model implements ProvidesActivityTitle, TerlindungDariHapus
     {
         $jumlahSiswa = $this->siswa()->count();
         $jumlahRapor = $this->rapor()->withTrashed()->count();
+        $jumlahRiwayat = $this->riwayatKelas()->count();
 
-        if ($jumlahSiswa === 0 && $jumlahRapor === 0) {
+        if ($jumlahSiswa === 0 && $jumlahRapor === 0 && $jumlahRiwayat === 0) {
             return null;
         }
 
-        return "Kelas {$this->nama} masih dipakai oleh {$jumlahSiswa} siswa dan {$jumlahRapor} rapor. Nonaktifkan kelas ini jika tidak dipakai lagi.";
+        return "Kelas {$this->nama} masih dipakai oleh {$jumlahSiswa} siswa, {$jumlahRapor} rapor, dan {$jumlahRiwayat} riwayat kelas. Nonaktifkan kelas ini jika tidak dipakai lagi.";
     }
 
     public function activityTitle(): ?string
