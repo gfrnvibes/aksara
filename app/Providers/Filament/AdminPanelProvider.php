@@ -34,6 +34,9 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Emerald,
             ])
+            ->font('Geist')
+            ->monoFont('Geist Mono')
+            ->sidebarWidth('15rem')
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->navigationGroups([
                 'Buku Induk',

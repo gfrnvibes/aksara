@@ -3,3 +3,166 @@
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
 @source '../../../../vendor/bokshorn-it/filament-activity-timeline/resources/**/*.blade.php';
+
+/*
+|--------------------------------------------------------------------------
+| Tema "tajam & ringkas"
+|--------------------------------------------------------------------------
+|
+| Sudut siku (tanpa lengkungan kecuali avatar/toggle), jarak lebih rapat,
+| label tabel dan grup navigasi berhuruf kapital kecil, serta angka dengan
+| huruf monospace. Lengkungan dan jarak diatur lewat token Tailwind sehingga
+| semua komponen Filament ikut berubah tanpa menimpa satu per satu.
+|
+*/
+
+@theme {
+    --radius-xs: 0;
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 0;
+    --radius-xl: 0;
+    --radius-2xl: 0;
+    --radius-3xl: 0;
+    --radius-4xl: 0;
+    --spacing: 0.225rem;
+}
+
+@layer components {
+    /* Kartu: garis tipis tanpa bayangan. */
+    .fi-section:not(.fi-section-not-contained):not(.fi-aside),
+    .fi-section:not(.fi-section-not-contained).fi-aside > .fi-section-content-ctn,
+    .fi-ta-ctn,
+    .fi-wi-stats-overview-stat,
+    .fi-tabs:not(.fi-contained),
+    .fi-input-wrp,
+    .fi-dropdown-panel,
+    .fi-modal-window {
+        @apply shadow-none ring-gray-950/10 dark:ring-white/10;
+    }
+
+    /* Judul halaman lebih kecil. */
+    .fi-header-heading {
+        @apply text-xl sm:text-2xl;
+    }
+
+    .fi-header-subheading {
+        @apply text-base;
+    }
+
+    /* Navigasi samping. */
+    .fi-sidebar-nav {
+        @apply gap-y-5;
+    }
+
+    .fi-sidebar-nav-groups {
+        @apply gap-y-5;
+    }
+
+    .fi-sidebar-nav {
+        @apply px-4;
+    }
+
+    .fi-sidebar-group-label,
+    .fi-ta-header-cell,
+    .fi-wi-stats-overview-stat .fi-wi-stats-overview-stat-label,
+    .fi-badge {
+        font-family: var(--font-mono);
+    }
+
+    .fi-sidebar-group-label {
+        @apply text-xs font-semibold tracking-wider uppercase;
+    }
+
+    .fi-sidebar-group,
+    .fi-sidebar-group-items {
+        @apply gap-y-0.5;
+    }
+
+    .fi-sidebar-item-btn {
+        @apply border-s-2 border-transparent;
+    }
+
+    .fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+        @apply border-primary-600 bg-primary-50/60 dark:border-primary-400 dark:bg-white/5;
+    }
+
+    /* Tab bergaris bawah, bukan kotak berisi. */
+    .fi-tabs:not(.fi-contained):not(.fi-vertical) {
+        @apply mx-0 gap-x-0 bg-transparent p-0 ring-0 dark:bg-transparent;
+        box-shadow: inset 0 -1px 0 var(--color-gray-200);
+    }
+
+    .dark .fi-tabs:not(.fi-contained):not(.fi-vertical) {
+        box-shadow: inset 0 -1px 0 rgb(255 255 255 / 0.1);
+    }
+
+    .fi-tabs:not(.fi-vertical) .fi-tabs-item {
+        @apply border-b-2 border-transparent px-3 py-2 hover:bg-transparent focus-visible:bg-transparent dark:hover:bg-transparent;
+
+        &.fi-active {
+            @apply border-primary-600 bg-transparent dark:border-primary-400 dark:bg-transparent;
+        }
+    }
+
+    /* Tabel: kepala kolom kapital kecil, baris rapat, angka monospace. */
+    .fi-ta-header-cell {
+        @apply py-2.5 text-xs tracking-wider text-gray-500 uppercase dark:text-gray-400;
+    }
+
+    .fi-ta-header-cell .fi-ta-header-cell-sort-btn {
+        @apply text-xs tracking-wider uppercase;
+    }
+
+    .fi-ta-table > thead > tr {
+        @apply bg-gray-50 dark:bg-white/5;
+    }
+
+    .fi-ta-text:not(.fi-inline) {
+        @apply py-2.5;
+    }
+
+    .fi-ta-cell:has(.fi-ta-actions),
+    .fi-ta-cell:has(.fi-ta-record-checkbox) {
+        @apply py-2.5;
+    }
+
+    .fi-ta-cell + .fi-ta-cell,
+    .fi-ta-header-cell + .fi-ta-header-cell {
+        @apply border-s border-gray-100 dark:border-white/5;
+    }
+
+    .fi-ta-text.fi-align-end,
+    .fi-ta-text.fi-align-right,
+    .fi-ta-summary-row,
+    .fi-wi-stats-overview-stat-value,
+    .fi-tabs-item .fi-badge,
+    .fi-sidebar-item-badge-ctn .fi-badge,
+    .fi-pagination {
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Badge kapital kecil. */
+    .fi-badge {
+        @apply py-0.5 text-[0.6875rem] tracking-wide uppercase;
+    }
+
+    .fi-tabs-item .fi-badge,
+    .fi-sidebar-item-badge-ctn .fi-badge {
+        @apply normal-case tracking-normal;
+    }
+
+    /* Kartu statistik. */
+    .fi-wi-stats-overview-stat {
+        @apply p-4;
+    }
+
+    .fi-wi-stats-overview-stat .fi-wi-stats-overview-stat-label {
+        @apply text-xs tracking-wider uppercase;
+    }
+
+    .fi-wi-stats-overview-stat .fi-wi-stats-overview-stat-value {
+        @apply text-2xl font-semibold;
+    }
+}
