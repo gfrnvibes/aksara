@@ -58,6 +58,35 @@ class RaporForm
      */
     protected const array BARIS_PRESTASI_KOSONG = ['prestasi' => null, 'nilai' => null, 'keterangan' => null];
 
+    /**
+     * The KKM is read-only in the grade table so it is not changed by a stray keystroke; this action changes it
+     * deliberately through a modal.
+     */
+    public static function aksiUbahKkm(string $keterangan = 'KKM ini hanya berlaku untuk rapor ini. KKM bawaan mata pelajaran diubah di menu Mata Pelajaran.'): Action
+    {
+        return Action::make('ubahKkm')
+            ->label('Ubah KKM')
+            ->icon(Heroicon::PencilSquare)
+            ->modalHeading('Ubah KKM')
+            ->modalDescription($keterangan)
+            ->modalWidth('sm')
+            ->modalSubmitActionLabel('Simpan')
+            ->fillForm(fn (TextInput $component): array => ['kkm' => $component->getState()])
+            ->schema([
+                TextInput::make('kkm')
+                    ->label('KKM')
+                    ->numeric()
+                    ->integer()
+                    ->minValue(1)
+                    ->maxValue(100)
+                    ->required()
+                    ->autofocus(),
+            ])
+            ->action(function (array $data, TextInput $component): void {
+                $component->state((int) $data['kkm']);
+            });
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -74,8 +103,10 @@ class RaporForm
                             ->preload()
                             ->default(fn (): ?int => request()->integer('siswa') ?: null)
                             ->live()
-                            ->afterStateUpdated(function (?int $state, Set $set): void {
-                                $set('kelas_id', $state ? Siswa::query()->find($state)?->kelas_id : null);
+                            ->afterStateUpdated(function (?int $state, Get $get, Set $set): void {
+                                $siswa = $state ? Siswa::query()->find($state) : null;
+
+                                $set('kelas_id', $siswa?->kelasPadaTahunAjaran($get->integer('tahun_ajaran_id', isNullable: true)));
                             })
                             ->required(),
                         Select::make('tahun_ajaran_id')
@@ -83,6 +114,14 @@ class RaporForm
                             ->relationship('tahunAjaran', 'nama', fn ($query) => $query->orderByDesc('nama'))
                             ->default(fn (): ?int => TahunAjaran::query()->where('is_aktif', true)->value('id'))
                             ->preload()
+                            ->live()
+                            ->afterStateUpdated(function (?int $state, Get $get, Set $set): void {
+                                $siswaId = $get->integer('siswa_id', isNullable: true);
+
+                                if ($siswaId && ($siswa = Siswa::query()->find($siswaId))) {
+                                    $set('kelas_id', $siswa->kelasPadaTahunAjaran($state));
+                                }
+                            })
                             ->required(),
                         Select::make('semester')
                             ->options(Semester::class)
@@ -117,10 +156,10 @@ class RaporForm
                             ->hiddenLabel()
                             ->relationship()
                             ->table([
-                                TableColumn::make('Mata Pelajaran')->width('40%'),
-                                TableColumn::make('KKM'),
-                                TableColumn::make('Pengetahuan (KI-3)'),
-                                TableColumn::make('Keterampilan (KI-4)'),
+                                TableColumn::make('Mata Pelajaran')->width('33%'),
+                                TableColumn::make('KKM')->width('9rem'),
+                                TableColumn::make('Pengetahuan (KI-3)')->width('13%'),
+                                TableColumn::make('Keterampilan (KI-4)')->width('13%'),
                                 TableColumn::make('Sikap'),
                             ])
                             ->schema([
@@ -134,8 +173,11 @@ class RaporForm
                                     ->required(),
                                 TextInput::make('kkm')
                                     ->numeric()
+                                    ->integer()
                                     ->minValue(1)
                                     ->maxValue(100)
+                                    ->readOnly()
+                                    ->suffixAction(static::aksiUbahKkm())
                                     ->required(),
                                 TextInput::make('nilai_pengetahuan')
                                     ->numeric()

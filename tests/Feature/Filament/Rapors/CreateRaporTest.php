@@ -8,7 +8,9 @@ use App\Models\MataPelajaran;
 use App\Models\Rapor;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use Filament\Actions\Testing\TestAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -26,6 +28,33 @@ it('prefills every active subject with its KKM', function () {
     expect($nilaiRapor)->toHaveCount(1)
         ->and($nilaiRapor[0]['mata_pelajaran_id'])->toBe($matematika->id)
         ->and($nilaiRapor[0]['kkm'])->toBe(70);
+});
+
+it('changes the KKM of one subject only through its edit modal', function () {
+    MataPelajaran::factory()->create(['kkm' => 70]);
+
+    $halaman = Livewire::test(CreateRapor::class);
+    $kunciBaris = array_key_first($halaman->get('data.nilaiRapor'));
+
+    $halaman
+        ->assertFormFieldExists("nilaiRapor.{$kunciBaris}.kkm", fn (TextInput $field): bool => $field->isReadOnly())
+        ->callAction(TestAction::make('ubahKkm')->schemaComponent("nilaiRapor.{$kunciBaris}.kkm", schema: 'form'), ['kkm' => 75])
+        ->assertHasNoFormErrors();
+
+    expect($halaman->get("data.nilaiRapor.{$kunciBaris}.kkm"))->toBe(75);
+});
+
+it('rejects a KKM outside 1 to 100 in the edit modal', function () {
+    MataPelajaran::factory()->create(['kkm' => 70]);
+
+    $halaman = Livewire::test(CreateRapor::class);
+    $kunciBaris = array_key_first($halaman->get('data.nilaiRapor'));
+
+    $halaman
+        ->callAction(TestAction::make('ubahKkm')->schemaComponent("nilaiRapor.{$kunciBaris}.kkm", schema: 'form'), ['kkm' => 101])
+        ->assertHasFormErrors(['kkm' => 'max']);
+
+    expect($halaman->get("data.nilaiRapor.{$kunciBaris}.kkm"))->toBe(70);
 });
 
 it('lists every student with their class before anything is typed', function () {
