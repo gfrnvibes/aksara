@@ -37,7 +37,7 @@ class LandingPageController extends Controller
             'sekolah' => config('sekolah'),
             'mataPelajaran' => $mataPelajaran,
             'jumlahMataPelajaran' => static::eja($mataPelajaran->count()),
-            'ekstrakurikuler' => Ekstrakurikuler::query()->orderByDesc('is_wajib')->orderBy('nama')->pluck('nama'),
+            'ekstrakurikuler' => Ekstrakurikuler::query()->aktif()->orderByDesc('is_wajib')->orderBy('nama')->pluck('nama'),
             'program' => static::program(),
             'nilai' => static::nilai(),
         ]);

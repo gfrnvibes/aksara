@@ -2,12 +2,11 @@
 
 namespace App\Filament\Resources\TahunAjarans;
 
+use App\Filament\Actions\HapusMasterDataActions;
 use App\Filament\Resources\TahunAjarans\Pages\ManageTahunAjarans;
 use App\Models\TahunAjaran;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -71,11 +70,11 @@ class TahunAjaranResource extends Resource
             ])
             ->recordActions([
                 EditAction::make(),
-                DeleteAction::make(),
+                HapusMasterDataActions::hapus(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    HapusMasterDataActions::hapusMassal(),
                 ]),
             ]);
     }

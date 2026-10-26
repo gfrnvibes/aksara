@@ -25,7 +25,7 @@ class StatistikBukuInduk extends StatsOverviewWidget
                 ->icon('heroicon-o-academic-cap'),
             Stat::make(
                 'Rapor Tahun Ajaran Aktif',
-                $tahunAjaranAktif ? Rapor::query()->whereBelongsTo($tahunAjaranAktif)->count() : 0,
+                $tahunAjaranAktif ? Rapor::query()->milikSiswaAktif()->whereBelongsTo($tahunAjaranAktif)->count() : 0,
             )
                 ->description($tahunAjaranAktif->nama ?? 'Belum ada tahun ajaran aktif')
                 ->icon('heroicon-o-document-chart-bar'),

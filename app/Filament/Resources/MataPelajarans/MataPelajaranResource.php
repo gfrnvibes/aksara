@@ -3,12 +3,11 @@
 namespace App\Filament\Resources\MataPelajarans;
 
 use App\Enums\KelompokMapel;
+use App\Filament\Actions\HapusMasterDataActions;
 use App\Filament\Resources\MataPelajarans\Pages\ManageMataPelajarans;
 use App\Models\MataPelajaran;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -98,11 +97,11 @@ class MataPelajaranResource extends Resource
             ])
             ->recordActions([
                 EditAction::make(),
-                DeleteAction::make(),
+                HapusMasterDataActions::hapus(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    HapusMasterDataActions::hapusMassal(),
                 ]),
             ]);
     }

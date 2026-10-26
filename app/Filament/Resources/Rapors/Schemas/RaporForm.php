@@ -5,7 +5,10 @@ namespace App\Filament\Resources\Rapors\Schemas;
 use App\Enums\KeputusanKenaikan;
 use App\Enums\Semester;
 use App\Models\Ekstrakurikuler;
+use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use App\Models\NilaiEkstrakurikuler;
+use App\Models\Rapor;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use Filament\Forms\Components\DatePicker;
@@ -19,6 +22,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rules\Unique;
 
 class RaporForm
@@ -79,11 +83,15 @@ class RaporForm
                                     ->where('tahun_ajaran_id', $get('tahun_ajaran_id')),
                             )
                             ->validationMessages([
-                                'unique' => 'Rapor siswa ini untuk tahun ajaran dan semester tersebut sudah ada.',
+                                'unique' => 'Rapor siswa ini untuk tahun ajaran dan semester tersebut sudah ada (periksa juga filter "Data terhapus").',
                             ]),
                         Select::make('kelas_id')
                             ->label('Kelas')
-                            ->relationship('kelas', 'nama')
+                            ->relationship(
+                                'kelas',
+                                'nama',
+                                fn (Builder $query, ?Rapor $record): Builder => Kelas::batasiYangTersedia($query, $record?->kelas_id),
+                            )
                             ->default(fn (): ?int => Siswa::query()->find(request()->integer('siswa'))?->kelas_id)
                             ->preload()
                             ->required(),
@@ -150,7 +158,11 @@ class RaporForm
                             ])
                             ->schema([
                                 Select::make('ekstrakurikuler_id')
-                                    ->relationship('ekstrakurikuler', 'nama')
+                                    ->relationship(
+                                        'ekstrakurikuler',
+                                        'nama',
+                                        fn (Builder $query, ?NilaiEkstrakurikuler $record): Builder => Ekstrakurikuler::batasiYangTersedia($query, $record?->ekstrakurikuler_id),
+                                    )
                                     ->disableOptionsWhenSelectedInSiblingRepeaterItems()
                                     ->required(),
                                 Select::make('nilai')
@@ -158,6 +170,7 @@ class RaporForm
                                 TextInput::make('keterangan'),
                             ])
                             ->default(fn (): array => Ekstrakurikuler::query()
+                                ->aktif()
                                 ->where('is_wajib', true)
                                 ->pluck('id')
                                 ->map(fn (int $id): array => ['ekstrakurikuler_id' => $id])

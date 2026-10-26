@@ -40,10 +40,14 @@ class NilaiImporter extends BukuIndukImporter
 
     public function resolveRecord(): Rapor
     {
-        $this->siswa = Siswa::query()->where('nis', $this->data['nis'])->first();
+        $this->siswa = Siswa::withTrashed()->where('nis', $this->data['nis'])->first();
 
         if (! $this->siswa) {
             throw new RowImportFailedException("Siswa dengan NIS {$this->data['nis']} belum terdaftar. Import Data Siswa terlebih dahulu.");
+        }
+
+        if ($this->siswa->trashed()) {
+            throw new RowImportFailedException("Siswa dengan NIS {$this->data['nis']} ada di data terhapus. Pulihkan siswa tersebut terlebih dahulu.");
         }
 
         return $this->cariRapor($this->siswa);

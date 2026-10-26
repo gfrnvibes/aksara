@@ -41,4 +41,24 @@ class RaporPolicy
     {
         return $authUser->can('DeleteAny:Rapor');
     }
+
+    public function restore(AuthUser $authUser, Rapor $rapor): bool
+    {
+        return $authUser->can('Restore:Rapor');
+    }
+
+    public function restoreAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('RestoreAny:Rapor');
+    }
+
+    public function forceDelete(AuthUser $authUser, Rapor $rapor): bool
+    {
+        return $authUser->can('ForceDelete:Rapor');
+    }
+
+    public function forceDeleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('ForceDeleteAny:Rapor');
+    }
 }

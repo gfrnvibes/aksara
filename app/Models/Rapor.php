@@ -8,10 +8,13 @@ use App\Models\Concerns\CatatAktivitas;
 use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\RaporFactory;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
@@ -40,6 +43,8 @@ class Rapor extends Model implements ProvidesActivityTitle
     /** @use HasFactory<RaporFactory> */
     use HasFactory;
 
+    use SoftDeletes;
+
     /**
      * Get the attributes that should be cast.
      *
@@ -56,11 +61,24 @@ class Rapor extends Model implements ProvidesActivityTitle
     }
 
     /**
+     * The student, even when moved to the trash, so a report card always knows whose it is.
+     *
      * @return BelongsTo<Siswa, $this>
      */
     public function siswa(): BelongsTo
     {
-        return $this->belongsTo(Siswa::class);
+        return $this->belongsTo(Siswa::class)->withTrashed();
+    }
+
+    /**
+     * Report cards whose student is not in the trash.
+     *
+     * @param  Builder<Rapor>  $query
+     */
+    #[Scope]
+    protected function milikSiswaAktif(Builder $query): void
+    {
+        $query->whereIn('siswa_id', Siswa::query()->select('id'));
     }
 
     /**

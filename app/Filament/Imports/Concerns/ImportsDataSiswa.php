@@ -154,7 +154,13 @@ trait ImportsDataSiswa
      */
     protected function resolveSiswa(): Siswa
     {
-        return Siswa::query()->firstOrNew(['nis' => $this->data['nis']]);
+        $siswa = Siswa::withTrashed()->firstOrNew(['nis' => $this->data['nis']]);
+
+        if ($siswa->trashed()) {
+            throw new RowImportFailedException("Siswa dengan NIS {$this->data['nis']} ada di data terhapus. Pulihkan siswa tersebut terlebih dahulu.");
+        }
+
+        return $siswa;
     }
 
     /**

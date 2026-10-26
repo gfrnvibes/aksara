@@ -14,6 +14,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use UnitEnum;
 
 class SiswaResource extends Resource
@@ -38,6 +40,15 @@ class SiswaResource extends Resource
     public static function getGloballySearchableAttributes(): array
     {
         return ['nama_lengkap', 'nis', 'nisn'];
+    }
+
+    /**
+     * Let the edit page open students in the trash, so they can be restored or deleted for good.
+     */
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        return parent::getRecordRouteBindingEloquentQuery()
+            ->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 
     public static function form(Schema $schema): Schema

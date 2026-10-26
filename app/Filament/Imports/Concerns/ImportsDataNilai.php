@@ -62,7 +62,7 @@ trait ImportsDataNilai
             ])
             ->all();
 
-        $kolomEkstrakurikuler = Ekstrakurikuler::query()->orderBy('nama')->get()
+        $kolomEkstrakurikuler = Ekstrakurikuler::query()->aktif()->orderBy('nama')->get()
             ->map(fn (Ekstrakurikuler $ekstrakurikuler): ImportColumn => ImportColumn::make("ekskul_{$ekstrakurikuler->id}")
                 ->label(static::labelEkstrakurikuler($ekstrakurikuler))
                 ->castStateUsing(fn (mixed $state): ?string => static::predikat($state))
@@ -155,11 +155,15 @@ trait ImportsDataNilai
         $tahunAjaranId = TahunAjaran::query()->where('nama', $this->data['tahun_ajaran'] ?? null)->value('id');
 
         if ($siswa->exists && $tahunAjaranId && filled($this->data['semester'] ?? null)) {
-            $rapor = Rapor::query()
+            $rapor = Rapor::withTrashed()
                 ->whereBelongsTo($siswa)
                 ->where('tahun_ajaran_id', $tahunAjaranId)
                 ->where('semester', $this->data['semester'])
                 ->first();
+
+            if ($rapor?->trashed()) {
+                throw new RowImportFailedException("Rapor {$this->data['tahun_ajaran']} semester {$this->data['semester']} untuk NIS {$siswa->nis} ada di data terhapus. Pulihkan rapor tersebut terlebih dahulu.");
+            }
 
             if ($rapor) {
                 return $rapor;

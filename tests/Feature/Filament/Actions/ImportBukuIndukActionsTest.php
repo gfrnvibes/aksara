@@ -131,6 +131,19 @@ it('updates the existing report card instead of creating a second one for the sa
         ->nilai_pengetahuan->toBe(88);
 });
 
+it('refuses to recreate a student whose NIS is in the trash', function () {
+    Siswa::factory()->create(['nis' => '250001', 'nama_lengkap' => 'Nama Lama'])->delete();
+
+    jalankanImport(ListSiswas::class, 'importSiswa', fileCsv([
+        ['NIS', 'Nama Lengkap', 'Jenis Kelamin (L/P)'],
+        ['250001', 'Nama Baru', 'L'],
+    ]));
+
+    expect(Siswa::withTrashed()->where('nis', '250001')->sole())
+        ->trashed()->toBeTrue()
+        ->nama_lengkap->toBe('Nama Lama');
+});
+
 it('rejects grades for a student that is not registered', function () {
     Kelas::factory()->create(['nama' => 'VII-A']);
 

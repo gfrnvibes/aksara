@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\Concerns\CatatAktivitas;
+use App\Models\Concerns\MenolakHapusSaatDipakai;
+use App\Models\Contracts\TerlindungDariHapus;
 use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\TahunAjaranFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -19,12 +21,14 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable(['nama', 'is_aktif'])]
-class TahunAjaran extends Model implements ProvidesActivityTitle
+class TahunAjaran extends Model implements ProvidesActivityTitle, TerlindungDariHapus
 {
     use CatatAktivitas;
 
     /** @use HasFactory<TahunAjaranFactory> */
     use HasFactory;
+
+    use MenolakHapusSaatDipakai;
 
     /**
      * Get the attributes that should be cast.
@@ -59,6 +63,15 @@ class TahunAjaran extends Model implements ProvidesActivityTitle
     public function rapor(): HasMany
     {
         return $this->hasMany(Rapor::class);
+    }
+
+    public function keteranganPemakaian(): ?string
+    {
+        $jumlah = $this->rapor()->withTrashed()->count();
+
+        return $jumlah === 0
+            ? null
+            : "Tahun ajaran {$this->nama} masih dipakai oleh {$jumlah} rapor.";
     }
 
     public function activityTitle(): ?string

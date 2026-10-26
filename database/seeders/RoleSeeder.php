@@ -15,7 +15,8 @@ class RoleSeeder extends Seeder
      * Seed the Shield permissions plus the default roles.
      *
      * - super_admin: full access (handled by Shield).
-     * - operator: manages Buku Induk and master data, but not users, roles, backups or the activity log.
+     * - operator: manages Buku Induk and master data and may restore from the trash, but cannot empty the
+     *   trash or manage users, roles, backups or the activity log.
      */
     public function run(): void
     {
@@ -36,6 +37,7 @@ class RoleSeeder extends Seeder
                 ->where('name', 'not like', '%:User')
                 ->where('name', 'not like', '%:Role')
                 ->where('name', 'not like', '%:Activity')
+                ->where('name', 'not like', 'ForceDelete%')
                 ->where('name', '!=', BackupData::IZIN)
                 ->get(),
         );

@@ -8,9 +8,14 @@ use App\Filament\Actions\EksporBukuIndukActions;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 
 class SiswasTable
@@ -57,16 +62,27 @@ class SiswasTable
                     ->options(StatusSiswa::class),
                 SelectFilter::make('jenis_kelamin')
                     ->options(JenisKelamin::class),
+                TrashedFilter::make()
+                    ->label('Data terhapus'),
             ])
             ->recordActions([
                 EditAction::make(),
                 EksporBukuIndukActions::cetakSatuSiswa(),
+                RestoreAction::make()
+                    ->label('Pulihkan'),
+                ForceDeleteAction::make()
+                    ->label('Hapus permanen')
+                    ->modalDescription('Biodata, data orang tua/wali, dan seluruh nilai rapor siswa ini akan dihapus permanen dan tidak dapat dipulihkan.'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     EksporBukuIndukActions::exportSiswaTerpilih(),
                     EksporBukuIndukActions::cetakSiswaTerpilih(),
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->modalDescription('Siswa terpilih dipindahkan ke data terhapus dan dapat dipulihkan kembali beserta seluruh nilainya.'),
+                    RestoreBulkAction::make(),
+                    ForceDeleteBulkAction::make()
+                        ->modalDescription('Biodata, data orang tua/wali, dan seluruh nilai rapor siswa terpilih akan dihapus permanen dan tidak dapat dipulihkan.'),
                 ]),
             ]);
     }

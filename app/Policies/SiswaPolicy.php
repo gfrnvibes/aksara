@@ -41,4 +41,24 @@ class SiswaPolicy
     {
         return $authUser->can('DeleteAny:Siswa');
     }
+
+    public function restore(AuthUser $authUser, Siswa $siswa): bool
+    {
+        return $authUser->can('Restore:Siswa');
+    }
+
+    public function restoreAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('RestoreAny:Siswa');
+    }
+
+    public function forceDelete(AuthUser $authUser, Siswa $siswa): bool
+    {
+        return $authUser->can('ForceDelete:Siswa');
+    }
+
+    public function forceDeleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('ForceDeleteAny:Siswa');
+    }
 }

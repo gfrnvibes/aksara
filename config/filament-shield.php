@@ -1,6 +1,8 @@
 <?php
 
 declare(strict_types=1);
+use App\Filament\Resources\Rapors\RaporResource;
+use App\Filament\Resources\Siswas\SiswaResource;
 use BezhanSalleh\FilamentShield\Resources\Roles\RoleResource;
 use Filament\Pages\Dashboard;
 use Filament\Widgets\AccountWidget;
@@ -192,6 +194,9 @@ return [
                 'update',
                 'delete',
             ],
+            // Soft-deleted resources: restoring from and emptying the trash are separate permissions.
+            SiswaResource::class => ['restore', 'restoreAny', 'forceDelete', 'forceDeleteAny'],
+            RaporResource::class => ['restore', 'restoreAny', 'forceDelete', 'forceDeleteAny'],
         ],
         'exclude' => [
             //

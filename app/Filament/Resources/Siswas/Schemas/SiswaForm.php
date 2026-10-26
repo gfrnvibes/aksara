@@ -7,6 +7,8 @@ use App\Enums\JenisKelamin;
 use App\Enums\JenisOrangTua;
 use App\Enums\StatusSiswa;
 use App\Filament\Resources\Kelas\KelasResource;
+use App\Models\Kelas;
+use App\Models\Siswa;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
@@ -21,6 +23,7 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class SiswaForm
 {
@@ -83,15 +86,23 @@ class SiswaForm
                                 ->label('Nomor Induk Siswa')
                                 ->required()
                                 ->maxLength(30)
-                                ->unique(ignoreRecord: true),
+                                ->unique(ignoreRecord: true)
+                                ->validationMessages(['unique' => 'NIS ini sudah dipakai siswa lain (periksa juga filter "Data terhapus").']),
                             TextInput::make('nisn')
                                 ->label('Nomor Induk Siswa Nasional')
                                 ->rule('digits:10')
-                                ->validationMessages(['digits' => 'NISN harus terdiri dari 10 digit angka.'])
-                                ->unique(ignoreRecord: true),
+                                ->unique(ignoreRecord: true)
+                                ->validationMessages([
+                                    'digits' => 'NISN harus terdiri dari 10 digit angka.',
+                                    'unique' => 'NISN ini sudah dipakai siswa lain (periksa juga filter "Data terhapus").',
+                                ]),
                             Select::make('kelas_id')
                                 ->label('Kelas Saat Ini')
-                                ->relationship('kelas', 'nama')
+                                ->relationship(
+                                    'kelas',
+                                    'nama',
+                                    fn (Builder $query, ?Siswa $record): Builder => Kelas::batasiYangTersedia($query, $record?->kelas_id),
+                                )
                                 ->searchable()
                                 ->preload(),
                             Select::make('status')

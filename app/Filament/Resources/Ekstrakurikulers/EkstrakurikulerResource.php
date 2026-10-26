@@ -2,12 +2,11 @@
 
 namespace App\Filament\Resources\Ekstrakurikulers;
 
+use App\Filament\Actions\HapusMasterDataActions;
 use App\Filament\Resources\Ekstrakurikulers\Pages\ManageEkstrakurikulers;
 use App\Models\Ekstrakurikuler;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -16,6 +15,8 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use UnitEnum;
 
@@ -47,6 +48,10 @@ class EkstrakurikulerResource extends Resource
                 Toggle::make('is_wajib')
                     ->label('Ekstrakurikuler wajib')
                     ->helperText('Ekstrakurikuler wajib otomatis ditambahkan ke rapor baru.'),
+                Toggle::make('is_aktif')
+                    ->label('Aktif')
+                    ->helperText('Ekstrakurikuler nonaktif tidak ditawarkan untuk rapor baru, tetapi tetap tampil di rapor lama.')
+                    ->default(true),
             ])
             ->columns(1);
     }
@@ -63,14 +68,23 @@ class EkstrakurikulerResource extends Resource
                 IconColumn::make('is_wajib')
                     ->label('Wajib')
                     ->boolean(),
+                ToggleColumn::make('is_aktif')
+                    ->label('Aktif')
+                    ->disabled(fn (Ekstrakurikuler $record): bool => ! (auth()->user()?->can('update', $record) ?? false)),
+            ])
+            ->filters([
+                TernaryFilter::make('is_aktif')
+                    ->label('Status')
+                    ->trueLabel('Aktif')
+                    ->falseLabel('Nonaktif'),
             ])
             ->recordActions([
                 EditAction::make(),
-                DeleteAction::make(),
+                HapusMasterDataActions::hapus(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    HapusMasterDataActions::hapusMassal(),
                 ]),
             ]);
     }

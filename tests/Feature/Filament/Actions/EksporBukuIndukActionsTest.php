@@ -79,7 +79,7 @@ it('exports a file that imports back into the same students and grades', functio
     $tahunAjaran = $rapor->tahunAjaran->nama;
 
     $path = BukuIndukExport::excelSiswa(BukuIndukExport::muatSiswa(Siswa::query()), IsiDokumen::Keduanya);
-    $siswa->delete();
+    $siswa->forceDelete();
 
     Livewire::test(ListSiswas::class)
         ->mountAction('importGabungan')

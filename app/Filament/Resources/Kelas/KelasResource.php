@@ -2,20 +2,22 @@
 
 namespace App\Filament\Resources\Kelas;
 
+use App\Filament\Actions\HapusMasterDataActions;
 use App\Filament\Resources\Kelas\Pages\ManageKelas;
 use App\Models\Kelas;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use UnitEnum;
 
@@ -56,6 +58,10 @@ class KelasResource extends Resource
                     ->required()
                     ->maxLength(50)
                     ->unique(ignoreRecord: true),
+                Toggle::make('is_aktif')
+                    ->label('Aktif')
+                    ->helperText('Kelas nonaktif tidak ditawarkan untuk siswa dan rapor baru, tetapi tetap tampil di rapor lama.')
+                    ->default(true),
             ])
             ->columns(1);
     }
@@ -75,18 +81,25 @@ class KelasResource extends Resource
                 TextColumn::make('siswa_count')
                     ->label('Jumlah Siswa')
                     ->counts('siswa'),
+                ToggleColumn::make('is_aktif')
+                    ->label('Aktif')
+                    ->disabled(fn (Kelas $record): bool => ! (auth()->user()?->can('update', $record) ?? false)),
             ])
             ->filters([
                 SelectFilter::make('tingkat')
                     ->options(static::getTingkatOptions()),
+                TernaryFilter::make('is_aktif')
+                    ->label('Status')
+                    ->trueLabel('Aktif')
+                    ->falseLabel('Nonaktif'),
             ])
             ->recordActions([
                 EditAction::make(),
-                DeleteAction::make(),
+                HapusMasterDataActions::hapus(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    HapusMasterDataActions::hapusMassal(),
                 ]),
             ]);
     }
