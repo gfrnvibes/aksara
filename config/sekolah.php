@@ -52,4 +52,14 @@ return [
         'TikTok' => env('SEKOLAH_TIKTOK'),
     ],
 
+    /*
+     * Days absent without notice in one semester above which the homeroom note asks for better attendance.
+     */
+    'batas_tanpa_keterangan' => (int) env('SEKOLAH_BATAS_TANPA_KETERANGAN', 2),
+
+    /*
+     * Place printed above the principal's signature on the report, e.g. "Cisurupan, 20 Juni 2026".
+     */
+    'tempat_tanda_tangan' => env('SEKOLAH_TEMPAT_TANDA_TANGAN', 'Cisurupan'),
+
 ];

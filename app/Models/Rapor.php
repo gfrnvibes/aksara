@@ -30,6 +30,8 @@ use Illuminate\Support\Carbon;
  * @property string|null $nilai_kepribadian
  * @property array<int, array{prestasi: string|null, nilai: string|null, keterangan: string|null}>|null $prestasi
  * @property string|null $catatan
+ * @property string|null $wali_kelas
+ * @property string|null $nip_wali_kelas
  * @property KeputusanKenaikan|null $keputusan
  * @property Carbon|null $tanggal_keputusan
  * @property Carbon|null $created_at
@@ -58,6 +60,37 @@ class Rapor extends Model implements ProvidesActivityTitle
             'tanggal_keputusan' => 'date',
             'prestasi' => 'array',
         ];
+    }
+
+    /**
+     * Copy the class's homeroom teacher onto a report card that names none, so the printed report keeps the
+     * teacher of that year even after the class gets a new one.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Rapor $rapor): void {
+            if (blank($rapor->wali_kelas)) {
+                $kelas = Kelas::query()->find($rapor->kelas_id);
+
+                $rapor->wali_kelas = $kelas?->wali_kelas;
+                $rapor->nip_wali_kelas = $kelas?->wali_kelas ? $kelas->nip_wali_kelas : $rapor->nip_wali_kelas;
+            }
+        });
+    }
+
+    /**
+     * Who signs this report card as homeroom teacher: the name saved on the report card, or else the class's
+     * current homeroom teacher (for report cards saved before a teacher was assigned).
+     *
+     * @return array{nama: string|null, nip: string|null}
+     */
+    public function penandaTanganWaliKelas(): array
+    {
+        if (filled($this->wali_kelas)) {
+            return ['nama' => $this->wali_kelas, 'nip' => $this->nip_wali_kelas];
+        }
+
+        return ['nama' => $this->kelas?->wali_kelas, 'nip' => $this->kelas?->nip_wali_kelas];
     }
 
     /**

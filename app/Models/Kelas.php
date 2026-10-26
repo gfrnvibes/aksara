@@ -20,12 +20,14 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $tingkat
  * @property string $nama
+ * @property string|null $wali_kelas
+ * @property string|null $nip_wali_kelas
  * @property bool $is_aktif
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
 #[Table('kelas')]
-#[Fillable(['tingkat', 'nama', 'is_aktif'])]
+#[Fillable(['tingkat', 'nama', 'wali_kelas', 'nip_wali_kelas', 'is_aktif'])]
 class Kelas extends Model implements ProvidesActivityTitle, TerlindungDariHapus
 {
     use CatatAktivitas;

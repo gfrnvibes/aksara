@@ -48,6 +48,13 @@ class TahunAjaranResource extends Resource
                 Toggle::make('is_aktif')
                     ->label('Tahun ajaran aktif')
                     ->helperText('Hanya satu tahun ajaran yang dapat aktif.'),
+                TextInput::make('kepala_madrasah')
+                    ->label('Kepala Madrasah')
+                    ->helperText('Penanda tangan rapor tahun ajaran ini, beserta gelarnya.')
+                    ->maxLength(255),
+                TextInput::make('nip_kepala_madrasah')
+                    ->label('NIP Kepala Madrasah')
+                    ->maxLength(30),
             ])
             ->columns(1);
     }
@@ -64,6 +71,9 @@ class TahunAjaranResource extends Resource
                 IconColumn::make('is_aktif')
                     ->label('Aktif')
                     ->boolean(),
+                TextColumn::make('kepala_madrasah')
+                    ->label('Kepala Madrasah')
+                    ->placeholder('Belum diisi'),
                 TextColumn::make('rapor_count')
                     ->label('Jumlah Rapor')
                     ->counts('rapor'),

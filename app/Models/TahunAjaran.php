@@ -17,10 +17,12 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $nama
  * @property bool $is_aktif
+ * @property string|null $kepala_madrasah
+ * @property string|null $nip_kepala_madrasah
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['nama', 'is_aktif'])]
+#[Fillable(['nama', 'is_aktif', 'kepala_madrasah', 'nip_kepala_madrasah'])]
 class TahunAjaran extends Model implements ProvidesActivityTitle, TerlindungDariHapus
 {
     use CatatAktivitas;

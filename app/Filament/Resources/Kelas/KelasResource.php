@@ -58,6 +58,13 @@ class KelasResource extends Resource
                     ->required()
                     ->maxLength(50)
                     ->unique(ignoreRecord: true),
+                TextInput::make('wali_kelas')
+                    ->label('Wali Kelas')
+                    ->helperText('Disalin ke rapor baru sebagai penanda tangan; rapor lama tidak ikut berubah.')
+                    ->maxLength(255),
+                TextInput::make('nip_wali_kelas')
+                    ->label('NIP Wali Kelas')
+                    ->maxLength(30),
                 Toggle::make('is_aktif')
                     ->label('Aktif')
                     ->helperText('Kelas nonaktif tidak ditawarkan untuk siswa dan rapor baru, tetapi tetap tampil di rapor lama.')
@@ -78,6 +85,9 @@ class KelasResource extends Resource
                 TextColumn::make('tingkat')
                     ->formatStateUsing(fn (int $state): string => static::getTingkatOptions()[$state] ?? (string) $state)
                     ->sortable(),
+                TextColumn::make('wali_kelas')
+                    ->label('Wali Kelas')
+                    ->placeholder('Belum diisi'),
                 TextColumn::make('siswa_count')
                     ->label('Jumlah Siswa')
                     ->counts('siswa'),

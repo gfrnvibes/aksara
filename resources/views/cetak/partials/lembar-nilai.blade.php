@@ -100,6 +100,11 @@
                             </tbody>
                         </table>
                     @endif
+
+                    <table class="grid" style="margin-top: 6px;">
+                        <tr><th style="text-align: left;">Catatan Wali Kelas</th></tr>
+                        <tr><td style="height: 48px; vertical-align: top; text-align: justify;">{{ $tampil($rapor?->catatan) }}</td></tr>
+                    </table>
                 </td>
             @endforeach
         </tr>
@@ -110,6 +115,30 @@
         <tr>
             <td>{{ $semesterGenap?->keputusan?->getLabel() ?? '-' }}</td>
             <td style="width: 40%;">Tanggal: {{ $tanggal($semesterGenap?->tanggal_keputusan) }}</td>
+        </tr>
+    </table>
+
+    @php
+        $tahunAjaranRapor = $raporTerakhir?->tahunAjaran;
+        $waliKelas = $raporTerakhir?->penandaTanganWaliKelas() ?? ['nama' => null, 'nip' => null];
+        $tanggalTandaTangan = $semesterGenap?->tanggal_keputusan?->translatedFormat('d F Y') ?? '............................';
+    @endphp
+    <table class="layout" style="margin-top: 20px;">
+        <tr>
+            <td style="width: 50%; text-align: center;">
+                <br>
+                Wali Kelas
+                <div style="height: 64px;"></div>
+                <strong><u>{{ $waliKelas['nama'] ?: '...............................................' }}</u></strong><br>
+                NIP. {{ $tampil($waliKelas['nip']) }}
+            </td>
+            <td style="width: 50%; text-align: center;">
+                {{ config('sekolah.tempat_tanda_tangan') }}, {{ $tanggalTandaTangan }}<br>
+                Kepala Madrasah
+                <div style="height: 64px;"></div>
+                <strong><u>{{ $tahunAjaranRapor?->kepala_madrasah ?: '...............................................' }}</u></strong><br>
+                NIP. {{ $tampil($tahunAjaranRapor?->nip_kepala_madrasah) }}
+            </td>
         </tr>
     </table>
 </div>

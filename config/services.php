@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    /*
+     * Google Gemini, used to draft homeroom notes. Leave the key empty to use the rule-based notes only.
+     * GEMINI_MODEL is a comma-separated list tried in order while a model is busy or out of free quota.
+     */
+    'gemini' => [
+        'key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-3.5-flash-lite,gemini-3.1-flash-lite'),
+        'timeout' => (int) env('GEMINI_TIMEOUT', 15),
+    ],
+
 ];
