@@ -51,7 +51,7 @@ class KenaikanKelas extends Page
 
     protected static string|UnitEnum|null $navigationGroup = 'Buku Induk';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 6;
 
     protected static ?string $navigationLabel = 'Kenaikan Kelas';
 

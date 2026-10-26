@@ -4,6 +4,7 @@ namespace App\Filament\Imports\Concerns;
 
 use App\Enums\KeputusanKenaikan;
 use App\Enums\Semester;
+use App\Filament\Resources\Rapors\Schemas\RaporForm;
 use App\Models\Ekstrakurikuler;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
@@ -51,14 +52,21 @@ trait ImportsDataNilai
             ->flatMap(fn (MataPelajaran $mataPelajaran): array => [
                 ImportColumn::make("mapel_{$mataPelajaran->id}_pengetahuan")
                     ->label(static::labelNilaiPengetahuan($mataPelajaran))
+                    ->guess(["{$mataPelajaran->nama} - Pengetahuan"])
                     ->integer()
                     ->rules(['nullable', 'integer', 'min:0', 'max:100'])
                     ->example('85'),
                 ImportColumn::make("mapel_{$mataPelajaran->id}_keterampilan")
                     ->label(static::labelNilaiKeterampilan($mataPelajaran))
+                    ->guess(["{$mataPelajaran->nama} - Keterampilan"])
                     ->integer()
                     ->rules(['nullable', 'integer', 'min:0', 'max:100'])
                     ->example('82'),
+                ImportColumn::make("mapel_{$mataPelajaran->id}_sikap")
+                    ->label(static::labelSikap($mataPelajaran))
+                    ->castStateUsing(fn (mixed $state): ?string => static::predikat($state))
+                    ->rules(['nullable', Rule::in(array_keys(RaporForm::PREDIKAT_SIKAP))])
+                    ->example('B'),
             ])
             ->all();
 
@@ -126,12 +134,17 @@ trait ImportsDataNilai
 
     public static function labelNilaiPengetahuan(MataPelajaran $mataPelajaran): string
     {
-        return "{$mataPelajaran->nama} - Pengetahuan";
+        return "{$mataPelajaran->nama} (P)";
     }
 
     public static function labelNilaiKeterampilan(MataPelajaran $mataPelajaran): string
     {
-        return "{$mataPelajaran->nama} - Keterampilan";
+        return "{$mataPelajaran->nama} (K)";
+    }
+
+    public static function labelSikap(MataPelajaran $mataPelajaran): string
+    {
+        return "{$mataPelajaran->nama} (Sikap)";
     }
 
     public static function labelEkstrakurikuler(Ekstrakurikuler $ekstrakurikuler): string
@@ -224,8 +237,9 @@ trait ImportsDataNilai
         foreach ($this->daftarMataPelajaran as $mataPelajaran) {
             $kolomPengetahuan = "mapel_{$mataPelajaran->id}_pengetahuan";
             $kolomKeterampilan = "mapel_{$mataPelajaran->id}_keterampilan";
+            $kolomSikap = "mapel_{$mataPelajaran->id}_sikap";
 
-            if (! $this->kolomTerpetakan($kolomPengetahuan) && ! $this->kolomTerpetakan($kolomKeterampilan)) {
+            if (! $this->kolomTerpetakan($kolomPengetahuan) && ! $this->kolomTerpetakan($kolomKeterampilan) && ! $this->kolomTerpetakan($kolomSikap)) {
                 continue;
             }
 
@@ -242,7 +256,11 @@ trait ImportsDataNilai
                 $nilaiRapor->nilai_keterampilan = $this->data[$kolomKeterampilan];
             }
 
-            if (! $nilaiRapor->exists && $nilaiRapor->nilai_pengetahuan === null && $nilaiRapor->nilai_keterampilan === null) {
+            if ($this->kolomTerpetakan($kolomSikap)) {
+                $nilaiRapor->sikap = $this->data[$kolomSikap];
+            }
+
+            if (! $nilaiRapor->exists && $nilaiRapor->nilai_pengetahuan === null && $nilaiRapor->nilai_keterampilan === null && $nilaiRapor->sikap === null) {
                 continue;
             }
 

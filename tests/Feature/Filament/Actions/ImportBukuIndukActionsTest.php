@@ -3,16 +3,21 @@
 use App\Enums\JenisKelamin;
 use App\Enums\JenisOrangTua;
 use App\Enums\Semester;
+use App\Exports\BukuIndukExport;
+use App\Filament\Imports\NilaiImporter;
 use App\Filament\Resources\Rapors\Pages\ListRapors;
 use App\Filament\Resources\Siswas\Pages\ListSiswas;
 use App\Models\Ekstrakurikuler;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use App\Models\NilaiRapor;
 use App\Models\Rapor;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use Illuminate\Http\UploadedFile;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
+use OpenSpout\Reader\XLSX\Reader;
 
 use function Pest\Laravel\actingAs;
 
@@ -212,4 +217,92 @@ it('stores the guardian when the guardian name is given', function () {
     expect(Siswa::query()->sole()->wali)
         ->jenis->toBe(JenisOrangTua::Wali)
         ->pekerjaan->toBe('Pedagang');
+});
+
+/**
+ * The rows of the first sheet of an .xlsx file, as lists of cell values.
+ *
+ * @return array<int, array<int, mixed>>
+ */
+function bacaXlsx(string $path): array
+{
+    $reader = new Reader;
+    $reader->open($path);
+
+    $baris = [];
+
+    foreach ($reader->getSheetIterator() as $sheet) {
+        foreach ($sheet->getRowIterator() as $row) {
+            $baris[] = $row->toArray();
+        }
+
+        break;
+    }
+
+    $reader->close();
+
+    return $baris;
+}
+
+it('names the grade columns after the subjects and reads them back', function () {
+    $siswa = Siswa::factory()->create(['nis' => '250001']);
+    Kelas::factory()->create(['nama' => 'VII-A']);
+    $matematika = MataPelajaran::factory()->create(['nama' => 'Matematika']);
+
+    expect(array_map(fn ($kolom) => $kolom->getLabel(), NilaiImporter::getColumns()))
+        ->toContain('Matematika (P)', 'Matematika (K)', 'Matematika (Sikap)');
+
+    jalankanImport(ListRapors::class, 'importNilai', fileCsv([
+        ['NIS', 'Tahun Ajaran', 'Semester (1/2)', 'Kelas pada Semester', 'Matematika (P)', 'Matematika (K)', 'Matematika (Sikap)'],
+        ['250001', '2025/2026', '1', 'VII-A', '88', '84', 'sb'],
+    ]));
+
+    expect(Rapor::query()->whereBelongsTo($siswa)->sole()->nilaiRapor->sole())
+        ->mata_pelajaran_id->toBe($matematika->id)
+        ->nilai_pengetahuan->toBe(88)
+        ->sikap->toBe('SB');
+});
+
+it('pre-fills the class grade template with the class members and the grades already entered', function () {
+    $tahunAjaran = TahunAjaran::factory()->aktif()->create(['nama' => '2025/2026']);
+    $kelas = Kelas::factory()->create(['nama' => 'VII-A']);
+    $matematika = MataPelajaran::factory()->create(['nama' => 'Matematika']);
+    $sudahDinilai = Siswa::factory()->for($kelas)->create(['nis' => '250001', 'nama_lengkap' => 'Ahmad']);
+    Siswa::factory()->for($kelas)->create(['nis' => '250002', 'nama_lengkap' => 'Budi']);
+    Siswa::factory()->for(Kelas::factory())->create(['nama_lengkap' => 'Kelas Lain']);
+    $rapor = Rapor::factory()->for($sudahDinilai)->for($tahunAjaran)->for($kelas)->create(['semester' => Semester::Ganjil, 'sakit' => 2]);
+    NilaiRapor::factory()->for($rapor)->for($matematika)->create(['nilai_pengetahuan' => 90, 'nilai_keterampilan' => 85, 'sikap' => 'B']);
+
+    $baris = bacaXlsx(BukuIndukExport::templateNilaiKelas($kelas, $tahunAjaran, Semester::Ganjil));
+    $isi = array_map(fn (array $nilai): array => array_combine($baris[0], array_pad($nilai, count($baris[0]), null)), array_slice($baris, 1));
+
+    expect($isi)->toHaveCount(2)
+        ->and($isi[0])->toMatchArray([
+            'NIS' => '250001',
+            'Nama Lengkap' => 'Ahmad',
+            'Tahun Ajaran' => '2025/2026',
+            'Semester (1/2)' => 1,
+            'Kelas pada Semester' => 'VII-A',
+            'Sakit (hari)' => 2,
+            'Matematika (P)' => 90,
+            'Matematika (K)' => 85,
+            'Matematika (Sikap)' => 'B',
+        ])
+        ->and($isi[1])->toMatchArray([
+            'NIS' => '250002',
+            'Nama Lengkap' => 'Budi',
+            'Tahun Ajaran' => '2025/2026',
+            'Kelas pada Semester' => 'VII-A',
+            'Matematika (P)' => '',
+        ]);
+});
+
+it('downloads the class grade template or an empty one when no class is chosen', function () {
+    $tahunAjaran = TahunAjaran::factory()->aktif()->create(['nama' => '2025/2026']);
+    $kelas = Kelas::factory()->create(['nama' => 'VII-A']);
+
+    Livewire::test(ListRapors::class)
+        ->mountAction('importNilai')
+        ->callAction('downloadTemplate', ['tahun_ajaran_id' => $tahunAjaran->id, 'semester' => Semester::Genap->value, 'kelas_id' => $kelas->id])
+        ->assertFileDownloaded('template-nilai-vii-a-20252026-semester-genap.xlsx');
 });

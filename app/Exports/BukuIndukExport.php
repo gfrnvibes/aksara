@@ -4,12 +4,15 @@ namespace App\Exports;
 
 use App\Enums\IsiDokumen;
 use App\Enums\JenisOrangTua;
+use App\Enums\Semester;
 use App\Filament\Imports\BukuIndukGabunganImporter;
 use App\Filament\Imports\NilaiImporter;
 use App\Filament\Imports\SiswaImporter;
+use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Rapor;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use BackedEnum;
 use Barryvdh\DomPDF\Facade\Pdf;
 use DateTimeInterface;
@@ -98,6 +101,45 @@ class BukuIndukExport
                 ...static::barisRapor($rapor),
             ]),
         );
+    }
+
+    /**
+     * The grade import template of one class for one semester, pre-filled with every member of the class and the
+     * grades already entered, so the homeroom teacher only fills in the empty cells and imports it back.
+     */
+    public static function templateNilaiKelas(Kelas $kelas, TahunAjaran $tahunAjaran, Semester $semester): string
+    {
+        $daftarSiswa = Siswa::query()->anggotaKelas($kelas->id, $tahunAjaran->id)->orderBy('nama_lengkap')->get();
+
+        $raporPerSiswa = Rapor::query()
+            ->whereIn('siswa_id', $daftarSiswa->modelKeys())
+            ->where('tahun_ajaran_id', $tahunAjaran->id)
+            ->where('semester', $semester)
+            ->with(['tahunAjaran', 'kelas', 'nilaiRapor', 'nilaiEkstrakurikuler'])
+            ->get()
+            ->keyBy('siswa_id');
+
+        return static::tulisExcel(
+            NilaiImporter::getColumns(),
+            $daftarSiswa->map(function (Siswa $siswa) use ($raporPerSiswa, $kelas, $tahunAjaran, $semester): array {
+                $rapor = $raporPerSiswa->get($siswa->id);
+
+                return [
+                    'nis' => $siswa->nis,
+                    'nama_lengkap' => $siswa->nama_lengkap,
+                    ...($rapor ? static::barisRapor($rapor) : [
+                        'tahun_ajaran' => $tahunAjaran->nama,
+                        'semester' => $semester,
+                        'kelas_rapor' => $kelas->nama,
+                    ]),
+                ];
+            }),
+        );
+    }
+
+    public static function namaFileTemplateNilaiKelas(Kelas $kelas, TahunAjaran $tahunAjaran, Semester $semester): string
+    {
+        return Str::slug("template nilai {$kelas->nama} {$tahunAjaran->nama} semester {$semester->name}").'.xlsx';
     }
 
     /**
@@ -202,6 +244,7 @@ class BukuIndukExport
         foreach ($rapor->nilaiRapor as $nilai) {
             $baris["mapel_{$nilai->mata_pelajaran_id}_pengetahuan"] = $nilai->nilai_pengetahuan;
             $baris["mapel_{$nilai->mata_pelajaran_id}_keterampilan"] = $nilai->nilai_keterampilan;
+            $baris["mapel_{$nilai->mata_pelajaran_id}_sikap"] = $nilai->sikap;
         }
 
         foreach ($rapor->nilaiEkstrakurikuler as $nilai) {
