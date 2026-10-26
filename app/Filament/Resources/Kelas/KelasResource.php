@@ -38,7 +38,7 @@ class KelasResource extends Resource
     protected static ?string $recordTitleAttribute = 'nama';
 
     /**
-     * @return array<int, string>
+     * @return non-empty-array<int, string>
      */
     public static function getTingkatOptions(): array
     {
