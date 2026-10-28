@@ -2,6 +2,7 @@
 
 namespace App\Services\CatatanWaliKelas;
 
+use App\Services\Gemini\KlienGemini;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -21,7 +22,7 @@ class PenyusunCatatanWaliKelas
 
     public static function geminiAktif(): bool
     {
-        return filled(config('services.gemini.key'));
+        return KlienGemini::aktif();
     }
 
     /**
@@ -35,7 +36,7 @@ class PenyusunCatatanWaliKelas
             } catch (Throwable $exception) {
                 report($exception);
 
-                return ['teks' => static::sapa($this->aturan->buat($ringkasan), $sapaan), 'sumber' => static::SUMBER_ATURAN, 'alasanGagalAi' => CatatanGemini::alasanGagal($exception)];
+                return ['teks' => static::sapa($this->aturan->buat($ringkasan), $sapaan), 'sumber' => static::SUMBER_ATURAN, 'alasanGagalAi' => KlienGemini::alasanGagal($exception)];
             }
         }
 
