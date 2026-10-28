@@ -60,6 +60,20 @@ return [
             'report' => false,
         ],
 
+        // Cloudflare R2 (S3-compatible). Private bucket: files are only reached through short-lived signed URLs.
+        'r2' => [
+            'driver' => 's3',
+            'key' => env('R2_ACCESS_KEY_ID'),
+            'secret' => env('R2_SECRET_ACCESS_KEY'),
+            'region' => 'auto',
+            'bucket' => env('R2_BUCKET'),
+            'endpoint' => env('R2_ENDPOINT'),
+            'use_path_style_endpoint' => true,
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => false,
+        ],
+
         // Off-site backup copy, registered in AppServiceProvider via masbug/flysystem-google-drive-ext.
         'google' => [
             'driver' => 'google',
@@ -72,6 +86,19 @@ return [
         ],
 
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Archive Disk
+    |--------------------------------------------------------------------------
+    |
+    | Where scanned documents such as diplomas are stored. Use "r2" in
+    | production; the private "local" disk keeps development working
+    | without cloud credentials.
+    |
+    */
+
+    'arsip' => env('ARSIP_DISK', 'local'),
 
     /*
     |--------------------------------------------------------------------------

@@ -40,6 +40,7 @@ class AdminPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->navigationGroups([
                 'Buku Induk',
+                'Arsip',
                 'Master Data',
                 'Pengaturan',
             ])
