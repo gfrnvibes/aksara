@@ -3,6 +3,9 @@
 namespace App\Filament\Resources\Rapors\Tables;
 
 use App\Enums\Semester;
+use App\Models\Rapor;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -11,6 +14,7 @@ use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
@@ -24,7 +28,7 @@ class RaporsTable
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query
                 ->with(['siswa', 'tahunAjaran', 'kelas'])
-                ->withAvg('nilaiRapor', 'nilai_pengetahuan'))
+                ->scopes(['denganRataRataNilai']))
             ->defaultSort('updated_at', 'desc')
             ->columns([
                 TextColumn::make('siswa.nis')
@@ -39,7 +43,7 @@ class RaporsTable
                     ->sortable(),
                 TextColumn::make('kelas.nama')
                     ->label('Kelas'),
-                TextColumn::make('nilai_rapor_avg_nilai_pengetahuan')
+                TextColumn::make('rata_rata_nilai')
                     ->label('Rata-rata')
                     ->numeric(decimalPlaces: 2),
                 TextColumn::make('keputusan')
@@ -65,6 +69,21 @@ class RaporsTable
                     ->label('Data terhapus'),
             ])
             ->recordActions([
+                ActionGroup::make([
+                    Action::make('cetakRapor')
+                        ->label('Cetak di browser')
+                        ->icon(Heroicon::OutlinedPrinter)
+                        ->url(fn (Rapor $record): string => route('rapor.cetak', $record))
+                        ->openUrlInNewTab(),
+                    Action::make('unduhRapor')
+                        ->label('Unduh PDF')
+                        ->icon(Heroicon::OutlinedArrowDownTray)
+                        ->url(fn (Rapor $record): string => route('rapor.cetak', ['rapor' => $record, 'format' => 'pdf'])),
+                ])
+                    ->label('Cetak Rapor')
+                    ->icon(Heroicon::OutlinedPrinter)
+                    ->link()
+                    ->visible(fn (Rapor $record): bool => ! $record->trashed()),
                 EditAction::make(),
                 DeleteAction::make()
                     ->modalDescription('Rapor dipindahkan ke data terhapus dan dapat dipulihkan kembali beserta seluruh nilainya.'),

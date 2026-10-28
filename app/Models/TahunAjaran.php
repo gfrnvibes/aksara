@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\Kurikulum;
 use App\Models\Concerns\CatatAktivitas;
 use App\Models\Concerns\MenolakHapusSaatDipakai;
 use App\Models\Contracts\TerlindungDariHapus;
+use App\Services\Kurikulum\SkemaPenilaian;
 use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\TahunAjaranFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,13 +18,14 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string $nama
+ * @property Kurikulum $kurikulum
  * @property bool $is_aktif
  * @property string|null $kepala_madrasah
  * @property string|null $nip_kepala_madrasah
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['nama', 'is_aktif', 'kepala_madrasah', 'nip_kepala_madrasah'])]
+#[Fillable(['nama', 'kurikulum', 'is_aktif', 'kepala_madrasah', 'nip_kepala_madrasah'])]
 class TahunAjaran extends Model implements ProvidesActivityTitle, TerlindungDariHapus
 {
     use CatatAktivitas;
@@ -40,6 +43,7 @@ class TahunAjaran extends Model implements ProvidesActivityTitle, TerlindungDari
     protected function casts(): array
     {
         return [
+            'kurikulum' => Kurikulum::class,
             'is_aktif' => 'boolean',
         ];
     }
@@ -57,6 +61,24 @@ class TahunAjaran extends Model implements ProvidesActivityTitle, TerlindungDari
                     ->update(['is_aktif' => false]);
             }
         });
+    }
+
+    /**
+     * The grading scheme of the curriculum this year follows.
+     */
+    public function skema(): SkemaPenilaian
+    {
+        return $this->kurikulum->skema();
+    }
+
+    /**
+     * The grading scheme of an academic year, or of the current curriculum when no year is chosen yet.
+     */
+    public static function skemaUntuk(?int $tahunAjaranId): SkemaPenilaian
+    {
+        $kurikulum = $tahunAjaranId === null ? null : static::query()->whereKey($tahunAjaranId)->value('kurikulum');
+
+        return ($kurikulum instanceof Kurikulum ? $kurikulum : Kurikulum::tryFrom((string) $kurikulum) ?? Kurikulum::bawaan())->skema();
     }
 
     /**

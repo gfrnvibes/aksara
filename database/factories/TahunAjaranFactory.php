@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\Kurikulum;
 use App\Models\TahunAjaran;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -21,8 +22,19 @@ class TahunAjaranFactory extends Factory
 
         return [
             'nama' => $tahunMulai.'/'.($tahunMulai + 1),
+            'kurikulum' => Kurikulum::K13,
             'is_aktif' => false,
         ];
+    }
+
+    /**
+     * Indicate that the academic year follows Kurikulum Merdeka.
+     */
+    public function merdeka(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'kurikulum' => Kurikulum::Merdeka,
+        ]);
     }
 
     /**

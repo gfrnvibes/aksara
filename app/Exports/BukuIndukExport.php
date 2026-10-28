@@ -120,7 +120,7 @@ class BukuIndukExport
             ->keyBy('siswa_id');
 
         return static::tulisExcel(
-            NilaiImporter::getColumns(),
+            NilaiImporter::kolomUntukSkema(NilaiImporter::getColumns(), $tahunAjaran->skema()),
             $daftarSiswa->map(function (Siswa $siswa) use ($raporPerSiswa, $kelas, $tahunAjaran, $semester): array {
                 $rapor = $raporPerSiswa->get($siswa->id);
 
@@ -245,6 +245,8 @@ class BukuIndukExport
             $baris["mapel_{$nilai->mata_pelajaran_id}_pengetahuan"] = $nilai->nilai_pengetahuan;
             $baris["mapel_{$nilai->mata_pelajaran_id}_keterampilan"] = $nilai->nilai_keterampilan;
             $baris["mapel_{$nilai->mata_pelajaran_id}_sikap"] = $nilai->sikap;
+            $baris["mapel_{$nilai->mata_pelajaran_id}_nilai_akhir"] = $nilai->nilai_akhir;
+            $baris["mapel_{$nilai->mata_pelajaran_id}_capaian_kompetensi"] = $nilai->capaian_kompetensi;
         }
 
         foreach ($rapor->nilaiEkstrakurikuler as $nilai) {

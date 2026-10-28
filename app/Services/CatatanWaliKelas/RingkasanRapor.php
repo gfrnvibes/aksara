@@ -9,6 +9,7 @@ use App\Models\Ekstrakurikuler;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 
 /**
  * What a homeroom note is written from: one student's grades, attitude, activities and attendance for a semester.
@@ -18,10 +19,11 @@ use App\Models\Siswa;
 final readonly class RingkasanRapor
 {
     /**
-     * @param  list<array{nama: string, kkm: int, pengetahuan: int|null, keterampilan: int|null, sikap: string|null}>  $mataPelajaran
+     * @param  list<array{nama: string, kkm: int, pengetahuan: int|null, keterampilan: int|null, akhir: int|null, sikap: string|null}>  $mataPelajaran
      * @param  list<array{nama: string, nilai: string|null}>  $ekstrakurikuler
      * @param  KeputusanKenaikan|null  $keputusan  The end-of-year decision; only set on an even-semester report card.
      * @param  int|null  $naikKeTingkat  The grade (7-9) the student moves up to when promoted.
+     * @param  string  $labelKkm  What the curriculum calls the passing threshold: KKM or KKTP.
      */
     public function __construct(
         public array $mataPelajaran,
@@ -33,6 +35,7 @@ final readonly class RingkasanRapor
         public int $tanpaKeterangan,
         public ?KeputusanKenaikan $keputusan = null,
         public ?int $naikKeTingkat = null,
+        public string $labelKkm = 'KKM',
     ) {}
 
     /**
@@ -62,6 +65,7 @@ final readonly class RingkasanRapor
                 'kkm' => (int) ($baris['kkm'] ?? 0),
                 'pengetahuan' => self::angka($baris['nilai_pengetahuan'] ?? null),
                 'keterampilan' => self::angka($baris['nilai_keterampilan'] ?? null),
+                'akhir' => self::angka($baris['nilai_akhir'] ?? null),
                 'sikap' => self::teks($baris['sikap'] ?? null),
             ];
         }
@@ -94,6 +98,7 @@ final readonly class RingkasanRapor
             tanpaKeterangan: (int) ($data['tanpa_keterangan'] ?? 0),
             keputusan: $keputusan,
             naikKeTingkat: $tingkatSekarang !== null ? (int) $tingkatSekarang + 1 : null,
+            labelKkm: TahunAjaran::skemaUntuk(filled($data['tahun_ajaran_id'] ?? null) ? (int) $data['tahun_ajaran_id'] : null)->labelKkm(),
         );
     }
 
@@ -116,16 +121,17 @@ final readonly class RingkasanRapor
     }
 
     /**
-     * Subjects that have at least one score, each with the mean of its knowledge and skill scores.
+     * Subjects that have at least one score, each with the mean of its scores (knowledge and skill for K13,
+     * the final score for Kurikulum Merdeka).
      *
-     * @return list<array{nama: string, kkm: int, pengetahuan: int|null, keterampilan: int|null, sikap: string|null, rata: float}>
+     * @return list<array{nama: string, kkm: int, pengetahuan: int|null, keterampilan: int|null, akhir: int|null, sikap: string|null, rata: float}>
      */
     public function mataPelajaranBernilai(): array
     {
         $hasil = [];
 
         foreach ($this->mataPelajaran as $mapel) {
-            $nilai = array_filter([$mapel['pengetahuan'], $mapel['keterampilan']], fn (?int $angka): bool => $angka !== null);
+            $nilai = array_filter([$mapel['pengetahuan'], $mapel['keterampilan'], $mapel['akhir'] ?? null], fn (?int $angka): bool => $angka !== null);
 
             if ($nilai !== []) {
                 $hasil[] = [...$mapel, 'rata' => array_sum($nilai) / count($nilai)];

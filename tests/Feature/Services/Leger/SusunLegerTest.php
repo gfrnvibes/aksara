@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Kurikulum;
 use App\Enums\Semester;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
@@ -61,7 +62,7 @@ it('averages only the scores that were filled in', function () {
     $leger = app(SusunLeger::class)->untuk($this->kelas, $this->tahunAjaran, Semester::Ganjil);
 
     expect($leger->baris[0]['rata_rata'])->toBe(80.0)
-        ->and($leger->rataRataMapel()[$this->matematika->id])->toBe(['p' => 70.0, 'k' => null]);
+        ->and($leger->rataRataMapel()[$this->matematika->id])->toBe(['nilai_pengetahuan' => 70.0, 'nilai_keterampilan' => null]);
 });
 
 it('shows only the chosen semester and the subjects in curriculum order', function () {
@@ -74,6 +75,25 @@ it('shows only the chosen semester and the subjects in curriculum order', functi
     $leger = app(SusunLeger::class)->untuk($this->kelas, $this->tahunAjaran, Semester::Ganjil);
 
     expect($leger->mataPelajaran->modelKeys())->toBe([$this->matematika->id, $this->ipa->id, $mapelLama->id])
-        ->and($leger->baris[0]['nilai'][$this->matematika->id]['p'])->toBeNull()
+        ->and($leger->baris[0]['nilai'][$this->matematika->id]['skor']['nilai_pengetahuan'])->toBeNull()
         ->and($leger->baris[0]['rata_rata'])->toBe(75.0);
+});
+
+it('ranks a Kurikulum Merdeka class by the final score of each subject', function () {
+    $this->tahunAjaran->update(['kurikulum' => Kurikulum::Merdeka]);
+    $ahmad = Siswa::factory()->for($this->kelas)->create(['nama_lengkap' => 'Ahmad']);
+    $budi = Siswa::factory()->for($this->kelas)->create(['nama_lengkap' => 'Budi']);
+
+    foreach ([[$ahmad, 80, 70], [$budi, 90, 90]] as [$siswa, $matematika, $ipa]) {
+        $rapor = Rapor::factory()->for($siswa)->for($this->tahunAjaran)->for($this->kelas)->create(['semester' => Semester::Ganjil]);
+        NilaiRapor::factory()->for($rapor)->for($this->matematika)->create(['nilai_akhir' => $matematika, 'nilai_pengetahuan' => null, 'nilai_keterampilan' => null]);
+        NilaiRapor::factory()->for($rapor)->for($this->ipa)->create(['nilai_akhir' => $ipa, 'nilai_pengetahuan' => null, 'nilai_keterampilan' => null]);
+    }
+
+    $leger = app(SusunLeger::class)->untuk($this->kelas, $this->tahunAjaran->fresh(), Semester::Ganjil);
+
+    expect($leger->kolom())->toBe(['nilai_akhir' => 'NA'])
+        ->and(array_map(fn (array $baris): array => [$baris['siswa']->nama_lengkap, $baris['jumlah'], $baris['rata_rata'], $baris['peringkat']], $leger->baris))
+        ->toBe([['Ahmad', 150, 75.0, 2], ['Budi', 180, 90.0, 1]])
+        ->and($leger->rataRataMapel()[$this->matematika->id])->toBe(['nilai_akhir' => 85.0]);
 });

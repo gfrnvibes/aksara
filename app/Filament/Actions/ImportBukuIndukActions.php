@@ -6,6 +6,7 @@ use App\Enums\Semester;
 use App\Exports\BukuIndukExport;
 use App\Filament\Imports\BukuIndukGabunganImporter;
 use App\Filament\Imports\BukuIndukImporter;
+use App\Filament\Imports\Concerns\ImportsDataNilai;
 use App\Filament\Imports\NilaiImporter;
 use App\Filament\Imports\SiswaImporter;
 use App\Models\Kelas;
@@ -136,7 +137,13 @@ class ImportBukuIndukActions
      */
     protected static function unduhTemplateKosong(string $importer): BinaryFileResponse
     {
-        $kolom = array_map(fn (ImportColumn $kolom): ImportColumn => $kolom->exampleHeader((string) $kolom->getLabel()), $importer::getColumns());
+        $kolom = $importer::getColumns();
+
+        if (in_array(ImportsDataNilai::class, class_uses_recursive($importer), true)) {
+            $kolom = NilaiImporter::kolomUntukSkema($kolom, TahunAjaran::skemaUntuk(TahunAjaran::query()->where('is_aktif', true)->value('id')));
+        }
+
+        $kolom = array_map(fn (ImportColumn $kolom): ImportColumn => $kolom->exampleHeader((string) $kolom->getLabel()), $kolom);
 
         return response()
             ->download(TemplateWriter::write($kolom), $importer::getNamaTemplate().'.xlsx', [

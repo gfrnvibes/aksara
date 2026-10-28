@@ -13,6 +13,7 @@ use App\Models\NilaiRapor;
 use App\Models\Rapor;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Services\Kurikulum\SkemaPenilaian;
 use Filament\Actions\Imports\Exceptions\RowImportFailedException;
 use Filament\Actions\Imports\ImportColumn;
 use Illuminate\Database\Eloquent\Collection;
@@ -67,6 +68,15 @@ trait ImportsDataNilai
                     ->castStateUsing(fn (mixed $state): ?string => static::predikat($state))
                     ->rules(['nullable', Rule::in(array_keys(RaporForm::PREDIKAT_SIKAP))])
                     ->example('B'),
+                ImportColumn::make("mapel_{$mataPelajaran->id}_nilai_akhir")
+                    ->label("{$mataPelajaran->nama} (Nilai Akhir)")
+                    ->integer()
+                    ->rules(['nullable', 'integer', 'min:0', 'max:100'])
+                    ->example('85'),
+                ImportColumn::make("mapel_{$mataPelajaran->id}_capaian_kompetensi")
+                    ->label("{$mataPelajaran->nama} (Capaian Kompetensi)")
+                    ->castStateUsing(fn (mixed $state): ?string => filled($state) ? trim((string) $state) : null)
+                    ->example('Menunjukkan penguasaan yang baik dalam ...'),
             ])
             ->all();
 
@@ -130,6 +140,38 @@ trait ImportsDataNilai
             ImportColumn::make('catatan')
                 ->label('Catatan Wali Kelas'),
         ];
+    }
+
+    /**
+     * The grade columns of a template for one curriculum: the other curricula's subject columns, and the
+     * Akhlak/Kepribadian grades when the curriculum has none, are left out.
+     *
+     * @param  array<int, ImportColumn>  $kolom
+     * @return array<int, ImportColumn>
+     */
+    public static function kolomUntukSkema(array $kolom, SkemaPenilaian $skema): array
+    {
+        $kolomSkor = ['nilai_pengetahuan' => 'pengetahuan', 'nilai_keterampilan' => 'keterampilan', 'nilai_akhir' => 'nilai_akhir'];
+
+        $tidakDipakai = [
+            ...array_values(array_diff_key($kolomSkor, $skema->kolomNilai())),
+            ...$skema->pakaiSikapMapel() ? [] : ['sikap'],
+            ...$skema->pakaiCapaianKompetensi() ? [] : ['capaian_kompetensi'],
+        ];
+
+        return array_values(array_filter($kolom, function (ImportColumn $kolom) use ($tidakDipakai, $skema): bool {
+            if (! $skema->pakaiAkhlakKepribadian() && in_array($kolom->getName(), ['nilai_akhlak', 'nilai_kepribadian'], true)) {
+                return false;
+            }
+
+            foreach ($tidakDipakai as $akhiran) {
+                if (preg_match('/^mapel_\d+_'.$akhiran.'$/', $kolom->getName())) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
     }
 
     public static function labelNilaiPengetahuan(MataPelajaran $mataPelajaran): string
@@ -238,8 +280,10 @@ trait ImportsDataNilai
             $kolomPengetahuan = "mapel_{$mataPelajaran->id}_pengetahuan";
             $kolomKeterampilan = "mapel_{$mataPelajaran->id}_keterampilan";
             $kolomSikap = "mapel_{$mataPelajaran->id}_sikap";
+            $kolomNilaiAkhir = "mapel_{$mataPelajaran->id}_nilai_akhir";
+            $kolomCapaian = "mapel_{$mataPelajaran->id}_capaian_kompetensi";
 
-            if (! $this->kolomTerpetakan($kolomPengetahuan) && ! $this->kolomTerpetakan($kolomKeterampilan) && ! $this->kolomTerpetakan($kolomSikap)) {
+            if (! collect([$kolomPengetahuan, $kolomKeterampilan, $kolomSikap, $kolomNilaiAkhir, $kolomCapaian])->contains($this->kolomTerpetakan(...))) {
                 continue;
             }
 
@@ -260,7 +304,18 @@ trait ImportsDataNilai
                 $nilaiRapor->sikap = $this->data[$kolomSikap];
             }
 
-            if (! $nilaiRapor->exists && $nilaiRapor->nilai_pengetahuan === null && $nilaiRapor->nilai_keterampilan === null && $nilaiRapor->sikap === null) {
+            if ($this->kolomTerpetakan($kolomNilaiAkhir)) {
+                $nilaiRapor->nilai_akhir = $this->data[$kolomNilaiAkhir];
+            }
+
+            if ($this->kolomTerpetakan($kolomCapaian)) {
+                $nilaiRapor->capaian_kompetensi = $this->data[$kolomCapaian];
+            }
+
+            $kosong = $nilaiRapor->nilai_pengetahuan === null && $nilaiRapor->nilai_keterampilan === null && $nilaiRapor->sikap === null
+                && $nilaiRapor->nilai_akhir === null && blank($nilaiRapor->capaian_kompetensi);
+
+            if (! $nilaiRapor->exists && $kosong) {
                 continue;
             }
 

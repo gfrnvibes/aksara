@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\TahunAjarans;
 
+use App\Enums\Kurikulum;
 use App\Filament\Actions\HapusMasterDataActions;
 use App\Filament\Resources\TahunAjarans\Pages\ManageTahunAjarans;
 use App\Models\TahunAjaran;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
@@ -45,6 +47,12 @@ class TahunAjaranResource extends Resource
                     ->regex('/^\d{4}\/\d{4}$/')
                     ->validationMessages(['regex' => 'Format tahun ajaran harus seperti 2025/2026.'])
                     ->unique(ignoreRecord: true),
+                Select::make('kurikulum')
+                    ->options(Kurikulum::class)
+                    ->default(Kurikulum::bawaan())
+                    ->helperText('Menentukan format penilaian dan cetak rapor tahun ajaran ini. Tahun ajaran lama tetap memakai kurikulumnya sendiri.')
+                    ->selectablePlaceholder(false)
+                    ->required(),
                 Toggle::make('is_aktif')
                     ->label('Tahun ajaran aktif')
                     ->helperText('Hanya satu tahun ajaran yang dapat aktif.'),
@@ -68,6 +76,8 @@ class TahunAjaranResource extends Resource
                     ->label('Tahun Ajaran')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('kurikulum')
+                    ->badge(),
                 IconColumn::make('is_aktif')
                     ->label('Aktif')
                     ->boolean(),

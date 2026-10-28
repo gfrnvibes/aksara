@@ -7,6 +7,7 @@ use App\Models\Ekstrakurikuler;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use Filament\Actions\Testing\TestAction;
 use Filament\Notifications\Notification;
 use Illuminate\Http\Client\Request;
@@ -18,6 +19,8 @@ use function Pest\Laravel\actingAs;
 
 beforeEach(function () {
     actingAs(userWithPermissions(['ViewAny:Rapor', 'Create:Rapor']));
+
+    TahunAjaran::factory()->aktif()->create();
 
     $this->siswa = Siswa::factory()->create(['nis' => '250001', 'nama_lengkap' => 'Ahmad Fauzi Ramadhan', 'nama_panggilan' => 'Fauzi']);
     $this->matematika = MataPelajaran::factory()->create(['nama' => 'Matematika', 'kkm' => 75]);

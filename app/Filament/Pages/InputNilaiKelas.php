@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Enums\Semester;
+use App\Filament\Actions\BuatCapaianKompetensiAction;
 use App\Filament\Resources\Rapors\Schemas\RaporForm;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
@@ -10,6 +11,7 @@ use App\Models\NilaiRapor;
 use App\Models\Rapor;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Services\Kurikulum\SkemaPenilaian;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -17,11 +19,14 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\EmbeddedSchema;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
@@ -115,53 +120,20 @@ class InputNilaiKelas extends Page
                             ->live()
                             ->afterStateUpdated($muatUlang)
                             ->required(),
-                        TextInput::make('kkm')
-                            ->label('KKM')
-                            ->numeric()
-                            ->integer()
-                            ->minValue(1)
-                            ->maxValue(100)
-                            ->readOnly()
-                            ->suffixAction(RaporForm::aksiUbahKkm('KKM ini dipakai untuk semua siswa kelas ini pada mata pelajaran dan semester yang dipilih. KKM bawaan mata pelajaran diubah di menu Mata Pelajaran.'))
-                            ->required(),
+                        Group::make(fn (Get $get): array => [static::fieldKkm(RaporForm::skemaDari($get))]),
                     ]),
                 Section::make('Daftar Nilai')
-                    ->description('Predikat dihitung otomatis dari nilai dan KKM. Baris yang dibiarkan kosong tidak dibuatkan rapor.')
+                    ->key('daftarNilai')
+                    ->description(fn (Get $get): string => (RaporForm::skemaDari($get)->pakaiPredikat() ? 'Predikat dihitung otomatis dari nilai dan KKM. ' : '').'Baris yang dibiarkan kosong tidak dibuatkan rapor.')
                     ->visible(fn (Get $get): bool => $get->filled('kelas_id') && $get->filled('mata_pelajaran_id'))
+                    ->headerActions([BuatCapaianKompetensiAction::make('nilai', mapelPerBaris: false)])
                     ->schema([
                         Text::make('Belum ada siswa di kelas ini pada tahun ajaran tersebut.')
                             ->visible(fn (Get $get): bool => $get->blank('nilai')),
                         Repeater::make('nilai')
                             ->hiddenLabel()
-                            ->table([
-                                TableColumn::make('Siswa'),
-                                TableColumn::make('Pengetahuan (KI-3)')->width('16%'),
-                                TableColumn::make('Keterampilan (KI-4)')->width('16%'),
-                                TableColumn::make('Sikap')->width('16%'),
-                            ])
-                            ->schema([
-                                Hidden::make('siswa_id'),
-                                Hidden::make('terkunci'),
-                                TextEntry::make('nama')->hiddenLabel(),
-                                TextInput::make('nilai_pengetahuan')
-                                    ->hiddenLabel()
-                                    ->numeric()
-                                    ->integer()
-                                    ->minValue(0)
-                                    ->maxValue(100)
-                                    ->disabled(fn (Get $get): bool => (bool) $get('terkunci')),
-                                TextInput::make('nilai_keterampilan')
-                                    ->hiddenLabel()
-                                    ->numeric()
-                                    ->integer()
-                                    ->minValue(0)
-                                    ->maxValue(100)
-                                    ->disabled(fn (Get $get): bool => (bool) $get('terkunci')),
-                                Select::make('sikap')
-                                    ->hiddenLabel()
-                                    ->options(array_combine(array_keys(RaporForm::PREDIKAT_SIKAP), array_keys(RaporForm::PREDIKAT_SIKAP)))
-                                    ->disabled(fn (Get $get): bool => (bool) $get('terkunci')),
-                            ])
+                            ->table(fn (Get $get): array => static::kolomTabel(RaporForm::skemaDari($get)))
+                            ->schema(fn (Get $get): array => static::fieldBaris(RaporForm::skemaDari($get)))
                             ->addable(false)
                             ->deletable(false)
                             ->reorderable(false)
@@ -192,6 +164,7 @@ class InputNilaiKelas extends Page
 
         $tahunAjaranId = (int) $data['tahun_ajaran_id'];
         $semester = $data['semester'] instanceof Semester ? $data['semester'] : Semester::from((int) $data['semester']);
+        $kolom = static::kolomTersimpan(TahunAjaran::skemaUntuk($tahunAjaranId));
         $kelasId = (int) $data['kelas_id'];
         $mataPelajaranId = (int) $data['mata_pelajaran_id'];
         $kkm = (int) $data['kkm'];
@@ -199,14 +172,16 @@ class InputNilaiKelas extends Page
         $anggota = Siswa::query()->anggotaKelas($kelasId, $tahunAjaranId)->pluck('id')->flip();
         $tersimpan = 0;
 
-        DB::transaction(function () use ($data, $anggota, $tahunAjaranId, $semester, $kelasId, $mataPelajaranId, $kkm, &$tersimpan): void {
+        DB::transaction(function () use ($data, $anggota, $tahunAjaranId, $semester, $kelasId, $mataPelajaranId, $kkm, $kolom, &$tersimpan): void {
             foreach (static::barisDari($data) as $baris) {
                 $siswaId = (int) ($baris['siswa_id'] ?? 0);
-                $nilai = [
-                    'nilai_pengetahuan' => filled($baris['nilai_pengetahuan'] ?? null) ? (int) $baris['nilai_pengetahuan'] : null,
-                    'nilai_keterampilan' => filled($baris['nilai_keterampilan'] ?? null) ? (int) $baris['nilai_keterampilan'] : null,
-                    'sikap' => filled($baris['sikap'] ?? null) ? (string) $baris['sikap'] : null,
-                ];
+                $nilai = collect($kolom)
+                    ->mapWithKeys(fn (string $jenis, string $nama): array => [$nama => match (true) {
+                        blank($baris[$nama] ?? null) => null,
+                        $jenis === 'angka' => (int) $baris[$nama],
+                        default => (string) $baris[$nama],
+                    }])
+                    ->all();
 
                 if (! $anggota->has($siswaId)) {
                     continue;
@@ -294,10 +269,97 @@ class InputNilaiKelas extends Page
                     'nama' => "{$siswa->nis} - {$siswa->nama_lengkap}".($terkunci ? ' (rapor ada di Data terhapus)' : ''),
                     'nilai_pengetahuan' => $nilai?->nilai_pengetahuan,
                     'nilai_keterampilan' => $nilai?->nilai_keterampilan,
+                    'nilai_akhir' => $nilai?->nilai_akhir,
                     'sikap' => $nilai?->sikap,
+                    'capaian_kompetensi' => $nilai?->capaian_kompetensi,
                 ]];
             })
             ->all());
+    }
+
+    /**
+     * The read-only KKM/KKTP of the chosen subject, changed through its modal for the whole class.
+     */
+    protected static function fieldKkm(SkemaPenilaian $skema): TextInput
+    {
+        $label = $skema->labelKkm();
+
+        return TextInput::make('kkm')
+            ->label($label)
+            ->numeric()
+            ->integer()
+            ->minValue(1)
+            ->maxValue(100)
+            ->readOnly()
+            ->suffixAction(RaporForm::aksiUbahKkm(
+                "{$label} ini dipakai untuk semua siswa kelas ini pada mata pelajaran dan semester yang dipilih. {$label} bawaan mata pelajaran diubah di menu Mata Pelajaran.",
+                $label,
+            ))
+            ->required();
+    }
+
+    /**
+     * @return array<int, TableColumn>
+     */
+    protected static function kolomTabel(SkemaPenilaian $skema): array
+    {
+        return [
+            TableColumn::make('Siswa'),
+            ...array_map(fn (string $kolom): TableColumn => TableColumn::make($skema->labelKolomNilai($kolom))->width('16%'), array_keys($skema->kolomNilai())),
+            ...($skema->pakaiSikapMapel() ? [TableColumn::make('Sikap')->width('16%')] : []),
+            ...($skema->pakaiCapaianKompetensi() ? [TableColumn::make('Capaian Kompetensi')->width('45%')] : []),
+        ];
+    }
+
+    /**
+     * @return array<int, Component>
+     */
+    protected static function fieldBaris(SkemaPenilaian $skema): array
+    {
+        $terkunci = fn (Get $get): bool => (bool) $get('terkunci');
+
+        return [
+            Hidden::make('siswa_id'),
+            Hidden::make('terkunci'),
+            TextEntry::make('nama')->hiddenLabel(),
+            ...array_map(
+                fn (string $kolom): TextInput => TextInput::make($kolom)
+                    ->hiddenLabel()
+                    ->numeric()
+                    ->integer()
+                    ->minValue(0)
+                    ->maxValue(100)
+                    ->disabled($terkunci),
+                array_keys($skema->kolomNilai()),
+            ),
+            ...($skema->pakaiSikapMapel() ? [
+                Select::make('sikap')
+                    ->hiddenLabel()
+                    ->options(array_combine(array_keys(RaporForm::PREDIKAT_SIKAP), array_keys(RaporForm::PREDIKAT_SIKAP)))
+                    ->disabled($terkunci),
+            ] : []),
+            ...($skema->pakaiCapaianKompetensi() ? [
+                Textarea::make('capaian_kompetensi')
+                    ->hiddenLabel()
+                    ->rows(1)
+                    ->autosize()
+                    ->disabled($terkunci),
+            ] : []),
+        ];
+    }
+
+    /**
+     * The grade columns this curriculum saves, column => "angka" (score) or "teks".
+     *
+     * @return array<string, string>
+     */
+    protected static function kolomTersimpan(SkemaPenilaian $skema): array
+    {
+        return [
+            ...array_fill_keys(array_keys($skema->kolomNilai()), 'angka'),
+            ...($skema->pakaiSikapMapel() ? ['sikap' => 'teks'] : []),
+            ...($skema->pakaiCapaianKompetensi() ? ['capaian_kompetensi' => 'teks'] : []),
+        ];
     }
 
     /**

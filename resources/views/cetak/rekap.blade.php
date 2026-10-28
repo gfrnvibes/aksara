@@ -53,7 +53,7 @@
     @if ($isi->termasukNilai())
         <div class="{{ $isi->termasukSiswa() ? 'page-break' : '' }}">
             <h1>REKAP DATA NILAI SISWA</h1>
-            <p class="sub">Nilai ditulis Pengetahuan/Keterampilan &middot; {{ $daftarRapor->count() }} rapor</p>
+            <p class="sub">Nilai K13 ditulis Pengetahuan/Keterampilan, Kurikulum Merdeka ditulis Nilai Akhir &middot; {{ $daftarRapor->count() }} rapor</p>
             <table>
                 <thead>
                     <tr>
@@ -68,7 +68,9 @@
                     @forelse ($daftarRapor as $rapor)
                         @php
                             $nilaiPerMapel = $rapor->nilaiRapor->keyBy('mata_pelajaran_id');
-                            $rataRata = $rapor->nilaiRapor->avg('nilai_pengetahuan');
+                            $skema = $rapor->skema();
+                            $skor = $rapor->nilaiRapor->flatMap(fn ($nilai) => $skema->nilaiUntukRataRata($nilai));
+                            $rataRata = $skor->isEmpty() ? null : $skor->avg();
                         @endphp
                         <tr>
                             <td class="center">{{ $loop->iteration }}</td>
@@ -81,7 +83,7 @@
                                 @php
                                     $nilai = $nilaiPerMapel->get($mapel->id);
                                 @endphp
-                                <td class="center">{{ $nilai ? ($nilai->nilai_pengetahuan ?? '-').'/'.($nilai->nilai_keterampilan ?? '-') : '' }}</td>
+                                <td class="center">{{ $nilai ? collect(array_keys($skema->kolomNilai()))->map(fn (string $kolom) => $nilai->getAttribute($kolom) ?? '-')->implode('/') : '' }}</td>
                             @endforeach
                             <td class="center">{{ $rataRata !== null ? number_format($rataRata, 2, ',', '.') : '-' }}</td>
                             <td class="center">{{ $rapor->sakit }}/{{ $rapor->izin }}/{{ $rapor->tanpa_keterangan }}</td>

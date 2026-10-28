@@ -39,24 +39,29 @@ final class SusunLeger
             ->orderBy('urutan')
             ->get();
 
+        $skema = $tahunAjaran->skema();
+        $kolom = array_keys($skema->kolomNilai());
+
         $baris = $daftarSiswa
-            ->map(function (Siswa $siswa) use ($nilaiPerSiswa, $mataPelajaran): array {
+            ->map(function (Siswa $siswa) use ($nilaiPerSiswa, $mataPelajaran, $skema, $kolom): array {
                 $nilaiSiswa = $nilaiPerSiswa->get($siswa->id, collect());
 
                 $nilai = $mataPelajaran
-                    ->mapWithKeys(function (MataPelajaran $mapel) use ($nilaiSiswa): array {
+                    ->mapWithKeys(function (MataPelajaran $mapel) use ($nilaiSiswa, $kolom): array {
                         /** @var NilaiRapor|null $nilaiMapel */
                         $nilaiMapel = $nilaiSiswa->get($mapel->id);
 
                         return [$mapel->id => [
-                            'p' => $nilaiMapel?->nilai_pengetahuan,
-                            'k' => $nilaiMapel?->nilai_keterampilan,
+                            'skor' => array_combine($kolom, array_map(fn (string $nama): ?int => $nilaiMapel?->getAttribute($nama), $kolom)),
                             'kkm' => $nilaiMapel->kkm ?? $mapel->kkm,
                         ]];
                     })
                     ->all();
 
-                $terisi = array_filter([...array_column($nilai, 'p'), ...array_column($nilai, 'k')], is_int(...));
+                $terisi = $nilaiSiswa
+                    ->filter(fn (NilaiRapor $nilaiMapel): bool => array_key_exists($nilaiMapel->mata_pelajaran_id, $nilai))
+                    ->flatMap(fn (NilaiRapor $nilaiMapel): array => $skema->nilaiUntukRataRata($nilaiMapel))
+                    ->all();
 
                 return [
                     'siswa' => $siswa,
@@ -68,12 +73,12 @@ final class SusunLeger
             })
             ->all();
 
-        return new Leger($kelas, $tahunAjaran, $semester, $mataPelajaran, $this->beriPeringkat(array_values($baris)));
+        return new Leger($kelas, $tahunAjaran, $semester, $skema, $mataPelajaran, $this->beriPeringkat(array_values($baris)));
     }
 
     /**
-     * @param  list<array{siswa: Siswa, nilai: array<int, array{p: int|null, k: int|null, kkm: int}>, jumlah: int, rata_rata: float|null, peringkat: int|null}>  $baris
-     * @return list<array{siswa: Siswa, nilai: array<int, array{p: int|null, k: int|null, kkm: int}>, jumlah: int, rata_rata: float|null, peringkat: int|null}>
+     * @param  list<array{siswa: Siswa, nilai: array<int, array{skor: array<string, int|null>, kkm: int}>, jumlah: int, rata_rata: float|null, peringkat: int|null}>  $baris
+     * @return list<array{siswa: Siswa, nilai: array<int, array{skor: array<string, int|null>, kkm: int}>, jumlah: int, rata_rata: float|null, peringkat: int|null}>
      */
     private function beriPeringkat(array $baris): array
     {

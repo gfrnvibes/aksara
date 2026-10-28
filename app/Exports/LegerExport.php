@@ -29,21 +29,26 @@ class LegerExport
         $tebal = (new Style)->setFontBold();
         $options = new Options;
         $jumlahMapel = $leger->mataPelajaran->count();
+        $kolomNilai = $leger->kolom();
+        $lebarMapel = count($kolomNilai);
+        $bertingkat = $lebarMapel > 1;
 
-        $options->mergeCells(0, 1, self::KOLOM_AWAL + ($jumlahMapel * 2) + 2, 1);
+        $options->mergeCells(0, 1, self::KOLOM_AWAL + ($jumlahMapel * $lebarMapel) + 2, 1);
 
-        foreach ([0, 1, 2] as $kolom) {
-            $options->mergeCells($kolom, 3, $kolom, 4);
-        }
+        if ($bertingkat) {
+            foreach ([0, 1, 2] as $kolom) {
+                $options->mergeCells($kolom, 3, $kolom, 4);
+            }
 
-        foreach ($jumlahMapel === 0 ? [] : range(0, $jumlahMapel - 1) as $urutan) {
-            $kolom = self::KOLOM_AWAL + ($urutan * 2);
-            $options->mergeCells($kolom, 3, $kolom + 1, 3);
-        }
+            foreach ($jumlahMapel === 0 ? [] : range(0, $jumlahMapel - 1) as $urutan) {
+                $kolom = self::KOLOM_AWAL + ($urutan * $lebarMapel);
+                $options->mergeCells($kolom, 3, $kolom + $lebarMapel - 1, 3);
+            }
 
-        foreach ([0, 1, 2] as $tambahan) {
-            $kolom = self::KOLOM_AWAL + ($jumlahMapel * 2) + $tambahan;
-            $options->mergeCells($kolom, 3, $kolom, 4);
+            foreach ([0, 1, 2] as $tambahan) {
+                $kolom = self::KOLOM_AWAL + ($jumlahMapel * $lebarMapel) + $tambahan;
+                $options->mergeCells($kolom, 3, $kolom, 4);
+            }
         }
 
         $writer = new Writer($options);
@@ -54,24 +59,24 @@ class LegerExport
             $writer->addRow(Row::fromValues([]));
             $writer->addRow(Row::fromValues([
                 'No', 'NIS', 'Nama Siswa',
-                ...$leger->mataPelajaran->flatMap(fn (MataPelajaran $mapel): array => [$mapel->nama, null])->all(),
+                ...$leger->mataPelajaran->flatMap(fn (MataPelajaran $mapel): array => array_pad([$mapel->nama], $lebarMapel, null))->all(),
                 'Jumlah', 'Rata-rata', 'Peringkat',
             ], $tebal));
-            $writer->addRow(Row::fromValues([
-                null, null, null,
-                ...$leger->mataPelajaran->flatMap(fn (): array => ['P', 'K'])->all(),
-                null, null, null,
-            ], $tebal));
+
+            if ($bertingkat) {
+                $writer->addRow(Row::fromValues([
+                    null, null, null,
+                    ...$leger->mataPelajaran->flatMap(fn (): array => array_values($kolomNilai))->all(),
+                    null, null, null,
+                ], $tebal));
+            }
 
             foreach ($leger->baris as $urutan => $baris) {
                 $writer->addRow(Row::fromValues([
                     $urutan + 1,
                     $baris['siswa']->nis,
                     $baris['siswa']->nama_lengkap,
-                    ...$leger->mataPelajaran->flatMap(fn (MataPelajaran $mapel): array => [
-                        $baris['nilai'][$mapel->id]['p'],
-                        $baris['nilai'][$mapel->id]['k'],
-                    ])->all(),
+                    ...$leger->mataPelajaran->flatMap(fn (MataPelajaran $mapel): array => array_values($baris['nilai'][$mapel->id]['skor']))->all(),
                     $baris['rata_rata'] === null ? null : $baris['jumlah'],
                     $baris['rata_rata'],
                     $baris['peringkat'],
@@ -82,10 +87,7 @@ class LegerExport
 
             $writer->addRow(Row::fromValues([
                 null, null, 'Rata-rata kelas',
-                ...$leger->mataPelajaran->flatMap(fn (MataPelajaran $mapel): array => [
-                    $rataRataMapel[$mapel->id]['p'],
-                    $rataRataMapel[$mapel->id]['k'],
-                ])->all(),
+                ...$leger->mataPelajaran->flatMap(fn (MataPelajaran $mapel): array => array_values($rataRataMapel[$mapel->id]))->all(),
             ], $tebal));
         } finally {
             $writer->close();

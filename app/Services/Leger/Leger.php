@@ -7,14 +7,16 @@ use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Services\Kurikulum\SkemaPenilaian;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
- * The grade recap of one class for one semester: every student's knowledge (P) and skill (K) score per subject,
- * with their total, average and rank.
+ * The grade recap of one class for one semester: every student's scores per subject — knowledge and skill for
+ * K13, the final score for Kurikulum Merdeka — with their total, average and rank.
  *
- * @phpstan-type BarisLeger array{siswa: Siswa, nilai: array<int, array{p: int|null, k: int|null, kkm: int}>, jumlah: int, rata_rata: float|null, peringkat: int|null}
+ * @phpstan-type NilaiMapel array{skor: array<string, int|null>, kkm: int}
+ * @phpstan-type BarisLeger array{siswa: Siswa, nilai: array<int, NilaiMapel>, jumlah: int, rata_rata: float|null, peringkat: int|null}
  */
 final readonly class Leger
 {
@@ -26,9 +28,30 @@ final readonly class Leger
         public Kelas $kelas,
         public TahunAjaran $tahunAjaran,
         public Semester $semester,
+        public SkemaPenilaian $skema,
         public Collection $mataPelajaran,
         public array $baris,
     ) {}
+
+    /**
+     * The score columns shown under each subject, column => short label.
+     *
+     * @return array<string, string>
+     */
+    public function kolom(): array
+    {
+        return $this->skema->kolomNilai();
+    }
+
+    /**
+     * What the short column labels stand for, e.g. "P = Pengetahuan (KI-3), K = Keterampilan (KI-4)".
+     */
+    public function keteranganKolom(): string
+    {
+        return collect($this->kolom())
+            ->map(fn (string $singkatan, string $kolom): string => "{$singkatan} = {$this->skema->labelKolomNilai($kolom)}")
+            ->implode(', ');
+    }
 
     public function judul(): string
     {
@@ -41,26 +64,28 @@ final readonly class Leger
     }
 
     /**
-     * Class average of each subject's knowledge and skill score, keyed by subject id.
+     * Class average of every score column of each subject, keyed by subject id then column.
      *
-     * @return array<int, array{p: float|null, k: float|null}>
+     * @return array<int, array<string, float|null>>
      */
     public function rataRataMapel(): array
     {
         return $this->mataPelajaran
-            ->mapWithKeys(fn (MataPelajaran $mataPelajaran): array => [$mataPelajaran->id => [
-                'p' => $this->rataRata(array_column(array_column($this->baris, 'nilai'), $mataPelajaran->id), 'p'),
-                'k' => $this->rataRata(array_column(array_column($this->baris, 'nilai'), $mataPelajaran->id), 'k'),
-            ]])
+            ->mapWithKeys(fn (MataPelajaran $mataPelajaran): array => [$mataPelajaran->id => collect($this->kolom())
+                ->mapWithKeys(fn (string $singkatan, string $kolom): array => [$kolom => $this->rataRata(array_map(
+                    fn (array $baris): ?int => $baris['nilai'][$mataPelajaran->id]['skor'][$kolom] ?? null,
+                    $this->baris,
+                ))])
+                ->all()])
             ->all();
     }
 
     /**
-     * @param  array<int, array{p: int|null, k: int|null, kkm: int}>  $nilai
+     * @param  array<int, int|null>  $nilai
      */
-    private function rataRata(array $nilai, string $jenis): ?float
+    private function rataRata(array $nilai): ?float
     {
-        $terisi = array_filter(array_column($nilai, $jenis), is_int(...));
+        $terisi = array_filter($nilai, is_int(...));
 
         return $terisi === [] ? null : round(array_sum($terisi) / count($terisi), 2);
     }

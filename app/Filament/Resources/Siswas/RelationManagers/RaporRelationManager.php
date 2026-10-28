@@ -6,7 +6,9 @@ use App\Filament\Resources\Rapors\RaporResource;
 use App\Models\Rapor;
 use App\Models\TahunAjaran;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,8 +29,7 @@ class RaporRelationManager extends RelationManager
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query
                 ->with(['tahunAjaran', 'kelas'])
-                ->withAvg('nilaiRapor', 'nilai_pengetahuan')
-                ->withAvg('nilaiRapor', 'nilai_keterampilan'))
+                ->scopes(['denganRataRataNilai']))
             ->defaultSort(fn (Builder $query): Builder => $query
                 ->orderBy(
                     TahunAjaran::query()->select('nama')->whereColumn('tahun_ajarans.id', 'rapors.tahun_ajaran_id'),
@@ -40,11 +41,8 @@ class RaporRelationManager extends RelationManager
                 TextColumn::make('semester'),
                 TextColumn::make('kelas.nama')
                     ->label('Kelas'),
-                TextColumn::make('nilai_rapor_avg_nilai_pengetahuan')
-                    ->label('Rata-rata Pengetahuan')
-                    ->numeric(decimalPlaces: 2),
-                TextColumn::make('nilai_rapor_avg_nilai_keterampilan')
-                    ->label('Rata-rata Keterampilan')
+                TextColumn::make('rata_rata_nilai')
+                    ->label('Rata-rata Nilai')
                     ->numeric(decimalPlaces: 2),
                 TextColumn::make('keputusan')
                     ->badge()
@@ -58,6 +56,21 @@ class RaporRelationManager extends RelationManager
                     ->visible(fn (): bool => RaporResource::canCreate()),
             ])
             ->recordActions([
+                ActionGroup::make([
+                    Action::make('cetakRapor')
+                        ->label('Cetak di browser')
+                        ->icon(Heroicon::OutlinedPrinter)
+                        ->url(fn (Rapor $record): string => route('rapor.cetak', $record))
+                        ->openUrlInNewTab(),
+                    Action::make('unduhRapor')
+                        ->label('Unduh PDF')
+                        ->icon(Heroicon::OutlinedArrowDownTray)
+                        ->url(fn (Rapor $record): string => route('rapor.cetak', ['rapor' => $record, 'format' => 'pdf'])),
+                ])
+                    ->label('Cetak Rapor')
+                    ->icon(Heroicon::OutlinedPrinter)
+                    ->link()
+                    ->visible(fn (Rapor $record): bool => ! $record->trashed()),
                 Action::make('edit')
                     ->label('Ubah Nilai')
                     ->icon('heroicon-o-pencil-square')

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\KeputusanKenaikan;
 use App\Enums\Semester;
 use App\Models\Concerns\CatatAktivitas;
+use App\Services\Kurikulum\SkemaPenilaian;
 use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\RaporFactory;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
@@ -102,6 +103,14 @@ class Rapor extends Model implements ProvidesActivityTitle
     }
 
     /**
+     * The grading scheme of the curriculum this report card's academic year follows.
+     */
+    public function skema(): SkemaPenilaian
+    {
+        return $this->tahunAjaran->skema();
+    }
+
+    /**
      * The student, even when moved to the trash, so a report card always knows whose it is.
      *
      * @return BelongsTo<Siswa, $this>
@@ -109,6 +118,25 @@ class Rapor extends Model implements ProvidesActivityTitle
     public function siswa(): BelongsTo
     {
         return $this->belongsTo(Siswa::class)->withTrashed();
+    }
+
+    /**
+     * Add the report card's average score as `rata_rata_nilai`: the final score per subject (Kurikulum Merdeka), or
+     * the mean of the knowledge and skill scores (K13), averaged over its subjects.
+     *
+     * @param  Builder<Rapor>  $query
+     */
+    #[Scope]
+    protected function denganRataRataNilai(Builder $query): void
+    {
+        $query
+            ->select($query->getQuery()->columns ?? ['rapors.*'])
+            ->selectSub(
+                NilaiRapor::query()
+                    ->selectRaw('avg(coalesce(nilai_akhir, (coalesce(nilai_pengetahuan, nilai_keterampilan) + coalesce(nilai_keterampilan, nilai_pengetahuan)) / 2.0))')
+                    ->whereColumn('nilai_rapors.rapor_id', 'rapors.id'),
+                'rata_rata_nilai',
+            );
     }
 
     /**

@@ -88,3 +88,23 @@ it('asks for guidance on attitude and character graded C or lower', function () 
         ->toContain('Sikap dalam mengikuti pelajaran IPS masih perlu dibina.')
         ->toContain('perlu terus dibina bersama oleh madrasah dan orang tua');
 });
+
+it('writes a Kurikulum Merdeka note from the final scores and the KKTP', function () {
+    $catatan = (new CatatanBerbasisAturan)->buat(new RingkasanRapor(
+        mataPelajaran: [
+            ['nama' => 'Matematika', 'kkm' => 75, 'pengetahuan' => null, 'keterampilan' => null, 'akhir' => 70, 'sikap' => null],
+            ['nama' => 'IPA', 'kkm' => 75, 'pengetahuan' => null, 'keterampilan' => null, 'akhir' => 90, 'sikap' => null],
+        ],
+        ekstrakurikuler: [],
+        akhlak: null,
+        kepribadian: null,
+        sakit: 0,
+        izin: 0,
+        tanpaKeterangan: 0,
+        labelKkm: 'KKTP',
+    ));
+
+    expect($catatan)->toContain('rata-rata nilai 80')
+        ->toContain('Matematika masih di bawah KKTP')
+        ->not->toContain('KKM');
+});

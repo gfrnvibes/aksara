@@ -8,6 +8,10 @@
     $daftarSemester = [$semesterGanjil, $semesterGenap];
     $nilaiPerMapel = collect($daftarSemester)->map(fn ($rapor) => $rapor?->nilaiRapor->keyBy('mata_pelajaran_id') ?? collect());
     $raporTerakhir = $semesterGenap ?? $semesterGanjil;
+    $skema = $raporTerakhir?->skema() ?? \App\Enums\Kurikulum::bawaan()->skema();
+    $kolomSkor = $skema->kolomNilai();
+    $k13 = $skema->pakaiPredikat();
+    $lebarSemester = $k13 ? 6 : 1 + count($kolomSkor);
 @endphp
 <div class="sheet {{ $pageBreak ? 'page-break' : '' }}">
     <h1>DATA NILAI SISWA MADRASAH TSANAWIYAH</h1>
@@ -19,29 +23,40 @@
     <table class="grid">
         <thead>
             <tr>
-                <th rowspan="3" style="width: 20px;">No</th>
-                <th rowspan="3">Mata Pelajaran</th>
+                <th rowspan="{{ $k13 ? 3 : 2 }}" style="width: 20px;">No</th>
+                <th rowspan="{{ $k13 ? 3 : 2 }}">Mata Pelajaran</th>
                 @foreach ($daftarSemester as $index => $rapor)
-                    <th colspan="6">Semester {{ $index + 1 }}</th>
+                    <th colspan="{{ $lebarSemester }}">Semester {{ $index + 1 }}</th>
                 @endforeach
             </tr>
-            <tr>
-                @foreach ($daftarSemester as $rapor)
-                    <th rowspan="2">KKM</th>
-                    <th colspan="2">Pengetahuan</th>
-                    <th colspan="2">Keterampilan</th>
-                    <th rowspan="2">Sikap</th>
-                @endforeach
-            </tr>
-            <tr>
-                @foreach ($daftarSemester as $rapor)
-                    <th>Angka</th><th>Pred</th><th>Angka</th><th>Pred</th>
-                @endforeach
-            </tr>
+            @if ($k13)
+                <tr>
+                    @foreach ($daftarSemester as $rapor)
+                        <th rowspan="2">KKM</th>
+                        <th colspan="2">Pengetahuan</th>
+                        <th colspan="2">Keterampilan</th>
+                        <th rowspan="2">Sikap</th>
+                    @endforeach
+                </tr>
+                <tr>
+                    @foreach ($daftarSemester as $rapor)
+                        <th>Angka</th><th>Pred</th><th>Angka</th><th>Pred</th>
+                    @endforeach
+                </tr>
+            @else
+                <tr>
+                    @foreach ($daftarSemester as $rapor)
+                        <th>{{ $skema->labelKkm() }}</th>
+                        @foreach (array_keys($kolomSkor) as $kolom)
+                            <th>{{ $skema->labelKolomNilai($kolom) }}</th>
+                        @endforeach
+                    @endforeach
+                </tr>
+            @endif
         </thead>
         <tbody>
             @foreach ($mataPelajaran as $kelompok => $daftarMapel)
-                <tr class="kelompok"><td colspan="14">Kelompok {{ $kelompok }}</td></tr>
+                <tr class="kelompok"><td colspan="{{ 2 + (2 * $lebarSemester) }}">Kelompok {{ $kelompok }}</td></tr>
                 @foreach ($daftarMapel as $mapel)
                     <tr>
                         <td class="center">{{ $loop->iteration }}</td>
@@ -51,11 +66,17 @@
                                 $nilai = $nilaiSemester->get($mapel->id);
                             @endphp
                             <td class="center">{{ $nilai?->kkm ?? '' }}</td>
-                            <td class="center">{{ $nilai?->nilai_pengetahuan ?? '' }}</td>
-                            <td class="center">{{ $nilai?->predikat_pengetahuan ?? '' }}</td>
-                            <td class="center">{{ $nilai?->nilai_keterampilan ?? '' }}</td>
-                            <td class="center">{{ $nilai?->predikat_keterampilan ?? '' }}</td>
-                            <td class="center">{{ $nilai?->sikap ?? '' }}</td>
+                            @if ($k13)
+                                <td class="center">{{ $nilai?->nilai_pengetahuan ?? '' }}</td>
+                                <td class="center">{{ $nilai?->predikat_pengetahuan ?? '' }}</td>
+                                <td class="center">{{ $nilai?->nilai_keterampilan ?? '' }}</td>
+                                <td class="center">{{ $nilai?->predikat_keterampilan ?? '' }}</td>
+                                <td class="center">{{ $nilai?->sikap ?? '' }}</td>
+                            @else
+                                @foreach (array_keys($kolomSkor) as $kolom)
+                                    <td class="center">{{ $nilai?->getAttribute($kolom) ?? '' }}</td>
+                                @endforeach
+                            @endif
                         @endforeach
                     </tr>
                 @endforeach
@@ -72,16 +93,18 @@
                         <thead><tr><th>Ekstrakurikuler</th><th style="width: 40px;">Nilai</th><th>Keterangan</th></tr></thead>
                         <tbody>
                             @forelse ($rapor?->nilaiEkstrakurikuler ?? [] as $ekstra)
-                                <tr><td>{{ $ekstra->ekstrakurikuler->nama }}</td><td class="center">{{ $ekstra->nilai }}</td><td>{{ $ekstra->keterangan }}</td></tr>
+                                <tr><td>{{ $ekstra->ekstrakurikuler->nama }}</td><td class="center">{{ $skema->labelNilaiEkstrakurikuler($ekstra->nilai) }}</td><td>{{ $ekstra->keterangan }}</td></tr>
                             @empty
                                 <tr><td colspan="3" class="center">-</td></tr>
                             @endforelse
                         </tbody>
                     </table>
 
+                    @if ($skema->pakaiAkhlakKepribadian())
                     <table class="grid" style="margin-top: 6px;">
                         <tr><th style="text-align: left;">Akhlak</th><td class="center">{{ $tampil($rapor?->nilai_akhlak) }}</td><th style="text-align: left;">Kepribadian</th><td class="center">{{ $tampil($rapor?->nilai_kepribadian) }}</td></tr>
                     </table>
+                    @endif
 
                     <table class="grid" style="margin-top: 6px;">
                         <tr><th colspan="2">Ketidakhadiran</th></tr>

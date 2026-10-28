@@ -17,27 +17,35 @@
     </style>
 </head>
 <body>
+    @php
+        $kolom = $leger->kolom();
+        $bertingkat = count($kolom) > 1;
+    @endphp
     <h1>LEGER NILAI {{ strtoupper(config('sekolah.nama')) }}</h1>
     <p class="sub">Kelas {{ $leger->kelas->nama }} &middot; {{ $leger->semester->getLabel() }} &middot; Tahun Ajaran {{ $leger->tahunAjaran->nama }}</p>
 
     <table>
         <thead>
             <tr>
-                <th rowspan="2">No</th>
-                <th rowspan="2">NIS</th>
-                <th rowspan="2">Nama Siswa</th>
+                <th rowspan="{{ $bertingkat ? 2 : 1 }}">No</th>
+                <th rowspan="{{ $bertingkat ? 2 : 1 }}">NIS</th>
+                <th rowspan="{{ $bertingkat ? 2 : 1 }}">Nama Siswa</th>
                 @foreach ($leger->mataPelajaran as $mapel)
-                    <th colspan="2">{{ $mapel->nama }}</th>
+                    <th colspan="{{ count($kolom) }}">{{ $mapel->nama }}</th>
                 @endforeach
-                <th rowspan="2">Jml</th>
-                <th rowspan="2">Rata</th>
-                <th rowspan="2">Rank</th>
+                <th rowspan="{{ $bertingkat ? 2 : 1 }}">Jml</th>
+                <th rowspan="{{ $bertingkat ? 2 : 1 }}">Rata</th>
+                <th rowspan="{{ $bertingkat ? 2 : 1 }}">Rank</th>
             </tr>
-            <tr>
-                @foreach ($leger->mataPelajaran as $mapel)
-                    <th>P</th><th>K</th>
-                @endforeach
-            </tr>
+            @if ($bertingkat)
+                <tr>
+                    @foreach ($leger->mataPelajaran as $mapel)
+                        @foreach ($kolom as $singkatan)
+                            <th>{{ $singkatan }}</th>
+                        @endforeach
+                    @endforeach
+                </tr>
+            @endif
         </thead>
         <tbody>
             @forelse ($leger->baris as $baris)
@@ -46,29 +54,31 @@
                     <td>{{ $baris['siswa']->nis }}</td>
                     <td class="nama">{{ $baris['siswa']->nama_lengkap }}</td>
                     @foreach ($leger->mataPelajaran as $mapel)
-                        <td class="center">{{ $baris['nilai'][$mapel->id]['p'] }}</td>
-                        <td class="center">{{ $baris['nilai'][$mapel->id]['k'] }}</td>
+                        @foreach (array_keys($kolom) as $jenis)
+                            <td class="center">{{ $baris['nilai'][$mapel->id]['skor'][$jenis] }}</td>
+                        @endforeach
                     @endforeach
                     <td class="center">{{ $baris['rata_rata'] === null ? '' : $baris['jumlah'] }}</td>
                     <td class="center">{{ $baris['rata_rata'] === null ? '' : number_format($baris['rata_rata'], 2, ',', '.') }}</td>
                     <td class="center">{{ $baris['peringkat'] }}</td>
                 </tr>
             @empty
-                <tr><td colspan="{{ 6 + ($leger->mataPelajaran->count() * 2) }}" class="center">Belum ada siswa di kelas ini.</td></tr>
+                <tr><td colspan="{{ 6 + ($leger->mataPelajaran->count() * count($kolom)) }}" class="center">Belum ada siswa di kelas ini.</td></tr>
             @endforelse
         </tbody>
         <tfoot>
             <tr>
                 <td colspan="3">Rata-rata kelas</td>
                 @foreach ($leger->mataPelajaran as $mapel)
-                    <td class="center">{{ $rataRataMapel[$mapel->id]['p'] === null ? '' : number_format($rataRataMapel[$mapel->id]['p'], 1, ',', '.') }}</td>
-                    <td class="center">{{ $rataRataMapel[$mapel->id]['k'] === null ? '' : number_format($rataRataMapel[$mapel->id]['k'], 1, ',', '.') }}</td>
+                    @foreach (array_keys($kolom) as $jenis)
+                        <td class="center">{{ $rataRataMapel[$mapel->id][$jenis] === null ? '' : number_format($rataRataMapel[$mapel->id][$jenis], 1, ',', '.') }}</td>
+                    @endforeach
                 @endforeach
                 <td colspan="3"></td>
             </tr>
         </tfoot>
     </table>
 
-    <p style="margin-top: 6px;">P = Pengetahuan (KI-3), K = Keterampilan (KI-4). Peringkat berdasarkan rata-rata seluruh nilai; rata-rata yang sama mendapat peringkat yang sama. Dicetak {{ now()->translatedFormat('d F Y H:i') }}.</p>
+    <p style="margin-top: 6px;">{{ $leger->keteranganKolom() }}. Peringkat berdasarkan rata-rata seluruh nilai; rata-rata yang sama mendapat peringkat yang sama. Dicetak {{ now()->translatedFormat('d F Y H:i') }}.</p>
 </body>
 </html>

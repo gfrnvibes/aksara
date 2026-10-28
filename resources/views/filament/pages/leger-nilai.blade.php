@@ -1,6 +1,8 @@
 @php
     /** @var \App\Services\Leger\Leger|null $leger */
     $rataRataMapel = $leger?->rataRataMapel() ?? [];
+    $kolom = $leger?->kolom() ?? [];
+    $bertingkat = count($kolom) > 1;
     $angka = fn (?float $nilai, int $desimal = 2): string => $nilai === null ? '' : number_format($nilai, $desimal, ',', '.');
 @endphp
 
@@ -51,20 +53,23 @@
             <table class="leger">
                 <thead>
                     <tr>
-                        <th rowspan="2" class="leger-label leger-siswa"><span class="leger-no">No</span>Siswa</th>
+                        <th rowspan="{{ $bertingkat ? 2 : 1 }}" class="leger-label leger-siswa"><span class="leger-no">No</span>Siswa</th>
                         @foreach ($leger->mataPelajaran as $mapel)
-                            <th colspan="2" class="leger-mapel" title="{{ $mapel->nama }}">{{ $mapel->nama }}</th>
+                            <th colspan="{{ count($kolom) }}" class="leger-mapel" title="{{ $mapel->nama }}">{{ $mapel->nama }}</th>
                         @endforeach
-                        <th rowspan="2" class="leger-label">Jumlah</th>
-                        <th rowspan="2" class="leger-label">Rata-rata</th>
-                        <th rowspan="2" class="leger-label">Peringkat</th>
+                        <th rowspan="{{ $bertingkat ? 2 : 1 }}" class="leger-label">Jumlah</th>
+                        <th rowspan="{{ $bertingkat ? 2 : 1 }}" class="leger-label">Rata-rata</th>
+                        <th rowspan="{{ $bertingkat ? 2 : 1 }}" class="leger-label">Peringkat</th>
                     </tr>
-                    <tr>
-                        @foreach ($leger->mataPelajaran as $mapel)
-                            <th class="leger-pk">P</th>
-                            <th class="leger-pk">K</th>
-                        @endforeach
-                    </tr>
+                    @if ($bertingkat)
+                        <tr>
+                            @foreach ($leger->mataPelajaran as $mapel)
+                                @foreach ($kolom as $singkatan)
+                                    <th class="leger-pk">{{ $singkatan }}</th>
+                                @endforeach
+                            @endforeach
+                        </tr>
+                    @endif
                 </thead>
                 <tbody>
                     @forelse ($leger->baris as $baris)
@@ -73,8 +78,8 @@
                                 <span class="leger-no">{{ $loop->iteration }}</span><span class="leger-nis">{{ $baris['siswa']->nis }}</span>{{ $baris['siswa']->nama_lengkap }}
                             </td>
                             @foreach ($leger->mataPelajaran as $mapel)
-                                @foreach (['p', 'k'] as $jenis)
-                                    @php($nilai = $baris['nilai'][$mapel->id][$jenis])
+                                @foreach (array_keys($kolom) as $jenis)
+                                    @php($nilai = $baris['nilai'][$mapel->id]['skor'][$jenis])
                                     <td @class(['leger-angka', 'leger-rendah' => $nilai !== null && $nilai < $baris['nilai'][$mapel->id]['kkm']])>{{ $nilai }}</td>
                                 @endforeach
                             @endforeach
@@ -84,7 +89,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ 4 + ($leger->mataPelajaran->count() * 2) }}" class="leger-kosong">
+                            <td colspan="{{ 4 + ($leger->mataPelajaran->count() * count($kolom)) }}" class="leger-kosong">
                                 Belum ada siswa di kelas ini pada tahun ajaran tersebut.
                             </td>
                         </tr>
@@ -95,8 +100,9 @@
                         <tr>
                             <td class="leger-siswa"><span class="leger-no"></span>Rata-rata kelas</td>
                             @foreach ($leger->mataPelajaran as $mapel)
-                                <td class="leger-angka">{{ $angka($rataRataMapel[$mapel->id]['p'], 1) }}</td>
-                                <td class="leger-angka">{{ $angka($rataRataMapel[$mapel->id]['k'], 1) }}</td>
+                                @foreach (array_keys($kolom) as $jenis)
+                                    <td class="leger-angka">{{ $angka($rataRataMapel[$mapel->id][$jenis], 1) }}</td>
+                                @endforeach
                             @endforeach
                             <td colspan="3"></td>
                         </tr>
@@ -106,7 +112,7 @@
         </div>
 
         <p class="leger-keterangan">
-            P = Pengetahuan (KI-3), K = Keterampilan (KI-4). Nilai merah berada di bawah KKM. Peringkat berdasarkan rata-rata seluruh nilai; rata-rata yang sama mendapat peringkat yang sama. Geser tabel ke samping untuk melihat mata pelajaran lainnya.
+            {{ $leger->keteranganKolom() }}. Nilai merah berada di bawah {{ $leger->skema->labelKkm() }}. Peringkat berdasarkan rata-rata seluruh nilai; rata-rata yang sama mendapat peringkat yang sama. Geser tabel ke samping untuk melihat mata pelajaran lainnya.
         </p>
     @endif
 </div>

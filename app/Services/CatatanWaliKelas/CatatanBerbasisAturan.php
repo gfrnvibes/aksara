@@ -92,10 +92,10 @@ class CatatanBerbasisAturan implements PembuatCatatan
             ->all();
 
         if ($diBawahKkm === []) {
-            return 'Seluruh mata pelajaran telah mencapai KKM.';
+            return "Seluruh mata pelajaran telah mencapai {$ringkasan->labelKkm}.";
         }
 
-        return 'Nilai '.Arr::join($diBawahKkm, ', ', ' dan ').' masih di bawah KKM sehingga perlu bimbingan dan latihan tambahan.';
+        return 'Nilai '.Arr::join($diBawahKkm, ', ', ' dan ')." masih di bawah {$ringkasan->labelKkm} sehingga perlu bimbingan dan latihan tambahan.";
     }
 
     protected function teoriDanPraktik(RingkasanRapor $ringkasan): ?string

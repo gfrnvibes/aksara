@@ -16,6 +16,8 @@ use Illuminate\Support\Carbon;
  * @property int $rapor_id
  * @property int $mata_pelajaran_id
  * @property int $kkm
+ * @property int|null $nilai_akhir
+ * @property string|null $capaian_kompetensi
  * @property int|null $nilai_pengetahuan
  * @property string|null $predikat_pengetahuan
  * @property int|null $nilai_keterampilan
@@ -41,6 +43,7 @@ class NilaiRapor extends Model implements ProvidesActivityTitle
     {
         return [
             'kkm' => 'integer',
+            'nilai_akhir' => 'integer',
             'nilai_pengetahuan' => 'integer',
             'nilai_keterampilan' => 'integer',
         ];
