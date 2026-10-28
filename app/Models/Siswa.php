@@ -197,6 +197,14 @@ class Siswa extends Model implements ProvidesActivityTitle
         return $this->hasMany(Rapor::class);
     }
 
+    /**
+     * @return HasMany<MutasiSiswa, $this>
+     */
+    public function mutasi(): HasMany
+    {
+        return $this->hasMany(MutasiSiswa::class);
+    }
+
     public function activityTitle(): ?string
     {
         return "{$this->nis} - {$this->nama_lengkap}";

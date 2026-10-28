@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Siswas\Tables;
 
 use App\Enums\JenisKelamin;
 use App\Enums\StatusSiswa;
+use App\Filament\Actions\CetakSuratActions;
 use App\Filament\Actions\EksporBukuIndukActions;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -68,6 +69,7 @@ class SiswasTable
             ->recordActions([
                 EditAction::make(),
                 EksporBukuIndukActions::cetakSatuSiswa(),
+                CetakSuratActions::group(),
                 RestoreAction::make()
                     ->label('Pulihkan'),
                 ForceDeleteAction::make()
