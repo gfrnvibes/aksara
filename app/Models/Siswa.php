@@ -142,6 +142,22 @@ class Siswa extends Model implements ProvidesActivityTitle
     }
 
     /**
+     * Students recorded in the academic year's class history, plus — for the active year — active students whose
+     * history has no row for it yet.
+     *
+     * @param  Builder<Siswa>  $query
+     */
+    #[Scope]
+    protected function anggotaTahunAjaran(Builder $query, TahunAjaran $tahunAjaran): void
+    {
+        $query->where(fn (Builder $anggota) => $anggota
+            ->whereHas('riwayatKelas', fn (Builder $riwayat) => $riwayat->where('tahun_ajaran_id', $tahunAjaran->id))
+            ->when($tahunAjaran->is_aktif, fn (Builder $anggota) => $anggota->orWhere(fn (Builder $sekarang) => $sekarang
+                ->where('status', StatusSiswa::Aktif)
+                ->whereDoesntHave('riwayatKelas', fn (Builder $riwayat) => $riwayat->where('tahun_ajaran_id', $tahunAjaran->id)))));
+    }
+
+    /**
      * @return BelongsTo<Kelas, $this>
      */
     public function kelas(): BelongsTo
