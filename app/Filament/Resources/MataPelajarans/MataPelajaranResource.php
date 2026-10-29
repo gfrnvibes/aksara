@@ -48,6 +48,11 @@ class MataPelajaranResource extends Resource
                     ->maxLength(255)
                     ->unique(ignoreRecord: true)
                     ->columnSpanFull(),
+                TextInput::make('singkatan')
+                    ->label('Singkatan')
+                    ->maxLength(20)
+                    ->nullable()
+                    ->helperText('Opsional; digunakan sebagai singkatan mata pelajaran.'),
                 Select::make('kelompok')
                     ->options(KelompokMapel::class)
                     ->required(),
@@ -82,6 +87,13 @@ class MataPelajaranResource extends Resource
                     ->sortable(),
                 TextColumn::make('urutan')
                     ->sortable(),
+                TextColumn::make('singkatan')
+                    ->label('Singkatan')
+                    ->sortable()
+                    ->toggleable()
+                    ->searchable()
+                    ->default('-')
+                    ->placeholder('-'),
                 TextColumn::make('nama')
                     ->label('Mata Pelajaran')
                     ->searchable(),

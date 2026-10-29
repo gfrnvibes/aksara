@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string $nama
+ * @property string|null $singkatan
  * @property KelompokMapel $kelompok
  * @property int $kkm
  * @property int $urutan
@@ -26,7 +27,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['nama', 'kelompok', 'kkm', 'urutan', 'is_aktif'])]
+#[Fillable(['nama', 'singkatan', 'kelompok', 'kkm', 'urutan', 'is_aktif'])]
 class MataPelajaran extends Model implements ProvidesActivityTitle, TerlindungDariHapus
 {
     use CatatAktivitas;

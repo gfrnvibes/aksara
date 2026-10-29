@@ -20,6 +20,7 @@ class MataPelajaranFactory extends Factory
     {
         return [
             'nama' => fake()->unique()->words(2, true),
+            'singkatan' => null,
             'kelompok' => fake()->randomElement(KelompokMapel::cases()),
             'kkm' => 75,
             'urutan' => fake()->numberBetween(1, 20),
