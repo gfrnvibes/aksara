@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Ijazahs;
 
 use App\Filament\Resources\Ijazahs\Pages\ManageIjazahs;
+use App\Filament\Resources\Ijazahs\Pages\UnggahIjazahMassal;
+use App\Filament\Resources\Siswas\SiswaResource;
 use App\Models\Ijazah;
 use App\Models\Siswa;
 use App\Services\Arsip\SimpanBerkasArsip;
@@ -81,6 +83,8 @@ class IjazahResource extends Resource
                     ->relationship('siswa', 'nama_lengkap', fn (Builder $query): Builder => $query->orderBy('nama_lengkap'))
                     ->getOptionLabelFromRecordUsing(fn (Siswa $record): string => "{$record->nis} - {$record->nama_lengkap}")
                     ->searchable(['nama_lengkap', 'nis', 'nisn'])
+                    ->preload()
+                    ->optionsLimit(SiswaResource::BATAS_PILIHAN)
                     ->helperText('Opsional. Alumni yang tidak ada di Data Siswa cukup diisi nama dan nomornya.')
                     ->live()
                     ->afterStateUpdated(function (?int $state, Set $set): void {
@@ -218,6 +222,7 @@ class IjazahResource extends Resource
     {
         return [
             'index' => ManageIjazahs::route('/'),
+            'unggah' => UnggahIjazahMassal::route('/unggah'),
         ];
     }
 }
