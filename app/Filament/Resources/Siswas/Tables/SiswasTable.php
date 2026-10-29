@@ -47,6 +47,7 @@ class SiswasTable
             ])
             ->defaultGroup('kelas_grup_id')
             ->defaultSort('siswas.nama_lengkap')
+            ->defaultPaginationPageOption(25)
             ->columns([
                 ImageColumn::make('foto')
                     ->disk('public')
