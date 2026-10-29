@@ -56,6 +56,11 @@ class SiswasTable
                     ->label('NIS')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('nik')
+                    ->label('NIK')
+                    ->searchable()
+                    ->toggleable()
+                    ->sortable(),
                 TextColumn::make('nisn')
                     ->label('NISN')
                     ->searchable()

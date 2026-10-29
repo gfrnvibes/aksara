@@ -26,6 +26,7 @@ class KelengkapanDataSiswa extends TableWidget
      * @var array<string, string>
      */
     public const array DATA_WAJIB = [
+        'nik' => 'NIK',
         'nisn' => 'NISN',
         'foto' => 'Foto',
         'tempat_lahir' => 'Tempat lahir',
@@ -76,7 +77,8 @@ class KelengkapanDataSiswa extends TableWidget
         return Siswa::query()
             ->where('status', StatusSiswa::Aktif)
             ->where(fn (Builder $query) => $query
-                ->whereNull('nisn')
+                ->whereNull('nik')
+                ->orWhereNull('nisn')
                 ->orWhereNull('foto')
                 ->orWhereNull('tempat_lahir')
                 ->orWhereNull('tanggal_lahir')

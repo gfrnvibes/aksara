@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use OpenSpout\Common\Entity\Cell;
+use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Writer\XLSX\Writer;
@@ -275,7 +276,16 @@ class BukuIndukExport
 
             foreach ($baris as $nilai) {
                 $writer->addRow(new Row(array_map(
-                    fn (ImportColumn $kolom): Cell => Cell::fromValue(static::nilaiSel($nilai[$kolom->getName()] ?? null)),
+                    function (ImportColumn $kolom) use ($nilai): Cell {
+                        $namaKolom = $kolom->getName();
+                        $nilaiSel = static::nilaiSel($nilai[$namaKolom] ?? null);
+
+                        if ($namaKolom === 'nik' && is_string($nilaiSel)) {
+                            return new StringCell($nilaiSel);
+                        }
+
+                        return Cell::fromValue($nilaiSel);
+                    },
                     $kolom,
                 )));
             }

@@ -51,6 +51,12 @@ trait ImportsDataSiswa
 
         return [
             static::kolomNis(),
+            ImportColumn::make('nik')
+                ->label('NIK')
+                ->requiredMappingForNewRecordsOnly()
+                ->castStateUsing(fn (mixed $state): ?string => static::teks($state))
+                ->rules(['required', 'digits:16'])
+                ->example('3201010101010001'),
             ImportColumn::make('nisn')
                 ->label('NISN')
                 ->castStateUsing(fn (mixed $state): ?string => static::teks($state))
@@ -169,7 +175,7 @@ trait ImportsDataSiswa
     protected function isiSiswa(Siswa $siswa): void
     {
         $atributLangsung = [
-            'nisn', 'nama_lengkap', 'nama_panggilan', 'jenis_kelamin', 'status', 'tempat_lahir', 'tanggal_lahir',
+            'nik', 'nisn', 'nama_lengkap', 'nama_panggilan', 'jenis_kelamin', 'status', 'tempat_lahir', 'tanggal_lahir',
             'agama', 'kewarganegaraan', 'anak_ke', 'alamat', 'nomor_telepon', 'tinggal_dengan', 'golongan_darah',
             'tinggi_badan', 'berat_badan', 'lulusan_dari', 'nomor_sttb', 'diterima_di_tingkat', 'tanggal_diterima',
         ];
@@ -186,6 +192,13 @@ trait ImportsDataSiswa
 
         if (blank($siswa->kewarganegaraan)) {
             $siswa->kewarganegaraan = 'WNI';
+        }
+
+        if ($this->kolomTerpetakan('nik') && filled($siswa->nik) && Siswa::query()
+            ->where('nik', $siswa->nik)
+            ->where('nis', '!=', $siswa->nis)
+            ->exists()) {
+            throw new RowImportFailedException("NIK {$siswa->nik} sudah dipakai siswa lain.");
         }
 
         if ($this->kolomTerpetakan('nisn') && filled($siswa->nisn) && Siswa::query()

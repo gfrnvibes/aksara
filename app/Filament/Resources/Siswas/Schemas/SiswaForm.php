@@ -88,6 +88,21 @@ class SiswaForm
                                 ->maxLength(30)
                                 ->unique(ignoreRecord: true)
                                 ->validationMessages(['unique' => 'NIS ini sudah dipakai siswa lain (periksa juga filter "Data terhapus").']),
+                            TextInput::make('nik')
+                                ->label('NIK')
+                                ->required()
+                                ->type('text')
+                                ->inputMode('numeric')
+                                ->extraInputAttributes(['pattern' => '[0-9]*'])
+                                ->minLength(16)
+                                ->maxLength(16)
+                                ->unique(ignoreRecord: true)
+                                ->rules(['required', 'digits:16'])
+                                ->validationMessages([
+                                    'required' => 'NIK wajib diisi.',
+                                    'digits' => 'NIK harus terdiri dari 16 digit angka.',
+                                    'unique' => 'NIK ini sudah dipakai siswa lain (periksa juga filter "Data terhapus").',
+                                ]),
                             TextInput::make('nisn')
                                 ->label('Nomor Induk Siswa Nasional')
                                 ->rule('digits:10')

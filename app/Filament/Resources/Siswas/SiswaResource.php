@@ -46,7 +46,7 @@ class SiswaResource extends Resource
      */
     public static function getGloballySearchableAttributes(): array
     {
-        return ['nama_lengkap', 'nis', 'nisn'];
+        return ['nama_lengkap', 'nis', 'nisn', 'nik'];
     }
 
     /**

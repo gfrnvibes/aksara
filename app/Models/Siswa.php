@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string $nis
+ * @property string|null $nik
  * @property string|null $nisn
  * @property int|null $kelas_id
  * @property StatusSiswa $status

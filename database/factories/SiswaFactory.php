@@ -24,6 +24,7 @@ class SiswaFactory extends Factory
 
         return [
             'nis' => fake()->unique()->numerify('######'),
+            'nik' => fake()->unique()->numerify('################'),
             'nisn' => fake()->unique()->numerify('00########'),
             'status' => StatusSiswa::Aktif,
             'nama_lengkap' => fake()->name($jenisKelamin === JenisKelamin::LakiLaki ? 'male' : 'female'),
