@@ -6,6 +6,7 @@ use App\Enums\JenisMutasi;
 use App\Enums\StatusSiswa;
 use App\Filament\Actions\CetakSuratActions;
 use App\Filament\Resources\MutasiSiswas\Pages\ManageMutasiSiswas;
+use App\Filament\Resources\Siswas\SiswaResource;
 use App\Models\Kelas;
 use App\Models\MutasiSiswa;
 use App\Models\Siswa;
@@ -72,6 +73,8 @@ class MutasiSiswaResource extends Resource
                     )
                     ->getOptionLabelFromRecordUsing(fn (Siswa $record): string => "{$record->nis} - {$record->nama_lengkap}")
                     ->searchable(['nama_lengkap', 'nis', 'nisn'])
+                    ->preload()
+                    ->optionsLimit(SiswaResource::BATAS_PILIHAN)
                     ->helperText(fn (Get $get): string => static::jenis($get) === JenisMutasi::Masuk
                         ? 'Tambahkan dulu biodata siswa pindahan di Data Siswa, lalu catat mutasinya di sini.'
                         : 'Hanya siswa aktif.')

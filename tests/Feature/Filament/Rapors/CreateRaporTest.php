@@ -69,6 +69,13 @@ it('lists every student with their class before anything is typed', function () 
         ]);
 });
 
+it('lists all students in the dropdown, not only the first fifty', function () {
+    Siswa::factory()->count(60)->create();
+
+    Livewire::test(CreateRapor::class)
+        ->assertFormFieldExists('siswa_id', fn (Select $field): bool => count($field->getOptions()) === 60);
+});
+
 it('defaults to the semester the current month usually belongs to', function (string $tanggal, Semester $semester) {
     $this->travelTo($tanggal);
 

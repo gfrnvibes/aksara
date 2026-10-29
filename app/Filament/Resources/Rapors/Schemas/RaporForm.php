@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Rapors\Schemas;
 use App\Enums\KeputusanKenaikan;
 use App\Enums\Semester;
 use App\Filament\Actions\BuatCapaianKompetensiAction;
+use App\Filament\Resources\Siswas\SiswaResource;
 use App\Models\Ekstrakurikuler;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
@@ -104,6 +105,7 @@ class RaporForm
                             ->getOptionLabelFromRecordUsing(fn (Siswa $record): string => "{$record->nis} - {$record->nama_lengkap}".($record->kelas ? " ({$record->kelas->nama})" : ''))
                             ->searchable(['nama_lengkap', 'nis', 'nisn'])
                             ->preload()
+                            ->optionsLimit(SiswaResource::BATAS_PILIHAN)
                             ->default(fn (): ?int => request()->integer('siswa') ?: null)
                             ->live()
                             ->afterStateUpdated(function (?int $state, Get $get, Set $set): void {

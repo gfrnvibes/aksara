@@ -36,6 +36,12 @@ class SiswaResource extends Resource
     protected static ?string $recordTitleAttribute = 'nama_lengkap';
 
     /**
+     * How many students a student dropdown lists before typing, so the whole madrasah fits instead of Filament's
+     * first 50.
+     */
+    public const int BATAS_PILIHAN = 2000;
+
+    /**
      * @return array<int, string>
      */
     public static function getGloballySearchableAttributes(): array
