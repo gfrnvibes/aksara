@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property int $id
@@ -81,7 +82,49 @@ class Siswa extends Model implements ProvidesActivityTitle
             if ($siswa->kelas_id !== null && ($siswa->wasRecentlyCreated || $siswa->wasChanged('kelas_id'))) {
                 $siswa->catatKelasSaatIni();
             }
+
+            if ($siswa->wasChanged('foto') && filled($fotoLama = $siswa->getOriginal('foto'))) {
+                Storage::disk(static::diskFoto())->delete($fotoLama);
+            }
         });
+
+        static::forceDeleted(function (Siswa $siswa): void {
+            if (filled($siswa->foto)) {
+                Storage::disk(static::diskFoto())->delete($siswa->foto);
+            }
+        });
+    }
+
+    /**
+     * Longest side of a stored pas foto, in pixels: plenty for a 3x4 cm print.
+     */
+    public const int SISI_FOTO = 800;
+
+    /**
+     * Pas foto are kept with the scanned diplomas on the archive disk (Cloudflare R2 in production).
+     */
+    public static function diskFoto(): string
+    {
+        return Ijazah::disk();
+    }
+
+    /**
+     * Where a printout loads the pas foto from: the image itself for a PDF, which cannot fetch private files, or a
+     * short-lived link for the browser. Null when there is no photo.
+     */
+    public function sumberFoto(bool $untukPdf): ?string
+    {
+        $disk = Storage::disk(static::diskFoto());
+
+        if (blank($this->foto) || ! $disk->exists($this->foto)) {
+            return null;
+        }
+
+        if ($untukPdf) {
+            return 'data:'.($disk->mimeType($this->foto) ?: 'image/jpeg').';base64,'.base64_encode((string) $disk->get($this->foto));
+        }
+
+        return $disk->temporaryUrl($this->foto, now()->addMinutes(Ijazah::MASA_BERLAKU_TAUTAN));
     }
 
     /**

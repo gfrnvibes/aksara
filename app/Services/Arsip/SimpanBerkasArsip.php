@@ -22,9 +22,10 @@ final class SimpanBerkasArsip
     public const int KUALITAS_JPEG = 80;
 
     /**
+     * @param  int  $sisiTerpanjang  Longest side of a stored image, in pixels.
      * @return string The path on the archive disk.
      */
-    public function simpan(UploadedFile $file, string $direktori): string
+    public function simpan(UploadedFile $file, string $direktori, int $sisiTerpanjang = self::SISI_TERPANJANG): string
     {
         $disk = Storage::disk(Ijazah::disk());
 
@@ -34,7 +35,7 @@ final class SimpanBerkasArsip
 
         $gambar = ImageManager::gd()
             ->read((string) $file->get())
-            ->scaleDown(self::SISI_TERPANJANG, self::SISI_TERPANJANG);
+            ->scaleDown($sisiTerpanjang, $sisiTerpanjang);
 
         $path = "{$direktori}/".Str::uuid().'.jpg';
 

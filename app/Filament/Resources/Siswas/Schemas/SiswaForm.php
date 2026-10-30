@@ -9,6 +9,7 @@ use App\Enums\StatusSiswa;
 use App\Filament\Resources\Kelas\KelasResource;
 use App\Models\Kelas;
 use App\Models\Siswa;
+use App\Services\Arsip\SimpanBerkasArsip;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
@@ -24,6 +25,7 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class SiswaForm
 {
@@ -76,9 +78,12 @@ class SiswaForm
                         ->image()
                         ->imageEditor()
                         ->imageAspectRatio('3:4')
-                        ->disk('public')
-                        ->directory('foto-siswa')
-                        ->maxSize(2048),
+                        ->disk(fn (): string => Siswa::diskFoto())
+                        ->visibility('private')
+                        ->maxSize(10240)
+                        ->helperText('Disimpan di arsip dan otomatis diperkecil.')
+                        ->saveUploadedFileUsing(fn (TemporaryUploadedFile $file): string => app(SimpanBerkasArsip::class)
+                            ->simpan($file, 'foto-siswa', Siswa::SISI_FOTO)),
                     Grid::make(2)
                         ->columnSpan(['lg' => 3])
                         ->schema([

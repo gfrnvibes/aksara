@@ -79,8 +79,7 @@
         ],
     ];
 
-    $fotoTersedia = filled($siswa->foto) && Storage::disk('public')->exists($siswa->foto);
-    $sumberFoto = $fotoTersedia ? ($untukPdf ? Storage::disk('public')->path($siswa->foto) : Storage::disk('public')->url($siswa->foto)) : null;
+    $sumberFoto = $siswa->sumberFoto($untukPdf);
     $nomor = 1;
 @endphp
 <div class="sheet {{ $pageBreak ? 'page-break' : '' }}">
@@ -91,8 +90,8 @@
             <td>
                 <table class="data">
                     <tr><td style="width: 40%;">Nomor Induk Siswa</td><td class="sep">:</td><td><strong>{{ $siswa->nis }}</strong></td></tr>
-                    <tr><td>Nomor Induk Kependudukan</td><td class="sep">:</td><td>{{ $tampil($siswa->nik) }}</td></tr>
                     <tr><td>Nomor Induk Siswa Nasional</td><td class="sep">:</td><td><strong>{{ $tampil($siswa->nisn) }}</strong></td></tr>
+                    <tr><td>Nomor Induk Kependudukan</td><td class="sep">:</td><td>{{ $tampil($siswa->nik) }}</td></tr>
                     <tr><td>Kelas / Status</td><td class="sep">:</td><td>{{ $tampil($siswa->kelas?->nama) }} / {{ $siswa->status->getLabel() }}</td></tr>
                 </table>
             </td>

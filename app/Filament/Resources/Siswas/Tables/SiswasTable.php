@@ -50,7 +50,8 @@ class SiswasTable
             ->defaultPaginationPageOption(25)
             ->columns([
                 ImageColumn::make('foto')
-                    ->disk('public')
+                    ->disk(fn (): string => Siswa::diskFoto())
+                    ->visibility('private')
                     ->circular(),
                 TextColumn::make('nis')
                     ->label('NIS')
