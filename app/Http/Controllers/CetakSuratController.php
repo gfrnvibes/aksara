@@ -6,6 +6,7 @@ use App\Exports\SuratExport;
 use App\Models\MutasiSiswa;
 use App\Models\Rapor;
 use App\Models\Siswa;
+use App\Models\SuratKeluar;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
@@ -29,6 +30,13 @@ class CetakSuratController extends Controller
         Gate::authorize('view', $mutasi);
 
         return $this->tampilkan($request, 'pindah', SuratExport::pindah($mutasi, $this->isian($request)));
+    }
+
+    public function keluar(Request $request, SuratKeluar $surat): View|Response
+    {
+        Gate::authorize('view', $surat);
+
+        return $this->tampilkan($request, 'keluar', SuratExport::keluar($surat));
     }
 
     public function transkrip(Request $request, Siswa $siswa): View|Response

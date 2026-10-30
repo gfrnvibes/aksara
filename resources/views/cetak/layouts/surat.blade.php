@@ -55,22 +55,28 @@
     <div class="sheet">
         @include('cetak.partials.kop')
 
-        <div class="judul">
-            <h1>{{ strtoupper($judul) }}</h1>
-            @if (filled($nomorSurat))
-                <div class="nomor">Nomor: {{ $nomorSurat }}</div>
-            @endif
-        </div>
+        {{-- Official letters (surat dinas) carry their number in their own header instead of a centred title. --}}
+        @if ($tampilkanJudul ?? true)
+            <div class="judul">
+                <h1>{{ strtoupper($judul) }}</h1>
+                @if (filled($nomorSurat))
+                    <div class="nomor">Nomor: {{ $nomorSurat }}</div>
+                @endif
+            </div>
+        @endif
 
         @yield('isi')
 
-        <div class="ttd">
-            {{ config('sekolah.tempat_tanda_tangan') }}, {{ $tanggalSurat->translatedFormat('d F Y') }}<br>
-            Kepala Madrasah
-            <div class="ruang"></div>
-            <strong><u>{{ $tahunAjaran?->kepala_madrasah ?: '...............................................' }}</u></strong><br>
-            NIP. {{ $tahunAjaran?->nip_kepala_madrasah ?: '-' }}
-        </div>
+        {{-- Letters with their own signature block (surat dinas) leave out the principal's block below. --}}
+        @if ($tampilkanTtd ?? true)
+            <div class="ttd">
+                {{ config('sekolah.tempat_tanda_tangan') }}, {{ $tanggalSurat->translatedFormat('d F Y') }}<br>
+                Kepala Madrasah
+                <div class="ruang"></div>
+                <strong><u>{{ $tahunAjaran?->kepala_madrasah ?: '...............................................' }}</u></strong><br>
+                NIP. {{ $tahunAjaran?->nip_kepala_madrasah ?: '-' }}
+            </div>
+        @endif
     </div>
 </body>
 </html>

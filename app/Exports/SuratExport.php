@@ -8,6 +8,7 @@ use App\Models\MutasiSiswa;
 use App\Models\NilaiRapor;
 use App\Models\Rapor;
 use App\Models\Siswa;
+use App\Models\SuratKeluar;
 use App\Models\TahunAjaran;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonInterface;
@@ -118,6 +119,25 @@ class SuratExport
                 'rataRataKeseluruhan' => $rataMapel === [] ? null : array_sum($rataMapel) / count($rataMapel),
             ],
             'namaFile' => static::namaFile('transkrip nilai', $siswa),
+        ];
+    }
+
+    /**
+     * An outgoing letter written in the Surat Keluar page.
+     *
+     * @return Surat
+     */
+    public static function keluar(SuratKeluar $surat): array
+    {
+        $surat->loadMissing('siswa');
+
+        return [
+            'view' => 'cetak.surat-keluar',
+            'data' => [
+                ...static::dataUmum($surat->perihal, ['nomor' => $surat->nomor], $surat->tanggal, null),
+                'surat' => $surat,
+            ],
+            'namaFile' => Str::slug("surat {$surat->nomor} {$surat->perihal}").'.pdf',
         ];
     }
 

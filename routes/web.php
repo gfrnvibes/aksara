@@ -19,6 +19,7 @@ Route::middleware('auth')->group(function () {
     Route::get('siswa/{siswa}/surat-keterangan-aktif', [CetakSuratController::class, 'keteranganAktif'])->name('surat.keterangan-aktif');
     Route::get('siswa/{siswa}/transkrip', [CetakSuratController::class, 'transkrip'])->name('surat.transkrip');
     Route::get('mutasi/{mutasi}/surat-pindah', [CetakSuratController::class, 'pindah'])->name('surat.pindah');
+    Route::get('surat-keluar/{surat}/cetak', [CetakSuratController::class, 'keluar'])->name('surat.keluar');
     Route::get('cetak-buku-induk/{token}', [CetakBukuIndukController::class, 'massal'])->whereUuid('token')->name('buku-induk.cetak-massal');
     Route::get('backup/unduh', UnduhBackupController::class)->middleware('signed')->name('backup.unduh');
 });

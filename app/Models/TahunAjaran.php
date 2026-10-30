@@ -8,6 +8,7 @@ use App\Models\Concerns\MenolakHapusSaatDipakai;
 use App\Models\Contracts\TerlindungDariHapus;
 use App\Services\Kurikulum\SkemaPenilaian;
 use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
+use Carbon\CarbonInterface;
 use Database\Factories\TahunAjaranFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -69,6 +70,17 @@ class TahunAjaran extends Model implements ProvidesActivityTitle, TerlindungDari
     public function skema(): SkemaPenilaian
     {
         return $this->kurikulum->skema();
+    }
+
+    /**
+     * The academic year a date falls in (July–June), or the active year when that one is not recorded.
+     */
+    public static function untukTanggal(CarbonInterface $tanggal): ?self
+    {
+        $tahunMulai = $tanggal->month >= 7 ? $tanggal->year : $tanggal->year - 1;
+
+        return static::query()->where('nama', $tahunMulai.'/'.($tahunMulai + 1))->first()
+            ?? static::query()->where('is_aktif', true)->first();
     }
 
     /**

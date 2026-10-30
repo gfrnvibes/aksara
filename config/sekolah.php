@@ -62,4 +62,12 @@ return [
      */
     'tempat_tanda_tangan' => env('SEKOLAH_TEMPAT_TANDA_TANGAN', 'Cisurupan'),
 
+    /*
+     * Outgoing letter numbers, e.g. "012/UND/MTs-AT/X/2026". Placeholders: {nomor} (sequence of the year, three
+     * digits), {kode} (kind of letter), {instansi}, {bulan} (Roman numeral) and {tahun}.
+     */
+    'format_nomor_surat' => env('SEKOLAH_FORMAT_NOMOR_SURAT', '{nomor}/{kode}/{instansi}/{bulan}/{tahun}'),
+
+    'kode_instansi_surat' => env('SEKOLAH_KODE_SURAT', 'MTs-AT'),
+
 ];

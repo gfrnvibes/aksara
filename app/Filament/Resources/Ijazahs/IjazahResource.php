@@ -208,13 +208,7 @@ class IjazahResource extends Resource
                 ->event('ijazah_dilihat')
                 ->log('Berkas ijazah dilihat'))
             ->modalContent(function (Ijazah $record) {
-                return view('filament.arsip.pratinjau-ijazah', [
-                    'berkas' => array_map(fn (string $path): array => [
-                        'url' => $record->tautanSementara($path),
-                        'pdf' => Ijazah::adalahPdf($path),
-                        'nama' => basename($path),
-                    ], $record->berkas ?? []),
-                ]);
+                return view('filament.arsip.pratinjau-berkas', ['berkas' => $record->berkasUntukPratinjau()]);
             });
     }
 

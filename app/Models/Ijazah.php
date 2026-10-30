@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\CatatAktivitas;
+use App\Models\Concerns\MemilikiBerkasArsip;
 use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\IjazahFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -10,7 +11,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * One graduate's scanned diploma, grouped by graduation year. Linked to the student when the graduate is in the
@@ -37,10 +37,7 @@ class Ijazah extends Model implements ProvidesActivityTitle
     /** @use HasFactory<IjazahFactory> */
     use HasFactory;
 
-    /**
-     * Minutes a preview or download link stays valid.
-     */
-    public const int MASA_BERLAKU_TAUTAN = 10;
+    use MemilikiBerkasArsip;
 
     /**
      * Get the attributes that should be cast.
@@ -57,8 +54,7 @@ class Ijazah extends Model implements ProvidesActivityTitle
     }
 
     /**
-     * Link the diploma to the student with the same NIS or NISN, filling in what the archive row leaves blank, and
-     * remove files from storage once they are taken off the record.
+     * Link the diploma to the student with the same NIS or NISN, filling in what the archive row leaves blank.
      */
     protected static function booted(): void
     {
@@ -79,45 +75,6 @@ class Ijazah extends Model implements ProvidesActivityTitle
                 $ijazah->nisn = filled($ijazah->nisn) ? $ijazah->nisn : $siswa?->nisn;
             }
         });
-
-        static::updated(function (Ijazah $ijazah): void {
-            $lama = (array) ($ijazah->getOriginal('berkas') ?? []);
-
-            static::hapusBerkas(array_values(array_diff($lama, $ijazah->berkas ?? [])));
-        });
-
-        static::deleted(fn (Ijazah $ijazah) => static::hapusBerkas($ijazah->berkas ?? []));
-    }
-
-    /**
-     * The disk scanned documents are kept on (Cloudflare R2 in production).
-     */
-    public static function disk(): string
-    {
-        return (string) config('filesystems.arsip', 'local');
-    }
-
-    /**
-     * A short-lived link to one of this diploma's files, so the file goes straight from storage to the browser.
-     */
-    public function tautanSementara(string $path): string
-    {
-        return Storage::disk(static::disk())->temporaryUrl($path, now()->addMinutes(static::MASA_BERLAKU_TAUTAN));
-    }
-
-    public static function adalahPdf(string $path): bool
-    {
-        return strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'pdf';
-    }
-
-    /**
-     * @param  list<string>  $daftarBerkas
-     */
-    protected static function hapusBerkas(array $daftarBerkas): void
-    {
-        if ($daftarBerkas !== []) {
-            Storage::disk(static::disk())->delete($daftarBerkas);
-        }
     }
 
     /**

@@ -11,9 +11,9 @@
             </div>
 
             @if ($file['pdf'])
-                <iframe src="{{ $file['url'] }}" title="Ijazah halaman {{ $loop->iteration }}" style="display: block; width: 100%; height: 75vh; border: 0; background: #fff;"></iframe>
+                <iframe src="{{ $file['url'] }}" title="Halaman {{ $loop->iteration }}" style="display: block; width: 100%; height: 75vh; border: 0; background: #fff;"></iframe>
             @else
-                <img src="{{ $file['url'] }}" alt="Ijazah halaman {{ $loop->iteration }}" loading="lazy" style="display: block; max-width: 100%; max-height: 80vh; margin: 0 auto; background: #fff;">
+                <img src="{{ $file['url'] }}" alt="Halaman {{ $loop->iteration }}" loading="lazy" style="display: block; max-width: 100%; max-height: 80vh; margin: 0 auto; background: #fff;">
             @endif
         </div>
     @endforeach
