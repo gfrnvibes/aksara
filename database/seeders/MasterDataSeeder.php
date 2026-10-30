@@ -33,31 +33,36 @@ class MasterDataSeeder extends Seeder
 
         $mataPelajaran = [
             KelompokMapel::A->value => [
-                'Al-Qur\'an Hadist',
-                'Aqidah Akhlak',
-                'Sejarah Kebudayaan Islam',
-                'Fiqih',
-                'Bahasa Arab',
-                'Pendidikan Pancasila dan Kewarganegaraan',
-                'Bahasa Indonesia',
-                'Matematika',
-                'Ilmu Pengetahuan Alam',
-                'Ilmu Pengetahuan Sosial',
-                'Bahasa Inggris',
+                'Al-Qur\'an Hadist' => 'QURDIS',
+                'Aqidah Akhlak' => 'AKHLAK',
+                'Sejarah Kebudayaan Islam' => 'SKI',
+                'Fiqih' => 'FQH',
+                'Bahasa Arab' => 'BAHAR',
+                'Pendidikan Pancasila dan Kewarganegaraan' => 'PPKN',
+                'Bahasa Indonesia' => 'BIND',
+                'Matematika' => 'MATEMATIKA',
+                'Ilmu Pengetahuan Alam' => 'IPA',
+                'Ilmu Pengetahuan Sosial' => 'IPS',
+                'Bahasa Inggris' => 'BING',
             ],
             KelompokMapel::B->value => [
-                'Seni Budaya',
-                'Pendidikan Jasmani, Olahraga dan Kesehatan',
-                'Prakarya',
+                'Seni Budaya' => 'SENI',
+                'Pendidikan Jasmani, Olahraga dan Kesehatan' => 'PJOK',
+                'Prakarya' => 'PRAKARYA',
             ],
         ];
 
-        foreach ($mataPelajaran as $kelompok => $daftarNama) {
-            foreach ($daftarNama as $index => $nama) {
-                MataPelajaran::query()->firstOrCreate(
+        foreach ($mataPelajaran as $kelompok => $daftarMapel) {
+            foreach (array_keys($daftarMapel) as $index => $nama) {
+                $mapel = MataPelajaran::query()->firstOrCreate(
                     ['nama' => $nama],
-                    ['kelompok' => $kelompok, 'urutan' => $index + 1, 'kkm' => 75],
+                    ['kelompok' => $kelompok, 'urutan' => $index + 1, 'kkm' => 75, 'singkatan' => $daftarMapel[$nama]],
                 );
+
+                // Fill in subjects seeded before abbreviations existed, keeping any abbreviation typed in since.
+                if (blank($mapel->singkatan)) {
+                    $mapel->update(['singkatan' => $daftarMapel[$nama]]);
+                }
             }
         }
 
