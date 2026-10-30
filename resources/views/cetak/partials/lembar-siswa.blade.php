@@ -91,6 +91,7 @@
             <td>
                 <table class="data">
                     <tr><td style="width: 40%;">Nomor Induk Siswa</td><td class="sep">:</td><td><strong>{{ $siswa->nis }}</strong></td></tr>
+                    <tr><td>Nomor Induk Kependudukan</td><td class="sep">:</td><td>{{ $tampil($siswa->nik) }}</td></tr>
                     <tr><td>Nomor Induk Siswa Nasional</td><td class="sep">:</td><td><strong>{{ $tampil($siswa->nisn) }}</strong></td></tr>
                     <tr><td>Kelas / Status</td><td class="sep">:</td><td>{{ $tampil($siswa->kelas?->nama) }} / {{ $siswa->status->getLabel() }}</td></tr>
                 </table>

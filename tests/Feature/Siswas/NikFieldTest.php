@@ -1,17 +1,16 @@
 <?php
 
-use App\Filament\Resources\Siswas\Schemas\SiswaForm;
+use App\Filament\Resources\Siswas\Pages\CreateSiswa;
 use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Schema;
+use Livewire\Livewire;
+
+use function Pest\Laravel\actingAs;
 
 it('adds a numeric-only 16-digit NIK field to student forms', function () {
-    $form = SiswaForm::configure(Schema::make([]));
-    $nikField = collect($form->getComponents())
-        ->flatten(1)
-        ->first(fn ($component) => $component instanceof TextInput && $component->getName() === 'nik');
+    actingAs(userWithPermissions(['ViewAny:Siswa', 'Create:Siswa']));
 
-    expect($nikField)->not->toBeNull()
-        ->and($nikField->getType())->toBe('text')
-        ->and($nikField->getMaxLength())->toBe(16)
-        ->and($nikField->getInputMode())->toBe('numeric');
+    Livewire::test(CreateSiswa::class)
+        ->assertFormFieldExists('nik', fn (TextInput $field): bool => $field->isRequired()
+            && $field->getMaxLength() === 16
+            && $field->getInputMode() === 'numeric');
 });

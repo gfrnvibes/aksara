@@ -20,6 +20,7 @@ use Filament\Notifications\Livewire\Notifications;
 use Filament\Notifications\Notification;
 use Filament\Notifications\NotificationMailbox;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -44,6 +45,9 @@ function urlHalamanCetak(): string
 
 beforeEach(function () {
     $this->freezeTime();
+
+    // A fresh upload folder per test: reusing one races Windows' delayed directory deletion.
+    config(['livewire.temporary_file_upload.directory' => 'livewire-tmp-'.Str::lower(Str::random(8))]);
 
     actingAs(userWithPermissions([
         'ViewAny:Siswa', 'View:Siswa', 'Create:Siswa', 'Update:Siswa',

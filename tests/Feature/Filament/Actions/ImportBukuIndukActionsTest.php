@@ -15,6 +15,7 @@ use App\Models\Rapor;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use OpenSpout\Reader\XLSX\Reader;
@@ -22,6 +23,9 @@ use OpenSpout\Reader\XLSX\Reader;
 use function Pest\Laravel\actingAs;
 
 beforeEach(function () {
+    // A fresh upload folder per test: reusing one races Windows' delayed directory deletion.
+    config(['livewire.temporary_file_upload.directory' => 'livewire-tmp-'.Str::lower(Str::random(8))]);
+
     actingAs(userWithPermissions([
         'ViewAny:Siswa', 'View:Siswa', 'Create:Siswa', 'Update:Siswa',
         'ViewAny:Rapor', 'View:Rapor', 'Create:Rapor', 'Update:Rapor',
@@ -53,8 +57,8 @@ it('creates students with their class and parents from the student template', fu
     $kelas = Kelas::factory()->create(['nama' => 'VII-A']);
 
     jalankanImport(ListSiswas::class, 'importSiswa', fileCsv([
-        ['NIS', 'NISN', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Kelas', 'Tanggal Lahir', 'Nama Ayah', 'Pekerjaan Ayah', 'Nama Ibu'],
-        ['250001', '0012345678', 'Ahmad Fauzi', 'Laki-laki', 'VII-A', '17/05/2012', 'Budi Santoso', 'Petani', 'Siti Aminah'],
+        ['NIS', 'NIK', 'NISN', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Kelas', 'Tanggal Lahir', 'Nama Ayah', 'Pekerjaan Ayah', 'Nama Ibu'],
+        ['250001', '3205010101100001', '0012345678', 'Ahmad Fauzi', 'Laki-laki', 'VII-A', '17/05/2012', 'Budi Santoso', 'Petani', 'Siti Aminah'],
     ]));
 
     $siswa = Siswa::query()->where('nis', '250001')->sole();
@@ -85,9 +89,9 @@ it('updates an existing student matched by NIS without clearing columns missing 
 
 it('skips invalid student rows and keeps the valid ones', function () {
     jalankanImport(ListSiswas::class, 'importSiswa', fileCsv([
-        ['NIS', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Kelas'],
-        ['250001', 'Ahmad Fauzi', 'L', ''],
-        ['250002', 'Kelas Tidak Ada', 'P', 'X-Z'],
+        ['NIS', 'NIK', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Kelas'],
+        ['250001', '3205010101100001', 'Ahmad Fauzi', 'L', ''],
+        ['250002', '3205010101100002', 'Kelas Tidak Ada', 'P', 'X-Z'],
     ]))->assertNotified();
 
     expect(Siswa::query()->pluck('nis')->all())->toBe(['250001']);
@@ -140,8 +144,8 @@ it('refuses to recreate a student whose NIS is in the trash', function () {
     Siswa::factory()->create(['nis' => '250001', 'nama_lengkap' => 'Nama Lama'])->delete();
 
     jalankanImport(ListSiswas::class, 'importSiswa', fileCsv([
-        ['NIS', 'Nama Lengkap', 'Jenis Kelamin (L/P)'],
-        ['250001', 'Nama Baru', 'L'],
+        ['NIS', 'NIK', 'Nama Lengkap', 'Jenis Kelamin (L/P)'],
+        ['250001', '3205010101100001', 'Nama Baru', 'L'],
     ]));
 
     expect(Siswa::withTrashed()->where('nis', '250001')->sole())
@@ -165,10 +169,10 @@ it('creates students and their grades from the combined template', function () {
     MataPelajaran::factory()->create(['nama' => 'Matematika']);
 
     jalankanImport(ListSiswas::class, 'importGabungan', fileCsv([
-        ['NIS', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Kelas', 'Nama Ayah', 'Tahun Ajaran', 'Semester (1/2)', 'Matematika - Pengetahuan'],
-        ['250001', 'Ahmad Fauzi', 'L', 'VII-A', 'Budi', '2025/2026', '1', '80'],
-        ['250001', 'Ahmad Fauzi', 'L', 'VII-A', 'Budi', '2025/2026', '2', '90'],
-        ['250002', 'Siti Rahma', 'P', 'VII-A', '', '', '', ''],
+        ['NIS', 'NIK', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Kelas', 'Nama Ayah', 'Tahun Ajaran', 'Semester (1/2)', 'Matematika - Pengetahuan'],
+        ['250001', '3205010101100001', 'Ahmad Fauzi', 'L', 'VII-A', 'Budi', '2025/2026', '1', '80'],
+        ['250001', '3205010101100001', 'Ahmad Fauzi', 'L', 'VII-A', 'Budi', '2025/2026', '2', '90'],
+        ['250002', '3205010101100002', 'Siti Rahma', 'P', 'VII-A', '', '', '', ''],
     ]));
 
     $ahmad = Siswa::query()->where('nis', '250001')->sole();
@@ -201,8 +205,8 @@ it('offers one template per import type', function (string $aksi, string $namaFi
 
 it('rejects a row with guardian details but no guardian name', function () {
     jalankanImport(ListSiswas::class, 'importSiswa', fileCsv([
-        ['NIS', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Pekerjaan Wali'],
-        ['250001', 'Ahmad Fauzi', 'L', 'Pedagang'],
+        ['NIS', 'NIK', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Pekerjaan Wali'],
+        ['250001', '3205010101100001', 'Ahmad Fauzi', 'L', 'Pedagang'],
     ]));
 
     expect(Siswa::query()->count())->toBe(0);
@@ -210,8 +214,8 @@ it('rejects a row with guardian details but no guardian name', function () {
 
 it('stores the guardian when the guardian name is given', function () {
     jalankanImport(ListSiswas::class, 'importSiswa', fileCsv([
-        ['NIS', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Nama Wali', 'Pekerjaan Wali'],
-        ['250001', 'Ahmad Fauzi', 'L', 'Paman Ali', 'Pedagang'],
+        ['NIS', 'NIK', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Nama Wali', 'Pekerjaan Wali'],
+        ['250001', '3205010101100001', 'Ahmad Fauzi', 'L', 'Paman Ali', 'Pedagang'],
     ]));
 
     expect(Siswa::query()->sole()->wali)

@@ -281,7 +281,7 @@ class BukuIndukExport
                         $nilaiSel = static::nilaiSel($nilai[$namaKolom] ?? null);
 
                         if ($namaKolom === 'nik' && is_string($nilaiSel)) {
-                            return new StringCell($nilaiSel);
+                            return new StringCell($nilaiSel, null);
                         }
 
                         return Cell::fromValue($nilaiSel);

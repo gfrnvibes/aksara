@@ -22,7 +22,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>No</th><th>NIS</th><th>NISN</th><th>Nama Lengkap</th><th>L/P</th><th>Tempat, Tgl Lahir</th>
+                    <th>No</th><th>NIS</th><th>NISN</th><th>NIK</th><th>Nama Lengkap</th><th>L/P</th><th>Tempat, Tgl Lahir</th>
                     <th>Agama</th><th>Kelas</th><th>Status</th><th>Nama Ayah</th><th>Nama Ibu</th><th>Wali</th><th>Alamat</th>
                 </tr>
             </thead>
@@ -32,6 +32,7 @@
                         <td class="center">{{ $loop->iteration }}</td>
                         <td>{{ $siswa->nis }}</td>
                         <td>{{ $siswa->nisn }}</td>
+                        <td>{{ $siswa->nik }}</td>
                         <td>{{ $siswa->nama_lengkap }}</td>
                         <td class="center">{{ $siswa->jenis_kelamin->value }}</td>
                         <td>{{ $siswa->tempat_lahir }}{{ $siswa->tanggal_lahir ? ', '.$siswa->tanggal_lahir->format('d-m-Y') : '' }}</td>

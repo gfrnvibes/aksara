@@ -18,6 +18,7 @@ it('creates a student together with the father and mother records', function () 
     Livewire::test(CreateSiswa::class)
         ->fillForm([
             'nis' => '250001',
+            'nik' => '3205010101100001',
             'nama_lengkap' => 'Ahmad Fauzi',
             'jenis_kelamin' => JenisKelamin::LakiLaki,
             'ayah' => ['nama' => 'Budi Santoso', 'pekerjaan' => 'Petani'],

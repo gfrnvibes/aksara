@@ -6,6 +6,7 @@
 <table class="data">
     <tr><td class="label">Nama</td><td class="sep">:</td><td><strong>{{ $siswa->nama_lengkap }}</strong></td></tr>
     <tr><td class="label">NIS / NISN</td><td class="sep">:</td><td>{{ $siswa->nis }} / {{ $siswa->nisn ?: '-' }}</td></tr>
+    <tr><td class="label">NIK</td><td class="sep">:</td><td>{{ $siswa->nik ?: '-' }}</td></tr>
     <tr><td class="label">Tempat, Tanggal Lahir</td><td class="sep">:</td><td>{{ $siswa->tempat_lahir ?: '-' }}, {{ $siswa->tanggal_lahir?->translatedFormat('d F Y') ?? '-' }}</td></tr>
     <tr><td class="label">Jenis Kelamin</td><td class="sep">:</td><td>{{ $siswa->jenis_kelamin->getLabel() }}</td></tr>
     <tr><td class="label">Kelas</td><td class="sep">:</td><td>{{ $kelas ?: '-' }}</td></tr>
