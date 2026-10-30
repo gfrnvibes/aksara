@@ -4,10 +4,13 @@ use App\Http\Controllers\CetakBukuIndukController;
 use App\Http\Controllers\CetakRaporController;
 use App\Http\Controllers\CetakSuratController;
 use App\Http\Controllers\LandingPageController;
+use App\Http\Controllers\PpdbController;
 use App\Http\Controllers\UnduhBackupController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', LandingPageController::class)->name('home');
+Route::view('/ppdb', 'ppdb')->name('ppdb');
+Route::post('/ppdb', [PpdbController::class, 'store'])->name('ppdb.store');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');

@@ -21,6 +21,7 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Grid;
@@ -110,11 +111,30 @@ class SuratKeluarForm
                     ->helperText(fn (string $operation): ?string => $operation === 'edit' ? 'Jenis dan nomor tidak berubah setelah surat diberi nomor.' : null)
                     ->live()
                     ->required(),
-                Select::make('sifat')
-                    ->options(SifatSurat::class)
-                    ->default(SifatSurat::Biasa)
+                Toggle::make('gunakan_sifat')
+                    ->label('Aktifkan sifat surat')
+                    ->default(false)
+                    ->inline()
                     ->live()
-                    ->required(),
+                    ->afterStateUpdated(function (?bool $state, Set $set): void {
+                        if (! $state) {
+                            $set('sifat', null);
+                        }
+                    }),
+                Select::make('sifat')
+                    ->label('Sifat surat')
+                    ->options(SifatSurat::class)
+                    ->placeholder('Pilih sifat surat')
+                    ->nullable()
+                    ->visible(fn (Get $get): bool => (bool) $get('gunakan_sifat'))
+                    ->live()
+                    ->helperText('Dapat diaktifkan bila diperlukan.'),
+                Toggle::make('tanda_tangan_kepala_madrasah')
+                    ->label('Tanda tangan kepala madrasah')
+                    ->default(true)
+                    ->inline()
+                    ->live()
+                    ->helperText('Aktif default: hilangkan centang bila surat tidak perlu mencantumkan tanda tangan kepala madrasah.'),
                 DatePicker::make('tanggal')
                     ->label('Tanggal Surat')
                     ->default(now())
@@ -217,7 +237,11 @@ class SuratKeluarForm
                 }
 
                 if ($surat['sifat'] !== null) {
+                    $set('gunakan_sifat', true);
                     $set('sifat', $surat['sifat']);
+                } else {
+                    $set('gunakan_sifat', false);
+                    $set('sifat', null);
                 }
 
                 $set('perihal', $surat['perihal']);
@@ -241,10 +265,10 @@ class SuratKeluarForm
         $tahunAjaran = TahunAjaran::untukTanggal(filled($get('tanggal')) ? Carbon::parse($get('tanggal')) : now());
 
         if (blank($tahunAjaran?->kepala_madrasah)) {
-            return 'Kepala madrasah menandatangani setiap surat. Isi namanya di menu Tahun Ajaran agar tercetak.';
+            return 'Kepala madrasah dapat diaktifkan atau dinonaktifkan di toggle di bawah. Isi namanya di menu Tahun Ajaran agar tercetak bila diaktifkan.';
         }
 
-        return "Kepala madrasah ({$tahunAjaran->kepala_madrasah}, Tahun Ajaran {$tahunAjaran->nama}) selalu menandatangani. Pilih bila surat juga ditandatangani pejabat lain.";
+        return "Kepala madrasah ({$tahunAjaran->kepala_madrasah}, Tahun Ajaran {$tahunAjaran->nama}) aktif default, tetapi bisa dinonaktifkan bila perlu. Pilih bila surat juga ditandatangani pejabat lain.";
     }
 
     /**
@@ -255,11 +279,14 @@ class SuratKeluarForm
         $surat = $record?->replicate() ?? new SuratKeluar;
         $jenis = $get('jenis');
         $jenis = $jenis instanceof JenisSuratKeluar ? $jenis : (JenisSuratKeluar::tryFrom((string) $jenis) ?? JenisSuratKeluar::Lainnya);
+        $gunakanSifat = (bool) $get('gunakan_sifat');
         $sifat = $get('sifat');
         $tanggal = filled($get('tanggal')) ? Carbon::parse($get('tanggal')) : now();
 
         $surat->jenis = $jenis;
-        $surat->sifat = $sifat instanceof SifatSurat ? $sifat : SifatSurat::tryFrom((string) $sifat);
+        $surat->gunakan_sifat = $gunakanSifat;
+        $surat->tanda_tangan_kepala_madrasah = (bool) $get('tanda_tangan_kepala_madrasah');
+        $surat->sifat = $gunakanSifat ? ($sifat instanceof SifatSurat ? $sifat : SifatSurat::tryFrom((string) $sifat)) : null;
         $surat->tanggal = $tanggal;
         $surat->perihal = (string) $get('perihal');
         $surat->tujuan = (string) $get('tujuan');

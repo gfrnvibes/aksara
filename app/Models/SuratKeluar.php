@@ -26,7 +26,9 @@ use Illuminate\Support\Carbon;
  * @property int $nomor_urut
  * @property string $nomor
  * @property JenisSuratKeluar $jenis
- * @property SifatSurat $sifat
+ * @property SifatSurat|null $sifat
+ * @property bool $gunakan_sifat
+ * @property bool $tanda_tangan_kepala_madrasah
  * @property CarbonInterface $tanggal
  * @property string $perihal
  * @property string $tujuan
@@ -43,7 +45,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['jenis', 'sifat', 'tanggal', 'perihal', 'tujuan', 'lampiran', 'isi', 'siswa_id', 'penanda_tangan_id'])]
+#[Fillable(['jenis', 'sifat', 'gunakan_sifat', 'tanda_tangan_kepala_madrasah', 'tanggal', 'perihal', 'tujuan', 'lampiran', 'isi', 'siswa_id', 'penanda_tangan_id'])]
 class SuratKeluar extends Model implements ProvidesActivityTitle
 {
     use CatatAktivitas;
@@ -61,6 +63,8 @@ class SuratKeluar extends Model implements ProvidesActivityTitle
         return [
             'jenis' => JenisSuratKeluar::class,
             'sifat' => SifatSurat::class,
+            'gunakan_sifat' => 'boolean',
+            'tanda_tangan_kepala_madrasah' => 'boolean',
             'tanggal' => 'date',
             'tahun' => 'integer',
             'nomor_urut' => 'integer',
