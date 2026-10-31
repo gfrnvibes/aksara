@@ -5,6 +5,8 @@ namespace App\Providers\Filament;
 use App\Models\User;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use BokshornIt\FilamentActivityTimeline\ActivityTimelinePlugin;
+use Filament\Enums\GlobalSearchPosition;
+use Filament\Enums\UserMenuPosition;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -30,7 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName('AKSARA | AT-TAUFIQ')
+            ->brandName('AKSARA')
             ->colors([
                 'primary' => Color::Emerald,
             ])
@@ -38,6 +40,9 @@ class AdminPanelProvider extends PanelProvider
             ->monoFont('Geist Mono')
             ->sidebarWidth('15rem')
             ->sidebarCollapsibleOnDesktop()
+            ->topbar(false)
+            ->globalSearch(position: GlobalSearchPosition::Sidebar)
+            ->userMenu(position: UserMenuPosition::Sidebar)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->navigationGroups([
                 'Buku Induk',
