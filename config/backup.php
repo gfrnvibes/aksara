@@ -168,9 +168,10 @@ return [
         ],
 
         /*
-         * The directory where the temporary files will be stored.
+         * The directory where the temporary files will be stored. On Windows, a folder outside the project avoids
+         * "mkdir(): Permission denied" when the editor or another process still holds the previous run's folder.
          */
-        'temporary_directory' => storage_path('app/backup-temp'),
+        'temporary_directory' => env('BACKUP_TEMP_DIR') ?: storage_path('app/backup-temp'),
 
         /*
          * The password to be used for archive encryption.

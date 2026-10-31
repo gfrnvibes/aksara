@@ -216,6 +216,7 @@ class BackupData extends Page implements HasTable
         return match ($disk) {
             'local' => 'Server (lokal)',
             'google' => 'Google Drive',
+            'r2' => 'Cloudflare R2',
             default => ucfirst($disk),
         };
     }
