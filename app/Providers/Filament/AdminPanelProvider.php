@@ -37,6 +37,7 @@ class AdminPanelProvider extends PanelProvider
             ->font('Geist')
             ->monoFont('Geist Mono')
             ->sidebarWidth('15rem')
+            ->sidebarCollapsibleOnDesktop()
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->navigationGroups([
                 'Buku Induk',
