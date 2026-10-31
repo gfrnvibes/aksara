@@ -30,7 +30,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName('Buku Induk Siswa')
+            ->brandName('AKSARA | AT-TAUFIQ')
             ->colors([
                 'primary' => Color::Emerald,
             ])
