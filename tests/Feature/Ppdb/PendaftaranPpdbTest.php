@@ -56,7 +56,7 @@ it('registers an applicant with their documents and gives them a number', functi
 
     post(route('ppdb.store'), isianPendaftaran())
         ->assertRedirect(route('ppdb'))
-        ->assertSessionHas('terdaftar.nomor', 'PPDB-2027-001');
+        ->assertSessionHas('terdaftar.nomor', 'SPMB-2027-001');
 
     $ppdb = Ppdb::query()->sole();
 
@@ -101,10 +101,10 @@ it('requires the family card, birth certificate and photo', function () {
 it('shows an applicant their status by number and date of birth', function () {
     Ppdb::factory()->for($this->tahunAjaran)->status(StatusPpdb::Diterima)->create(['tanggal_lahir' => '2014-06-15']);
 
-    post(route('ppdb.status'), ['nomor' => 'ppdb-2027-001', 'tanggal_lahir_cek' => '2014-06-15'])
+    post(route('ppdb.status'), ['nomor' => 'spmb-2027-001', 'tanggal_lahir_cek' => '2014-06-15'])
         ->assertSessionHas('hasilCek.status', 'Diterima');
 
-    post(route('ppdb.status'), ['nomor' => 'PPDB-2027-001', 'tanggal_lahir_cek' => '2014-06-16'])
+    post(route('ppdb.status'), ['nomor' => 'SPMB-2027-001', 'tanggal_lahir_cek' => '2014-06-16'])
         ->assertSessionHasErrorsIn('cekStatus', 'nomor')
         ->assertSessionMissing('hasilCek');
 });

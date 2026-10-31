@@ -99,14 +99,14 @@ class Ppdb extends Model implements ProvidesActivityTitle
     }
 
     /**
-     * The next registration number of the academic year, e.g. "PPDB-2027-004".
+     * The next registration number of the academic year, e.g. "SPMB-2027-004".
      */
     public function beriNomor(): void
     {
         $tahunAjaran = TahunAjaran::query()->findOrFail($this->tahun_ajaran_id);
 
         $this->nomor_urut = (int) static::query()->where('tahun_ajaran_id', $tahunAjaran->id)->max('nomor_urut') + 1;
-        $this->nomor = 'PPDB-'.substr($tahunAjaran->nama, 0, 4).'-'.str_pad((string) $this->nomor_urut, 3, '0', STR_PAD_LEFT);
+        $this->nomor = 'SPMB-'.substr($tahunAjaran->nama, 0, 4).'-'.str_pad((string) $this->nomor_urut, 3, '0', STR_PAD_LEFT);
     }
 
     /**

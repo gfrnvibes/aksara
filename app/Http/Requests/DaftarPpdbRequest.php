@@ -27,7 +27,7 @@ class DaftarPpdbRequest extends FormRequest
      */
     protected function failedAuthorization(): void
     {
-        throw ValidationException::withMessages(['ppdb' => 'Pendaftaran PPDB sedang ditutup.']);
+        throw ValidationException::withMessages(['ppdb' => 'Pendaftaran SPMB sedang ditutup.']);
     }
 
     /**
@@ -88,8 +88,8 @@ class DaftarPpdbRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'nisn.unique' => 'NISN ini sudah terdaftar pada PPDB tahun ini. Cek status pendaftaran dengan nomor pendaftaran Anda.',
-            'nik.unique' => 'NIK ini sudah terdaftar pada PPDB tahun ini. Cek status pendaftaran dengan nomor pendaftaran Anda.',
+            'nisn.unique' => 'NISN ini sudah terdaftar pada SPMB tahun ini. Cek status pendaftaran dengan nomor pendaftaran Anda.',
+            'nik.unique' => 'NIK ini sudah terdaftar pada SPMB tahun ini. Cek status pendaftaran dengan nomor pendaftaran Anda.',
             'nomor_telepon.regex' => 'Nomor HP hanya boleh berisi angka, misalnya 081234567890.',
         ];
     }
