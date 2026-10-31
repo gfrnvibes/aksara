@@ -38,7 +38,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->font('Geist')
             ->monoFont('Geist Mono')
-            ->sidebarWidth('15rem')
+            ->sidebarWidth('14rem') // Diperlebar di layar besar oleh theme.css.
             ->sidebarCollapsibleOnDesktop()
             ->topbar(false)
             ->globalSearch(position: GlobalSearchPosition::Sidebar)
