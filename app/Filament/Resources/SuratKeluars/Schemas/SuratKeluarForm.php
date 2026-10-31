@@ -53,8 +53,17 @@ class SuratKeluarForm
                         Group::make([
                             static::sectionAi(),
                             static::sectionDetail(),
+                            Section::make('Tanda Isian')
+                                ->icon(Heroicon::OutlinedCodeBracket)
+                                ->description('Tulis tanda seperti {nama_siswa} di Perihal, Kepada Yth., Lampiran, atau Isi Surat; saat dicetak diganti dengan datanya. Data siswa dan orang tua diambil dari Siswa yang dipilih. Klik tanda untuk menyalin.')
+                                ->collapsible()
+                                ->collapsed()
+                                ->schema([
+                                    View::make('filament.surat.daftar-tanda-isian')
+                                        ->viewData(['tanda' => IsianSurat::TANDA]),
+                                ]),
                             Section::make('Isi Surat')
-                                ->description('Tanda isian seperti {nama_siswa} diisi otomatis dari siswa yang dipilih: '.implode(', ', array_keys(IsianSurat::TANDA)).'.')
+                                ->description('Lihat Tanda Isian di atas untuk data yang bisa dipanggil otomatis.')
                                 ->schema([
                                     RichEditor::make('isi')
                                         ->hiddenLabel()
@@ -111,39 +120,37 @@ class SuratKeluarForm
                     ->helperText(fn (string $operation): ?string => $operation === 'edit' ? 'Jenis dan nomor tidak berubah setelah surat diberi nomor.' : null)
                     ->live()
                     ->required(),
+                DatePicker::make('tanggal')
+                    ->label('Tanggal Surat')
+                    ->default(now())
+                    ->live()
+                    ->required(),
                 Toggle::make('gunakan_sifat')
-                    ->label('Aktifkan sifat surat')
+                    ->label('Cantumkan sifat surat')
+                    ->helperText('Menampilkan baris Sifat di kepala surat.')
                     ->default(false)
-                    ->inline()
                     ->live()
                     ->afterStateUpdated(function (?bool $state, Set $set): void {
                         if (! $state) {
                             $set('sifat', null);
                         }
                     }),
-                Select::make('sifat')
-                    ->label('Sifat surat')
-                    ->options(SifatSurat::class)
-                    ->placeholder('Pilih sifat surat')
-                    ->nullable()
-                    ->visible(fn (Get $get): bool => (bool) $get('gunakan_sifat'))
-                    ->live()
-                    ->helperText('Dapat diaktifkan bila diperlukan.'),
                 Toggle::make('tanda_tangan_kepala_madrasah')
                     ->label('Tanda tangan kepala madrasah')
+                    ->helperText('Matikan bila surat tidak ditandatangani kepala madrasah.')
                     ->default(true)
-                    ->inline()
-                    ->live()
-                    ->helperText('Aktif default: hilangkan centang bila surat tidak perlu mencantumkan tanda tangan kepala madrasah.'),
-                DatePicker::make('tanggal')
-                    ->label('Tanggal Surat')
-                    ->default(now())
-                    ->live()
-                    ->required(),
+                    ->live(),
+                Select::make('sifat')
+                    ->label('Sifat Surat')
+                    ->options(SifatSurat::class)
+                    ->placeholder('Pilih sifat surat')
+                    ->visible(fn (Get $get): bool => (bool) $get('gunakan_sifat'))
+                    ->live(),
                 TextInput::make('lampiran')
                     ->placeholder('-')
                     ->live(onBlur: true)
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->columnSpan(fn (Get $get): int|string => $get('gunakan_sifat') ? 1 : 'full'),
                 TextInput::make('perihal')
                     ->live(onBlur: true)
                     ->required()
@@ -193,7 +200,7 @@ class SuratKeluarForm
                     ->searchable(['nama_lengkap', 'nis', 'nisn'])
                     ->preload()
                     ->optionsLimit(SiswaResource::BATAS_PILIHAN)
-                    ->helperText('Untuk surat tentang satu siswa; mengisi {nama_siswa}, {nis}, {kelas}, dan lainnya.')
+                    ->helperText('Untuk surat tentang satu siswa; mengisi tanda isian siswa dan orang tua, seperti {nama_siswa} dan {nama_orang_tua}.')
                     ->live(),
             ]);
     }

@@ -141,6 +141,24 @@ it('prints the letter with the student filled in and escaped', function () {
         ->assertHeader('Content-Type', 'application/pdf');
 });
 
+it('fills placeholders in the subject, addressee and attachment too', function () {
+    actingAs(userWithPermissions(['View:SuratKeluar']));
+    config(['sekolah.nama' => 'MTs At-Taufiq Cisurupan']);
+    $siswa = Siswa::factory()->create(['nama_lengkap' => 'Siti <i>Aminah</i>', 'tempat_lahir' => 'Garut', 'tanggal_lahir' => '2012-05-05']);
+    OrangTua::factory()->for($siswa)->create(['jenis' => JenisOrangTua::Ibu, 'nama' => 'Euis Komariah']);
+    $surat = SuratKeluar::factory()->for($siswa)->create([
+        'perihal' => 'Panggilan untuk {nama_siswa}',
+        'tujuan' => 'Ibu {nama_ibu} di {nama_madrasah}',
+        'lampiran' => '1 berkas {nama_wali}',
+        'isi' => '<p>Lahir di {tempat_tanggal_lahir}.</p>',
+    ]);
+
+    get(route('surat.keluar', $surat))
+        ->assertOk()
+        ->assertSee('Panggilan untuk Siti &lt;i&gt;Aminah&lt;/i&gt;', escape: false)
+        ->assertSeeText(['Ibu Euis Komariah di MTs At-Taufiq Cisurupan', 'Lahir di Garut, 05 Mei 2012.', '1 berkas {nama_wali}']);
+});
+
 it('forbids printing a letter without permission to view it', function () {
     actingAs(User::factory()->create())
         ->get(route('surat.keluar', SuratKeluar::factory()->create()))

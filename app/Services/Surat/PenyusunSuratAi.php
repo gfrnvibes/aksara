@@ -32,7 +32,8 @@ class PenyusunSuratAi
         - "isi" berupa HTML yang hanya memakai tag <p>, <br>, <strong>, <em>, <ol>, <ul>, <li>, <table>, <tr>, <td>.
           Untuk rincian acara (hari/tanggal, waktu, tempat, acara) gunakan tabel dua kolom tanpa judul kolom.
         - Jangan mengarang nama orang. Bila surat menyangkut siswa tertentu, tulis placeholder persis seperti ini:
-          {nama_siswa}, {nis}, {nisn}, {kelas}, {nama_orang_tua}. Nama madrasah boleh ditulis {nama_madrasah}.
+          {nama_siswa}, {nis}, {nisn}, {kelas}, {jenis_kelamin}, {tempat_tanggal_lahir}, {nama_orang_tua}.
+          Nama madrasah boleh ditulis {nama_madrasah}.
         - Bila tanggal, waktu, atau tempat tidak disebut di perintah, tulis titik-titik (........) agar diisi manual.
         - "jenis" salah satu dari: undangan, pemberitahuan, keterangan, tugas, permohonan, edaran, keputusan,
           rekomendasi, lainnya. "sifat" salah satu dari: biasa, penting, segera, rahasia.

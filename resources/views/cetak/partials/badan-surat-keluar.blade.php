@@ -8,13 +8,13 @@
     @if (($surat->gunakan_sifat ?? false) === true)
         <tr><td>Sifat</td><td>:</td><td>{{ $surat->sifat?->getLabel() ?? '-' }}</td></tr>
     @endif
-    <tr><td>Lampiran</td><td>:</td><td>{{ $surat->lampiran ?: '-' }}</td></tr>
-    <tr><td>Perihal</td><td>:</td><td><strong>{{ $surat->perihal ?: '...' }}</strong></td></tr>
+    <tr><td>Lampiran</td><td>:</td><td>{{ $surat->teksSiapCetak($surat->lampiran) ?: '-' }}</td></tr>
+    <tr><td>Perihal</td><td>:</td><td><strong>{{ $surat->teksSiapCetak($surat->perihal) ?: '...' }}</strong></td></tr>
 </table>
 
 <div class="tujuan-surat">
     Kepada Yth.<br>
-    <strong>{{ $surat->tujuan ?: '...' }}</strong><br>
+    <strong>{{ $surat->teksSiapCetak($surat->tujuan) ?: '...' }}</strong><br>
     di Tempat
 </div>
 

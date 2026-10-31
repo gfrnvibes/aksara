@@ -139,6 +139,15 @@ class SuratKeluar extends Model implements ProvidesActivityTitle
     }
 
     /**
+     * A plain-text field, such as the subject or the addressee, with the student's details filled into its
+     * placeholders.
+     */
+    public function teksSiapCetak(?string $teks): string
+    {
+        return IsianSurat::teks($teks, $this->siswa);
+    }
+
+    /**
      * The student the letter is about, even when moved to the trash.
      *
      * @return BelongsTo<Siswa, $this>
