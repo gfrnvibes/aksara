@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Ekstrakurikuler;
 use App\Models\MataPelajaran;
+use App\Models\TahunAjaran;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use NumberFormatter;
@@ -40,6 +41,7 @@ class LandingPageController extends Controller
             'ekstrakurikuler' => Ekstrakurikuler::query()->aktif()->orderByDesc('is_wajib')->orderBy('nama')->pluck('nama'),
             'program' => static::program(),
             'nilai' => static::nilai(),
+            'spmb' => TahunAjaran::pendaftaranPpdbDibuka(),
         ]);
     }
 

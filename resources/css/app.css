@@ -24,6 +24,21 @@
     --color-zinc-900: #171717;
     --color-zinc-950: #0a0a0a;
 
+    /* Public pages: the fonts of filamentphp.com in a green, Islamic palette. */
+    --font-judul: 'Outfit', 'Albert Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-teks: 'Albert Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-kode: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --color-tinta: #13301f;
+    --color-hutan: #0f7a4f;
+    --color-hutan-tua: #0a5a3a;
+    --color-mint: #dcefe3;
+    --color-emas: #c9962e;
+    --color-emas-muda: #f3e3b8;
+    --color-garis: #e2e5d5;
+    --color-kertas: #fbfbf5;
+    --color-latar: #f3f4ea;
+
     --color-accent: var(--color-neutral-800);
     --color-accent-content: var(--color-neutral-800);
     --color-accent-foreground: var(--color-white);
