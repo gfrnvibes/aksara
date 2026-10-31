@@ -2,9 +2,15 @@
 
 namespace App\Filament\Imports;
 
+use App\Enums\Agama;
+use App\Enums\JenisKelamin;
 use App\Models\Ppdb;
+use App\Models\TahunAjaran;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
+use Filament\Actions\Imports\Models\Import;
+use Illuminate\Support\Number;
+use Illuminate\Validation\Rule;
 
 class PpdbImporter extends Importer
 {
@@ -23,7 +29,7 @@ class PpdbImporter extends Importer
                 ->label('NISN')
                 ->requiredMapping()
                 ->castStateUsing(fn (mixed $state): ?string => trim((string) $state) === '' ? null : trim((string) $state))
-                ->rules(['required', 'max:30'])
+                ->rules(['required', 'digits:10'])
                 ->example('0123456789'),
             ImportColumn::make('nik')
                 ->label('NIK')
@@ -46,9 +52,22 @@ class PpdbImporter extends Importer
             ImportColumn::make('jenis_kelamin')
                 ->label('Jenis Kelamin')
                 ->requiredMapping()
-                ->castStateUsing(fn (mixed $state): ?string => strtolower(trim((string) $state)) === 'laki-laki' ? 'Laki-laki' : (strtolower(trim((string) $state)) === 'perempuan' ? 'Perempuan' : trim((string) $state)))
-                ->rules(['required', 'in:Laki-laki,Perempuan'])
+                ->castStateUsing(fn (mixed $state): ?string => match (strtolower(trim((string) $state))) {
+                    'l', 'laki-laki', 'laki laki' => JenisKelamin::LakiLaki->value,
+                    'p', 'perempuan' => JenisKelamin::Perempuan->value,
+                    default => null,
+                })
+                ->rules(['required', Rule::enum(JenisKelamin::class)])
                 ->example('Laki-laki'),
+            ImportColumn::make('agama')
+                ->castStateUsing(fn (mixed $state): ?string => Agama::tryFrom(strtolower(trim((string) $state)))?->value)
+                ->rules(['nullable', Rule::enum(Agama::class)])
+                ->example('Islam'),
+            ImportColumn::make('asal_sekolah')
+                ->label('Asal Sekolah')
+                ->castStateUsing(fn (mixed $state): ?string => trim((string) $state) === '' ? null : trim((string) $state))
+                ->rules(['nullable', 'max:255'])
+                ->example('SD Negeri 1 Cisurupan'),
             ImportColumn::make('alamat')
                 ->label('Alamat')
                 ->requiredMapping()
@@ -91,14 +110,19 @@ class PpdbImporter extends Importer
         return 'template-ppdb';
     }
 
-    public static function getCompletedNotificationBody(\Filament\Actions\Imports\Models\Import $import): string
+    public static function getCompletedNotificationBody(Import $import): string
     {
-        return 'Import PPDB selesai: '.\Illuminate\Support\Number::format($import->successful_rows).' baris berhasil.';
+        return 'Import PPDB selesai: '.Number::format($import->successful_rows).' baris berhasil.';
     }
 
+    /**
+     * Importing the same applicant again for the same academic year updates their registration.
+     */
     public function resolveRecord(): Ppdb
     {
-        return new Ppdb;
+        $tahunAjaranId = TahunAjaran::untukPpdb()?->id;
+
+        return Ppdb::query()->firstOrNew(['tahun_ajaran_id' => $tahunAjaranId, 'nisn' => $this->data['nisn'] ?? null]);
     }
 
     public function fillRecord(): void
@@ -110,6 +134,8 @@ class PpdbImporter extends Importer
             'tempat_lahir' => $this->data['tempat_lahir'] ?? null,
             'tanggal_lahir' => $this->data['tanggal_lahir'] ?? null,
             'jenis_kelamin' => $this->data['jenis_kelamin'] ?? null,
+            'agama' => $this->data['agama'] ?? null,
+            'asal_sekolah' => $this->data['asal_sekolah'] ?? null,
             'alamat' => $this->data['alamat'] ?? null,
             'nomor_telepon' => $this->data['nomor_telepon'] ?? null,
             'nomor_kip_pip' => $this->data['nomor_kip_pip'] ?? null,

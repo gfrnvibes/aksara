@@ -1,12 +1,12 @@
 @php
-    /** @var list<array{url: string, pdf: bool, nama: string}> $berkas */
+    /** @var list<array{url: string, pdf: bool, nama: string, judul?: string}> $berkas */
 @endphp
 
 <div style="display: grid; gap: 1rem;">
     @foreach ($berkas as $file)
         <div style="border: 1px solid var(--gray-200); background: var(--gray-50);">
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 0.375rem 0.75rem; border-bottom: 1px solid var(--gray-200); font-size: 0.75rem; color: var(--gray-600);">
-                <span>Halaman {{ $loop->iteration }} dari {{ count($berkas) }} &middot; {{ $file['pdf'] ? 'PDF' : 'Gambar' }}</span>
+                <span>{{ $file['judul'] ?? "Halaman {$loop->iteration} dari ".count($berkas) }} &middot; {{ $file['pdf'] ? 'PDF' : 'Gambar' }}</span>
                 <a href="{{ $file['url'] }}" target="_blank" rel="noopener" style="color: var(--primary-600); font-weight: 600;">Buka di tab baru</a>
             </div>
 

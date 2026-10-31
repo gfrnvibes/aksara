@@ -2,31 +2,87 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Agama;
+use App\Http\Requests\DaftarPpdbRequest;
 use App\Models\Ppdb;
+use App\Models\Siswa;
+use App\Models\TahunAjaran;
+use App\Services\Arsip\SimpanBerkasArsip;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
+use Throwable;
 
+/**
+ * The public PPDB page: the registration form while registration is open, and a status check for applicants.
+ */
 class PpdbController extends Controller
 {
-    public function store(Request $request)
+    public function create(): View
     {
-        $validated = $request->validate([
-            'nama_lengkap' => ['required', 'string', 'max:255'],
-            'nisn' => ['required', 'string', 'max:30', Rule::unique('ppdbs', 'nisn')],
-            'nik' => ['required', 'string', 'size:16', 'regex:/^[0-9]+$/', Rule::unique('ppdbs', 'nik')],
-            'tempat_lahir' => ['required', 'string', 'max:255'],
-            'tanggal_lahir' => ['required', 'date'],
-            'jenis_kelamin' => ['required', 'in:Laki-laki,Perempuan'],
-            'alamat' => ['required', 'string', 'max:1000'],
-            'nomor_telepon' => ['required', 'string', 'max:30'],
-            'nomor_kip_pip' => ['nullable', 'string', 'max:100'],
-            'nama_ayah_kandung' => ['required', 'string', 'max:255'],
-            'nama_ibu_kandung' => ['required', 'string', 'max:255'],
-            'nama_wali' => ['nullable', 'string', 'max:255'],
+        return view('ppdb', [
+            'tahunAjaran' => TahunAjaran::pendaftaranPpdbDibuka(),
+            'pilihanAgama' => Agama::cases(),
         ]);
+    }
 
-        Ppdb::create($validated);
+    public function store(DaftarPpdbRequest $request, SimpanBerkasArsip $penyimpan): RedirectResponse
+    {
+        $tahunAjaran = TahunAjaran::pendaftaranPpdbDibuka();
+        $berkas = [];
 
-        return back()->with('success', 'Pendaftaran PPDB berhasil dikirim. Tim kami akan segera memproses data Anda.');
+        try {
+            foreach (array_keys(Ppdb::BERKAS) as $kunci) {
+                $file = $request->file("berkas.{$kunci}");
+
+                if ($file instanceof UploadedFile) {
+                    $berkas[$kunci] = $penyimpan->simpan($file, 'ppdb', $kunci === 'foto' ? Siswa::SISI_FOTO : SimpanBerkasArsip::SISI_TERPANJANG);
+                }
+            }
+
+            $ppdb = Ppdb::query()->create([
+                ...$request->safe()->except('berkas'),
+                'tahun_ajaran_id' => $tahunAjaran?->id,
+                'berkas' => $berkas,
+            ]);
+        } catch (Throwable $exception) {
+            Storage::disk(Ppdb::disk())->delete(array_values($berkas));
+
+            throw $exception;
+        }
+
+        return to_route('ppdb')->with('terdaftar', ['nomor' => $ppdb->nomor, 'nama' => $ppdb->nama_lengkap]);
+    }
+
+    /**
+     * The status of a registration, found by its number and the applicant's date of birth.
+     */
+    public function cekStatus(Request $request): RedirectResponse
+    {
+        $data = $request->validateWithBag('cekStatus', [
+            'nomor' => ['required', 'string', 'max:30'],
+            'tanggal_lahir_cek' => ['required', 'date'],
+        ], [], ['nomor' => 'nomor pendaftaran', 'tanggal_lahir_cek' => 'tanggal lahir']);
+
+        $ppdb = Ppdb::query()
+            ->where('nomor', strtoupper(trim($data['nomor'])))
+            ->whereDate('tanggal_lahir', $data['tanggal_lahir_cek'])
+            ->first();
+
+        if ($ppdb === null) {
+            return redirect()->to(route('ppdb').'#cek-status')
+                ->withErrors(['nomor' => 'Pendaftaran tidak ditemukan. Periksa kembali nomor pendaftaran dan tanggal lahir.'], 'cekStatus')
+                ->withInput();
+        }
+
+        return redirect()->to(route('ppdb').'#cek-status')->with('hasilCek', [
+            'nomor' => $ppdb->nomor,
+            'nama' => $ppdb->nama_lengkap,
+            'status' => $ppdb->status->getLabel(),
+            'warna' => $ppdb->status->getColor(),
+            'pesan' => $ppdb->status->pesanUntukPendaftar(),
+        ]);
     }
 }

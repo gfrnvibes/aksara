@@ -62,12 +62,12 @@ trait MemilikiBerkasArsip
     }
 
     /**
-     * @param  list<string>  $daftarBerkas
+     * @param  array<array-key, string>  $daftarBerkas
      */
     protected static function hapusBerkas(array $daftarBerkas): void
     {
         if ($daftarBerkas !== []) {
-            Storage::disk(static::disk())->delete($daftarBerkas);
+            Storage::disk(static::disk())->delete(array_values($daftarBerkas));
         }
     }
 }

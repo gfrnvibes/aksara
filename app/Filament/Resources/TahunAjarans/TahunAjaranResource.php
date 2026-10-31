@@ -9,10 +9,13 @@ use App\Models\TahunAjaran;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Fieldset;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -63,6 +66,19 @@ class TahunAjaranResource extends Resource
                 TextInput::make('nip_kepala_madrasah')
                     ->label('NIP Kepala Madrasah')
                     ->maxLength(30),
+                Fieldset::make('Periode Pendaftaran PPDB')
+                    ->columns(2)
+                    ->schema([
+                        DatePicker::make('ppdb_dibuka')
+                            ->label('Dibuka'),
+                        DatePicker::make('ppdb_ditutup')
+                            ->label('Ditutup')
+                            ->afterOrEqual('ppdb_dibuka')
+                            ->helperText('Kosongkan bila belum ditentukan.'),
+                        Text::make('Formulir PPDB di halaman publik hanya menerima pendaftaran pada rentang tanggal ini, untuk calon siswa tahun ajaran ini.')
+                            ->color('gray')
+                            ->columnSpanFull(),
+                    ]),
             ])
             ->columns(1);
     }
@@ -84,6 +100,10 @@ class TahunAjaranResource extends Resource
                 TextColumn::make('kepala_madrasah')
                     ->label('Kepala Madrasah')
                     ->placeholder('Belum diisi'),
+                TextColumn::make('ppdb_dibuka')
+                    ->label('Periode PPDB')
+                    ->formatStateUsing(fn (TahunAjaran $record): string => $record->ppdb_dibuka->format('d-m-Y').' s.d. '.($record->ppdb_ditutup?->format('d-m-Y') ?? 'belum ditentukan'))
+                    ->placeholder('-'),
                 TextColumn::make('rapor_count')
                     ->label('Jumlah Rapor')
                     ->counts('rapor'),

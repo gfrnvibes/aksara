@@ -9,8 +9,9 @@ use App\Http\Controllers\UnduhBackupController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', LandingPageController::class)->name('home');
-Route::view('/ppdb', 'ppdb')->name('ppdb');
-Route::post('/ppdb', [PpdbController::class, 'store'])->name('ppdb.store');
+Route::get('/ppdb', [PpdbController::class, 'create'])->name('ppdb');
+Route::post('/ppdb', [PpdbController::class, 'store'])->middleware('throttle:10,60')->name('ppdb.store');
+Route::post('/ppdb/status', [PpdbController::class, 'cekStatus'])->middleware('throttle:10,1')->name('ppdb.status');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
