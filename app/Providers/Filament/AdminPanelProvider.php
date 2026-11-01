@@ -6,6 +6,8 @@ use App\Filament\Auth\Login;
 use App\Models\User;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use BokshornIt\FilamentActivityTimeline\ActivityTimelinePlugin;
+use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -14,6 +16,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -40,8 +43,16 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarWidth('15rem')
             ->sidebarCollapsibleOnDesktop()
             ->viteTheme('resources/css/filament/admin/theme.css')
+            ->userMenuItems([
+                Action::make('panelGuru')
+                    ->label('Buka Panel Guru')
+                    ->icon(Heroicon::OutlinedAcademicCap)
+                    ->url(fn (): string => Filament::getPanel('guru')->getUrl())
+                    ->visible(fn (): bool => Filament::auth()->user()?->canAccessPanel(Filament::getPanel('guru')) ?? false),
+            ])
             ->navigationGroups([
                 'Buku Induk',
+                'Kurikulum',
                 'Arsip',
                 'Persuratan',
                 'Kepegawaian',

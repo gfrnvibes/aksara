@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CetakBukuIndukController;
+use App\Http\Controllers\CetakJadwalController;
 use App\Http\Controllers\CetakRaporController;
 use App\Http\Controllers\CetakSuratController;
 use App\Http\Controllers\LandingPageController;
@@ -25,6 +26,7 @@ Route::middleware('auth')->group(function () {
     Route::get('siswa/{siswa}/transkrip', [CetakSuratController::class, 'transkrip'])->name('surat.transkrip');
     Route::get('mutasi/{mutasi}/surat-pindah', [CetakSuratController::class, 'pindah'])->name('surat.pindah');
     Route::get('surat-keluar/{surat}/cetak', [CetakSuratController::class, 'keluar'])->name('surat.keluar');
+    Route::get('jadwal/{jadwal}/cetak', CetakJadwalController::class)->name('jadwal.cetak');
     Route::get('cetak-buku-induk/{token}', [CetakBukuIndukController::class, 'massal'])->whereUuid('token')->name('buku-induk.cetak-massal');
     Route::get('backup/unduh', UnduhBackupController::class)->middleware('signed')->name('backup.unduh');
 });

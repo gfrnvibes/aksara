@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Filament\Pages\BackupData;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
 use Spatie\Permission\Models\Permission;
@@ -12,11 +13,23 @@ use Spatie\Permission\PermissionRegistrar;
 class RoleSeeder extends Seeder
 {
     /**
+     * The vice principal for curriculum: timetables, bell schedule, academic calendar, teaching assignments,
+     * teachers' scheduling wishes and subjects, and a read-only view of teachers and classes.
+     */
+    public const string WK_KURIKULUM = 'wk_kurikulum';
+
+    /**
+     * @var list<string>
+     */
+    protected const array DIKELOLA_KURIKULUM = ['Jadwal', 'JamPelajaran', 'KalenderAkademik', 'PembagianMengajar', 'PermintaanJadwal', 'MataPelajaran'];
+
+    /**
      * Seed the Shield permissions plus the default roles.
      *
      * - super_admin: full access (handled by Shield).
      * - operator: manages Buku Induk and master data and may restore from the trash, but cannot empty the
      *   trash or manage users, roles, backups or the activity log.
+     * - wk_kurikulum: see {@see self::WK_KURIKULUM}.
      */
     public function run(): void
     {
@@ -39,6 +52,19 @@ class RoleSeeder extends Seeder
                 ->where('name', 'not like', '%:Activity')
                 ->where('name', 'not like', 'ForceDelete%')
                 ->where('name', '!=', BackupData::IZIN)
+                ->get(),
+        );
+
+        Role::findOrCreate(static::WK_KURIKULUM, 'web')->syncPermissions(
+            Permission::query()
+                ->where(function (Builder $query): void {
+                    foreach (static::DIKELOLA_KURIKULUM as $model) {
+                        $query->orWhere('name', 'like', "%:{$model}");
+                    }
+
+                    $query->orWhereIn('name', ['ViewAny:Gtk', 'View:Gtk', 'ViewAny:Kelas', 'View:Kelas']);
+                })
+                ->where('name', 'not like', 'ForceDelete%')
                 ->get(),
         );
     }

@@ -3,13 +3,18 @@
 use App\Filament\Pages\BackupData;
 use App\Filament\Resources\Ekstrakurikulers\EkstrakurikulerResource;
 use App\Filament\Resources\Gtks\GtkResource;
+use App\Filament\Resources\Jadwals\JadwalResource;
+use App\Filament\Resources\JamPelajarans\JamPelajaranResource;
+use App\Filament\Resources\KalenderAkademiks\KalenderAkademikResource;
 use App\Filament\Resources\Kelas\KelasResource;
 use App\Filament\Resources\MataPelajarans\MataPelajaranResource;
 use App\Filament\Resources\PembagianMengajars\PembagianMengajarResource;
+use App\Filament\Resources\PermintaanJadwals\PermintaanJadwalResource;
 use App\Filament\Resources\Rapors\RaporResource;
 use App\Filament\Resources\Siswas\SiswaResource;
 use App\Filament\Resources\TahunAjarans\TahunAjaranResource;
 use App\Filament\Resources\Users\UserResource;
+use App\Models\Jadwal;
 use App\Models\NilaiRapor;
 use App\Models\Rapor;
 use App\Models\User;
@@ -44,6 +49,11 @@ it('renders every resource page for a super admin', function (Closure $url) {
     'pengguna' => [fn (): string => UserResource::getUrl()],
     'gtk' => [fn (): string => GtkResource::getUrl()],
     'pembagian mengajar' => [fn (): string => PembagianMengajarResource::getUrl()],
+    'jadwal' => [fn (): string => JadwalResource::getUrl()],
+    'atur jadwal' => [fn (): string => JadwalResource::getUrl('atur', ['record' => Jadwal::factory()->create()])],
+    'jam pelajaran' => [fn (): string => JamPelajaranResource::getUrl()],
+    'kalender akademik' => [fn (): string => KalenderAkademikResource::getUrl()],
+    'permintaan jadwal' => [fn (): string => PermintaanJadwalResource::getUrl()],
 ]);
 
 it('forbids the panel for a user without any role', function () {

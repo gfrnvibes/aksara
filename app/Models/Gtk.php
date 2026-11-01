@@ -140,6 +140,14 @@ class Gtk extends Model implements ProvidesActivityTitle, TerlindungDariHapus
     }
 
     /**
+     * @return HasMany<PermintaanJadwal, $this>
+     */
+    public function permintaanJadwal(): HasMany
+    {
+        return $this->hasMany(PermintaanJadwal::class);
+    }
+
+    /**
      * @param  Builder<Gtk>  $query
      */
     #[Scope]
