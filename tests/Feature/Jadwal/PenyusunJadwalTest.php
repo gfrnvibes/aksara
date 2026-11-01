@@ -111,6 +111,58 @@ it('builds the full timetable of MTs At-Taufiq without clashes and with every pe
         ->and($peringatan)->toBeEmpty();
 });
 
+it('lays the At-Taufiq timetable out neatly: whole lessons of two or three periods, singles only where needed', function () {
+    $kelas = pembagianAtTaufiq($this->tahunAjaran);
+
+    $hasil = penyusun()->susun($this->jadwal);
+    $pola = PolaJam::muat();
+    $pertemuan = [];
+
+    foreach ($this->jadwal->isi()->orderBy('jp_ke')->get()->groupBy(fn (IsiJadwal $sel): string => "{$sel->pembagian_mengajar_id}-{$sel->hari->value}") as $sel) {
+        $panjang = [];
+
+        foreach ($sel as $i => $satu) {
+            $lanjut = $i > 0 && $satu->jp_ke === $sel[$i - 1]->jp_ke + 1 && $pola->satuSesi($satu->hari, $sel[$i - 1]->jp_ke, $satu->jp_ke);
+
+            if ($lanjut) {
+                $panjang[array_key_last($panjang)]++;
+            } else {
+                $panjang[] = 1;
+            }
+        }
+
+        $pertemuan[$sel[0]->kelas_id][] = $panjang;
+    }
+
+    expect(collect($hasil['laporan'])->where('tingkat', PemeriksaJadwal::PERINGATAN))->toBeEmpty();
+
+    foreach ($kelas as $satuKelas) {
+        $panjang = collect($pertemuan[$satuKelas->id])->flatten();
+
+        expect($panjang->max())->toBeLessThanOrEqual(3)
+            ->and($panjang->filter(fn (int $jp): bool => $jp === 1)->count())->toBeLessThanOrEqual(3);
+    }
+});
+
+it('meets a subject for at most three periods at a time: 5 as 3 + 2, 4 as 2 + 2, 3 at once', function () {
+    $kelas = Kelas::factory()->create();
+    $tugas = collect([5, 4, 3])
+        ->map(fn (int $jp) => PembagianMengajar::factory()->for($this->tahunAjaran)->for($kelas)->create(['jp_per_minggu' => $jp]));
+
+    expect(penyusun()->susun($this->jadwal)['berhasil'])->toBeTrue();
+
+    $bentuk = fn (PembagianMengajar $tugas): array => IsiJadwal::query()->where('pembagian_mengajar_id', $tugas->id)->orderBy('jp_ke')->get()
+        ->groupBy(fn (IsiJadwal $sel): int => $sel->hari->value)
+        ->map(fn ($sel): int => $sel->count())
+        ->sortDesc()
+        ->values()
+        ->all();
+
+    expect($bentuk($tugas[0]))->toBe([3, 2])
+        ->and($bentuk($tugas[1]))->toBe([2, 2])
+        ->and($bentuk($tugas[2]))->toBe([3]);
+});
+
 it('never breaks a required wish', function () {
     pembagianAtTaufiq($this->tahunAjaran);
     $dede = Gtk::query()->where('nama', 'Dede')->sole();

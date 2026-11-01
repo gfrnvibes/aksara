@@ -16,19 +16,35 @@ use Random\Randomizer;
 /**
  * Builds a timetable from the teaching assignments of its academic year.
  *
- * Each assignment's weekly periods are split into double lessons (plus one single lesson for an odd count) and
- * placed by a backtracking search that always places the lesson with the fewest free spots next. It never puts a
- * class or a teacher in two places at once and never breaks a required wish. Among valid timetables it prefers
- * ones that keep double lessons within one session (not split by a break or prayers), spread a subject over
- * several days, and follow the teachers' other wishes. Several randomised searches are run and the cheapest
- * result is kept. Periods locked by hand stay where they are.
+ * Each class's assignments are first split into lessons of three, two or one periods that tile its sessions (the
+ * runs of periods between breaks and prayers) the way the madrasah lays out a timetable by hand: a session of four
+ * takes two double lessons, a session of three a triple lesson, and a lone period such as the one before the
+ * midday prayer a single lesson. A subject meets for at most three periods at a time, so four periods a week are
+ * 2 + 2 and five are 3 + 2; single lessons are made only where the sessions need them.
+ *
+ * The lessons are then placed by a backtracking search that always places the lesson with the fewest free spots
+ * next. It never puts a class or a teacher in two places at once and never breaks a required wish. Among valid
+ * timetables it prefers ones that fill each session neatly, keep a lesson within one session, meet a subject on
+ * different days and follow the teachers' other wishes. Several randomised searches are run and the cheapest
+ * result is kept. When none fits, the lesson that got stuck is split and the search tried again. Periods locked by
+ * hand stay where they are.
  */
 class PenyusunJadwal
 {
     /**
-     * What a double lesson split by a break or prayers costs; splitting is the second choice.
+     * What a lesson split by a break or prayers costs; splitting is the second choice.
      */
     protected const int BIAYA_TERPOTONG = 40;
+
+    /**
+     * What a lesson costs for each odd gap it leaves in its session, which only a single lesson can fill.
+     */
+    protected const int BIAYA_CELAH = 10;
+
+    /**
+     * What a lesson costs for leaving the odd period of an odd session at its start rather than at its end.
+     */
+    protected const int BIAYA_CELAH_AWAL = 3;
 
     /**
      * What each period against a teacher's non-required wish costs.
@@ -36,9 +52,14 @@ class PenyusunJadwal
     protected const int BIAYA_PERMINTAAN = 20;
 
     /**
-     * What each further lesson of the same subject on the same day costs, to spread it over the week.
+     * What each further lesson of the same subject on the same day costs, to meet it on different days.
      */
     protected const int BIAYA_HARI_SAMA = 15;
+
+    /**
+     * What a lesson right after another of the same subject costs, which would make one meeting too long.
+     */
+    protected const int BIAYA_BERSAMBUNG = 30;
 
     /**
      * Search steps per attempt before it gives up and starts over.
@@ -50,7 +71,14 @@ class PenyusunJadwal
      */
     protected const int CABANG_MAKSIMUM = 8;
 
+    /**
+     * Time for the first search, for each search after a lesson is split, and for all of them together.
+     */
     protected const float BATAS_WAKTU_DETIK = 8.0;
+
+    protected const float BATAS_WAKTU_ULANG_DETIK = 3.0;
+
+    protected const float BATAS_WAKTU_TOTAL_DETIK = 25.0;
 
     protected const int PERCOBAAN_SETELAH_BERHASIL = 10;
 
@@ -62,12 +90,22 @@ class PenyusunJadwal
     protected array $slot = [];
 
     /**
+     * @var array<int, array<int, int>> Day => index of each period => index of the first period of its session.
+     */
+    protected array $awalSesi = [];
+
+    /**
+     * @var array<int, array<int, int>> Day => index of a session's first period => periods in the session.
+     */
+    protected array $panjangSesi = [];
+
+    /**
      * @var list<array{pembagian: int, kelas: int, guru: int, panjang: int}>
      */
     protected array $blok = [];
 
     /**
-     * @var array<int, array<string, true>> Class => "day-period" => taken.
+     * @var array<int, array<string, int>> Class => "day-period" => the assignment taught then (0 when unknown).
      */
     protected array $kelasSibuk = [];
 
@@ -92,9 +130,24 @@ class PenyusunJadwal
     protected array $hariDipakai = [];
 
     /**
+     * @var array<int, int> Teacher => single lessons planned for them across classes.
+     */
+    protected array $tunggalGuru = [];
+
+    /**
      * @var array<int, array{0: int, 1: int}> Lesson => [day, index of its first period in the day].
      */
     protected array $penempatan = [];
+
+    /**
+     * @var array<int, int> Lesson => how often a search got stuck on it.
+     */
+    protected array $bobot = [];
+
+    /**
+     * @var array<int, true> Assignments with a lesson split because it did not fit.
+     */
+    protected array $dipecah = [];
 
     protected int $langkah = 0;
 
@@ -138,13 +191,15 @@ class PenyusunJadwal
             return ['berhasil' => false, 'laporan' => $masalah];
         }
 
-        $hasil = $this->cariTerbaik(pecahTunggal: false);
-        $dipecah = false;
+        if ((int) ini_get('max_execution_time') > 0) {
+            set_time_limit((int) static::BATAS_WAKTU_TOTAL_DETIK + 30);
+        }
 
-        if ($hasil === null) {
-            $this->susunBlok($pembagian, $terkunci, pecahTunggal: true);
-            $hasil = $this->cariTerbaik(pecahTunggal: true);
-            $dipecah = true;
+        $batasTotal = microtime(true) + static::BATAS_WAKTU_TOTAL_DETIK;
+        $hasil = $this->cariTerbaik(min($batasTotal, microtime(true) + static::BATAS_WAKTU_DETIK));
+
+        while ($hasil === null && microtime(true) < $batasTotal && $this->pecahBuntu()) {
+            $hasil = $this->cariTerbaik(min($batasTotal, microtime(true) + static::BATAS_WAKTU_ULANG_DETIK));
         }
 
         if ($hasil === null) {
@@ -154,8 +209,8 @@ class PenyusunJadwal
         $this->simpan($jadwal, $hasil, $pembagian);
 
         $laporan = [
-            PemeriksaJadwal::temuan(PemeriksaJadwal::INFO, 'Jadwal disusun otomatis: '.count($hasil).' pelajaran ditempatkan'.($terkunci->isNotEmpty() ? ", {$terkunci->count()} JP terkunci dipertahankan" : '').'.'),
-            ...($dipecah ? [PemeriksaJadwal::temuan(PemeriksaJadwal::PERINGATAN, 'Sebagian pelajaran tidak bisa dibuat 2 JP berturut-turut, sehingga dipasang per 1 JP. Longgarkan permintaan wajib guru agar bisa berturut-turut.')] : []),
+            PemeriksaJadwal::temuan(PemeriksaJadwal::INFO, 'Jadwal disusun otomatis: '.count($hasil).' pertemuan ditempatkan'.($terkunci->isNotEmpty() ? ", {$terkunci->count()} JP terkunci dipertahankan" : '').'.'),
+            ...$this->catatanDipecah($pembagian),
             ...$this->catatanTerpotong($hasil, $pembagian),
             ...(new PemeriksaJadwal($this->pola))->periksa($jadwal),
         ];
@@ -173,9 +228,23 @@ class PenyusunJadwal
     protected function siapkan(Collection $pembagian, Collection $terkunci, Collection $permintaan): void
     {
         $this->slot = [];
+        $this->awalSesi = [];
+        $this->panjangSesi = [];
+        $this->dipecah = [];
+        $this->bobot = [];
 
         foreach ($this->pola->hari() as $hari) {
-            $this->slot[$hari->value] = $this->pola->jp($hari);
+            $this->slot[$hari->value] = $daftarJp = $this->pola->jp($hari);
+            $awal = 0;
+
+            foreach ($daftarJp as $i => $jp) {
+                if ($i > 0 && ! $this->pola->satuSesi($hari, $daftarJp[$i - 1], $jp)) {
+                    $awal = $i;
+                }
+
+                $this->awalSesi[$hari->value][$i] = $awal;
+                $this->panjangSesi[$hari->value][$awal] = ($this->panjangSesi[$hari->value][$awal] ?? 0) + 1;
+            }
         }
 
         $this->terlarang = [];
@@ -199,20 +268,21 @@ class PenyusunJadwal
             }
         }
 
-        $this->susunBlok($pembagian, $terkunci, pecahTunggal: false);
+        $this->susunBlok($pembagian, $terkunci);
     }
 
     /**
-     * Reset the grid to the locked periods and split what is left of each assignment into lessons.
+     * Mark the locked periods on the grid and split what is left of each assignment into lessons.
      *
      * @param  Collection<int, PembagianMengajar>  $pembagian
      * @param  Collection<int, IsiJadwal>  $terkunci
      */
-    protected function susunBlok(Collection $pembagian, Collection $terkunci, bool $pecahTunggal): void
+    protected function susunBlok(Collection $pembagian, Collection $terkunci): void
     {
         $this->kelasSibuk = [];
         $this->guruSibuk = [];
         $this->hariDipakai = [];
+        $this->tunggalGuru = [];
         $this->blok = [];
         $sisa = $pembagian->map(fn (PembagianMengajar $tugas): int => $tugas->jp_per_minggu)->all();
 
@@ -220,7 +290,7 @@ class PenyusunJadwal
             $tugas = $pembagian->get($sel->pembagian_mengajar_id);
             $kunci = "{$sel->hari->value}-{$sel->jp_ke}";
 
-            $this->kelasSibuk[$sel->kelas_id][$kunci] = true;
+            $this->kelasSibuk[$sel->kelas_id][$kunci] = $tugas->id ?? 0;
 
             if ($tugas !== null) {
                 $this->guruSibuk[$tugas->gtk_id][$kunci] = true;
@@ -229,14 +299,202 @@ class PenyusunJadwal
             }
         }
 
-        foreach ($pembagian as $tugas) {
-            $jumlah = $sisa[$tugas->id];
-            $panjang = $pecahTunggal ? array_fill(0, $jumlah, 1) : [...array_fill(0, intdiv($jumlah, 2), 2), ...($jumlah % 2 === 1 ? [1] : [])];
+        foreach ($pembagian->groupBy('kelas_id') as $kelasId => $tugasKelas) {
+            foreach ($this->rencanakan($kelasId, $tugasKelas, $sisa) as $tugasId => $daftarPanjang) {
+                $tugas = $pembagian->get($tugasId);
 
-            foreach ($panjang as $jp) {
-                $this->blok[] = ['pembagian' => $tugas->id, 'kelas' => $tugas->kelas_id, 'guru' => $tugas->gtk_id, 'panjang' => $jp];
+                foreach ($daftarPanjang as $panjang) {
+                    $this->blok[] = ['pembagian' => $tugas->id, 'kelas' => $tugas->kelas_id, 'guru' => $tugas->gtk_id, 'panjang' => $panjang];
+                }
             }
         }
+    }
+
+    /**
+     * Split the class's assignments into lessons that can tile its free sessions.
+     *
+     * Every session of odd length needs an odd lesson (three or one periods) unless one of its periods is left
+     * free, so the class gets at least that many odd lessons. Odd assignments give one each, as a triple lesson
+     * while there are sessions to hold it (5 = 3 + 2) and otherwise a single one (5 = 2 + 2 + 1). More are made
+     * from even assignments: 6 = 3 + 3 or 4 = 3 + 1 while triple lessons fit, and after that by splitting a
+     * double lesson into two singles (see {@see pilihUntukTunggal()}).
+     *
+     * @param  Collection<int, PembagianMengajar>  $tugasKelas
+     * @param  array<int, int>  $sisa  Assignment => periods left to place.
+     * @return array<int, list<int>> Assignment => length of each of its lessons.
+     */
+    protected function rencanakan(int $kelasId, Collection $tugasKelas, array $sisa): array
+    {
+        $runs = $this->ruangKosong($kelasId);
+        $ruang = array_map(count(...), $runs);
+        $jamTunggal = array_merge(...array_values(array_filter($runs, fn (array $run): bool => count($run) === 1)));
+        $sesiGanjil = count(array_filter($ruang, fn (int $panjang): bool => $panjang % 2 === 1));
+        $tempatTiga = array_sum(array_map(fn (int $panjang): int => match (true) {
+            $panjang % 2 === 1 && $panjang >= 3 => 1,
+            $panjang % 2 === 0 && $panjang >= 6 => 2,
+            default => 0,
+        }, $ruang));
+        $longgar = max(0, array_sum($ruang) - $tugasKelas->sum(fn (PembagianMengajar $tugas): int => $sisa[$tugas->id]));
+
+        $guru = $tugasKelas->pluck('gtk_id', 'id')->all();
+        $dua = [];
+        $tiga = [];
+        $satu = [];
+
+        foreach ($tugasKelas->sortByDesc(fn (PembagianMengajar $tugas): int => $sisa[$tugas->id]) as $tugas) {
+            if ($sisa[$tugas->id] > 0) {
+                $dua[$tugas->id] = intdiv($sisa[$tugas->id], 2);
+                $tiga[$tugas->id] = 0;
+                $satu[$tugas->id] = 0;
+            }
+        }
+
+        $ganjil = 0;
+
+        foreach (array_keys($dua) as $id) {
+            if ($sisa[$id] % 2 === 0) {
+                continue;
+            }
+
+            $ganjil++;
+
+            if ($dua[$id] > 0 && array_sum($tiga) < $tempatTiga) {
+                $dua[$id]--;
+                $tiga[$id]++;
+            } else {
+                $satu[$id]++;
+            }
+        }
+
+        $kurang = max(0, $sesiGanjil - $longgar) - $ganjil;
+        $kurang += max(0, $kurang) % 2;
+        $utuh = fn (int $minimalDua): ?int => array_key_first(array_filter(
+            $dua,
+            fn (int $jumlah, int $id): bool => $tiga[$id] + $satu[$id] === 0 && $jumlah >= $minimalDua,
+            ARRAY_FILTER_USE_BOTH,
+        ));
+
+        while ($kurang > 0) {
+            if ($tempatTiga - array_sum($tiga) >= 2 && ($id = $utuh(3)) !== null) {
+                $dua[$id] -= 3;
+                $tiga[$id] += 2;
+            } elseif ($tempatTiga - array_sum($tiga) >= 1 && ($id = $utuh(2)) !== null) {
+                $dua[$id] -= 2;
+                $tiga[$id]++;
+                $satu[$id]++;
+            } elseif (($id = $this->pilihUntukTunggal($dua, $tiga, $satu, $guru, $jamTunggal)) !== null) {
+                $dua[$id]--;
+                $satu[$id] += 2;
+            } else {
+                break;
+            }
+
+            $kurang -= 2;
+        }
+
+        $rencana = [];
+
+        foreach ($dua as $id => $jumlah) {
+            $this->tunggalGuru[$guru[$id]] = ($this->tunggalGuru[$guru[$id]] ?? 0) + $satu[$id];
+            $rencana[$id] = [...array_fill(0, $tiga[$id], 3), ...array_fill(0, $jumlah, 2), ...array_fill(0, $satu[$id], 1)];
+        }
+
+        return $rencana;
+    }
+
+    /**
+     * The assignment whose double lesson is split into two singles. Single lessons mostly land on the lone periods
+     * (like the one before the midday prayer), which fall at the same time in every class, so a teacher with single
+     * lessons in two classes would have to be in both at once, and a teacher whose required wishes rule those
+     * periods out could not take them at all. Singles therefore go to an assignment that keeps a longer lesson as
+     * well, whose teacher may teach on enough of the lone periods and has no singles in other classes, kept
+     * together in one assignment, the one with the most periods.
+     *
+     * @param  array<int, int>  $dua  Assignment => its double lessons, in order of periods, most first.
+     * @param  array<int, int>  $tiga  Assignment => its triple lessons.
+     * @param  array<int, int>  $satu  Assignment => its single lessons.
+     * @param  array<int, int>  $guru  Assignment => teacher.
+     * @param  list<string>  $jamTunggal  The class's lone free periods, as "day-period".
+     */
+    protected function pilihUntukTunggal(array $dua, array $tiga, array $satu, array $guru, array $jamTunggal): ?int
+    {
+        $dipilih = null;
+        $kunciDipilih = null;
+
+        foreach ($dua as $id => $jumlah) {
+            $bisa = count(array_filter($jamTunggal, fn (string $jam): bool => ! isset($this->terlarang[$id][$jam])));
+            $kunci = [$jumlah + $tiga[$id] >= 2 ? 0 : 1, $bisa < $satu[$id] + 2 ? 1 : 0, $this->tunggalGuru[$guru[$id]] ?? 0, $satu[$id] > 0 ? 0 : 1];
+
+            if ($jumlah > 0 && ($kunciDipilih === null || $kunci < $kunciDipilih)) {
+                $dipilih = $id;
+                $kunciDipilih = $kunci;
+            }
+        }
+
+        return $dipilih;
+    }
+
+    /**
+     * The runs of free periods the class has, each within one session, as "day-period" keys.
+     *
+     * @return list<list<string>>
+     */
+    protected function ruangKosong(int $kelasId): array
+    {
+        $ruang = [];
+
+        foreach ($this->slot as $hari => $daftarJp) {
+            $run = [];
+
+            foreach ($daftarJp as $i => $jp) {
+                $kunci = "{$hari}-{$jp}";
+
+                if ($this->awalSesi[$hari][$i] === $i || isset($this->kelasSibuk[$kelasId][$kunci])) {
+                    $ruang[] = $run;
+                    $run = [];
+                }
+
+                if (! isset($this->kelasSibuk[$kelasId][$kunci])) {
+                    $run[] = $kunci;
+                }
+            }
+
+            $ruang[] = $run;
+        }
+
+        return array_values(array_filter($ruang));
+    }
+
+    /**
+     * Split the lesson the last search got stuck on (or, when that is a single one, a longer lesson of the same
+     * teacher or class) in two, so the next search has more room. False when nothing is left to split.
+     */
+    protected function pecahBuntu(): bool
+    {
+        if ($this->blokBuntu === null) {
+            return false;
+        }
+
+        $buntu = $this->blok[$this->blokBuntu];
+        $dipilih = $buntu['panjang'] > 1 ? $this->blokBuntu : null;
+
+        foreach (['guru', 'kelas'] as $kunci) {
+            $dipilih ??= array_key_first(array_filter(
+                $this->blok,
+                fn (array $blok): bool => $blok[$kunci] === $buntu[$kunci] && $blok['panjang'] > 1,
+            ));
+        }
+
+        if ($dipilih === null) {
+            return false;
+        }
+
+        $blok = $this->blok[$dipilih];
+        $this->blok[$dipilih] = [...$blok, 'panjang' => $blok['panjang'] - 1];
+        $this->blok[] = [...$blok, 'panjang' => 1];
+        $this->dipecah[$blok['pembagian']] = true;
+
+        return true;
     }
 
     /**
@@ -294,9 +552,8 @@ class PenyusunJadwal
      *
      * @return array<int, array{0: int, 1: int}>|null
      */
-    protected function cariTerbaik(bool $pecahTunggal): ?array
+    protected function cariTerbaik(float $batasWaktu): ?array
     {
-        $batasWaktu = microtime(true) + ($pecahTunggal ? static::BATAS_WAKTU_DETIK / 2 : static::BATAS_WAKTU_DETIK);
         $terbaik = null;
         $biayaTerbaik = PHP_INT_MAX;
         $berhasil = 0;
@@ -331,7 +588,9 @@ class PenyusunJadwal
     }
 
     /**
-     * Place the remaining lessons, most constrained first, backtracking on a dead end.
+     * Place the remaining lessons, most constrained first, backtracking on a dead end. A lesson is more
+     * constrained the fewer spots it has left and the more often it has been the one with none left, so lessons
+     * that keep getting stuck are placed earlier in later attempts.
      *
      * @param  array<int, int>  $sisa
      */
@@ -347,11 +606,14 @@ class PenyusunJadwal
 
         $dipilih = null;
         $kandidatDipilih = [];
+        $skorDipilih = 0.0;
 
         foreach ($sisa as $posisi => $blok) {
             $kandidat = $this->kandidat($blok, acak: true);
 
             if ($kandidat === []) {
+                $this->bobot[$blok] = ($this->bobot[$blok] ?? 0) + 1;
+
                 if (count($this->penempatan) > $this->kedalamanTerjauh) {
                     $this->kedalamanTerjauh = count($this->penempatan);
                     $this->blokBuntu = $blok;
@@ -360,9 +622,12 @@ class PenyusunJadwal
                 return false;
             }
 
-            if ($dipilih === null || count($kandidat) < count($kandidatDipilih)) {
+            $skor = count($kandidat) / (1 + ($this->bobot[$blok] ?? 0));
+
+            if ($dipilih === null || $skor < $skorDipilih) {
                 $dipilih = $posisi;
                 $kandidatDipilih = $kandidat;
+                $skorDipilih = $skor;
             }
         }
 
@@ -429,11 +694,50 @@ class PenyusunJadwal
             $biaya += $this->biayaPermintaan[$tugas][$kunci] ?? 0;
         }
 
-        if ($panjang > 1 && ! $this->pola->satuSesi(Hari::from($hari), $this->slot[$hari][$mulai], $this->slot[$hari][$mulai + $panjang - 1])) {
-            $biaya += static::BIAYA_TERPOTONG;
+        return $biaya
+            + $this->biayaLetak($hari, $mulai, $panjang)
+            + $this->biayaBersambung($tugas, $kelas, $hari, $mulai, $panjang)
+            + ($this->hariDipakai[$tugas][$hari] ?? 0) * static::BIAYA_HARI_SAMA;
+    }
+
+    /**
+     * How well the lesson fits its session: nothing when what is left on either side can still be filled with
+     * double lessons (or, in a session of odd length, leaves the one odd period at its end), more when it leaves
+     * gaps only single lessons can fill or runs across a break.
+     */
+    protected function biayaLetak(int $hari, int $mulai, int $panjang): int
+    {
+        $awal = $this->awalSesi[$hari][$mulai];
+
+        if ($this->awalSesi[$hari][$mulai + $panjang - 1] !== $awal) {
+            return static::BIAYA_TERPOTONG;
         }
 
-        return $biaya + ($this->hariDipakai[$tugas][$hari] ?? 0) * static::BIAYA_HARI_SAMA;
+        $kiri = ($mulai - $awal) % 2;
+        $kanan = ($this->panjangSesi[$hari][$awal] - ($mulai - $awal) - $panjang) % 2;
+
+        if ($this->panjangSesi[$hari][$awal] % 2 === 0 || ($kiri === 1 && $kanan === 1)) {
+            return ($kiri + $kanan) * static::BIAYA_CELAH;
+        }
+
+        return $kiri === 1 || ($panjang === 1 && $mulai - $awal + 1 < $this->panjangSesi[$hari][$awal]) ? static::BIAYA_CELAH_AWAL : 0;
+    }
+
+    /**
+     * Whether the lesson would run straight on from another lesson of the same assignment in the same session.
+     */
+    protected function biayaBersambung(int $tugas, int $kelas, int $hari, int $mulai, int $panjang): int
+    {
+        $awal = $this->awalSesi[$hari][$mulai];
+        $biaya = 0;
+
+        foreach ([$mulai - 1, $mulai + $panjang] as $i) {
+            if (($this->awalSesi[$hari][$i] ?? null) === $awal && ($this->kelasSibuk[$kelas][$hari.'-'.$this->slot[$hari][$i]] ?? null) === $tugas) {
+                $biaya += static::BIAYA_BERSAMBUNG;
+            }
+        }
+
+        return $biaya;
     }
 
     protected function pasang(int $blok, int $hari, int $mulai): void
@@ -456,7 +760,7 @@ class PenyusunJadwal
             $kunci = $hari.'-'.$this->slot[$hari][$mulai + $i];
 
             if ($sibuk) {
-                $this->kelasSibuk[$kelas][$kunci] = true;
+                $this->kelasSibuk[$kelas][$kunci] = $tugas;
                 $this->guruSibuk[$guru][$kunci] = true;
             } else {
                 unset($this->kelasSibuk[$kelas][$kunci], $this->guruSibuk[$guru][$kunci]);
@@ -570,6 +874,20 @@ class PenyusunJadwal
         }
 
         return $catatan;
+    }
+
+    /**
+     * @param  Collection<int, PembagianMengajar>  $pembagian
+     * @return list<array{tingkat: string, pesan: string}>
+     */
+    protected function catatanDipecah(Collection $pembagian): array
+    {
+        return array_map(function (int $id) use ($pembagian): array {
+            $tugas = $pembagian->get($id);
+            $pola = collect($this->blok)->where('pembagian', $id)->pluck('panjang')->sortDesc()->implode(' + ');
+
+            return PemeriksaJadwal::temuan(PemeriksaJadwal::PERINGATAN, "{$tugas->mataPelajaran->nama} kelas {$tugas->kelas->nama} ({$tugas->gtk->nama}) tidak muat sebagai blok yang direncanakan, sehingga dipasang {$pola} JP. Longgarkan permintaan wajib guru agar lebih rapi.");
+        }, array_keys($this->dipecah));
     }
 
     /**
