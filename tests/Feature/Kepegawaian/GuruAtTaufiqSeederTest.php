@@ -25,7 +25,9 @@ it('seeds the teachers of the timetable with their subjects as this year\'s teac
         ->and(MataPelajaran::query()->whereIn('nama', ['Informatika', 'Tahfidz', 'Bahasa Sunda'])->count())->toBe(3)
         ->and($pembagian->sum('jp_per_minggu'))->toBe(143)
         ->and($pembagian->where('gtk_id', $gufron->id)->sum('jp_per_minggu'))->toBe(17)
-        ->and($gufron->refresh()->nama)->toBe('Gufron Nurjalil, S. Kom.');
+        ->and($gufron->refresh()->nama)->toBe('Gufron Nurjalil, S. Kom.')
+        ->and($gufron->nomor_kode)->toBe(13)
+        ->and(Gtk::query()->where('nama', 'like', 'Sofwan%')->value('nomor_kode'))->toBe(1);
 
     foreach (['VII' => 48, 'VIII' => 47, 'IX' => 48] as $kelas => $jp) {
         expect($pembagian->where('kelas_id', Kelas::query()->where('nama', $kelas)->value('id'))->sum('jp_per_minggu'))->toBe($jp);

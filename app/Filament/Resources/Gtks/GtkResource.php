@@ -114,6 +114,13 @@ class GtkResource extends Resource
                             ->maxLength(255),
                         DatePicker::make('tmt_tugas')
                             ->label('TMT Tugas'),
+                        TextInput::make('nomor_kode')
+                            ->label('Nomor Kode Jadwal')
+                            ->integer()
+                            ->minValue(1)
+                            ->maxValue(99)
+                            ->helperText('Nomor guru di kode jadwal pelajaran, misalnya 13 untuk kode 13 A, 13 B. Kosongkan agar dinomori otomatis.')
+                            ->unique(ignoreRecord: true),
                         Toggle::make('is_sertifikasi')
                             ->label('Sudah sertifikasi')
                             ->inline(false),
@@ -167,6 +174,12 @@ class GtkResource extends Resource
                     ->toggleable(),
                 TextColumn::make('jenis_gtk')
                     ->label('Jenis')
+                    ->toggleable(),
+                TextColumn::make('nomor_kode')
+                    ->label('Kode Jadwal')
+                    ->formatStateUsing(fn (int $state): string => str_pad((string) $state, 2, '0', STR_PAD_LEFT))
+                    ->sortable()
+                    ->placeholder('-')
                     ->toggleable(),
                 TextColumn::make('status_kepegawaian')
                     ->label('Status')

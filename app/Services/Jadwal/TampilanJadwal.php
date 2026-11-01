@@ -13,8 +13,10 @@ use Illuminate\Support\Collection;
  * A timetable laid out the way the madrasah prints it: days side by side with a column per class, each period
  * showing a short code, and a legend of the codes with each teacher's periods per class.
  *
- * Codes number the teachers (01, 02, …) in the order of the subjects they teach, with a letter for each subject
- * when a teacher has more than one (01 A, 01 B), and each code gets its own colour.
+ * Codes number the teachers by the Nomor Kode Jadwal in Data GTK (teachers without one are numbered after them, in
+ * the order of the subjects they teach), with a letter for each subject when a teacher has more than one (01 A,
+ * 01 B) in the order the subjects were assigned, and each code gets its own colour. So the codes stay the same
+ * each time the timetable is rebuilt.
  */
 class TampilanJadwal
 {
@@ -88,18 +90,24 @@ class TampilanJadwal
     {
         $perGuru = $pembagian
             ->groupBy('gtk_id')
-            ->sortBy(fn (Collection $tugas): array => [$tugas->min(fn (PembagianMengajar $p): int => $p->mataPelajaran->urutan), $tugas->first()->gtk->nama])
+            ->sortBy(fn (Collection $tugas): array => [
+                $tugas->first()->gtk->nomor_kode ?? PHP_INT_MAX,
+                $tugas->min(fn (PembagianMengajar $p): int => $p->mataPelajaran->urutan),
+                $tugas->first()->gtk->nama,
+            ])
             ->values();
+        $nomorBerikut = (int) $perGuru->max(fn (Collection $tugas): ?int => $tugas->first()->gtk->nomor_kode) + 1;
         $warna = 0;
 
-        foreach ($perGuru as $nomor => $tugasGuru) {
+        foreach ($perGuru as $tugasGuru) {
+            $nomor = $tugasGuru->first()->gtk->nomor_kode ?? $nomorBerikut++;
             $perMapel = $tugasGuru->groupBy('mata_pelajaran_id')
-                ->sortBy(fn (Collection $tugas): array => [$tugas->first()->mataPelajaran->urutan, $tugas->first()->mataPelajaran->nama])
+                ->sortBy(fn (Collection $tugas): int => $tugas->min('id'))
                 ->values();
             $baris = [];
 
             foreach ($perMapel as $huruf => $tugasMapel) {
-                $kode = str_pad((string) ($nomor + 1), 2, '0', STR_PAD_LEFT).($perMapel->count() > 1 ? ' '.chr(65 + $huruf) : '');
+                $kode = str_pad((string) $nomor, 2, '0', STR_PAD_LEFT).($perMapel->count() > 1 ? ' '.chr(65 + $huruf) : '');
                 $warnaKode = static::WARNA[$warna++ % count(static::WARNA)];
                 $jp = [];
                 $jumlahTerpasang = 0;

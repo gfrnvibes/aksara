@@ -36,7 +36,8 @@ class GuruAtTaufiqSeeder extends Seeder
     ];
 
     /**
-     * Teacher => [gender, [subject => JP for VII, VIII, IX]].
+     * Teacher => [gender, [subject => JP for VII, VIII, IX]], in the order of the timetable's codes (Sofwan is 01,
+     * Asep 14) and each teacher's subjects in the order of their letters (Dodi's Aqidah Akhlak is 03 A).
      *
      * @var array<string, array{0: JenisKelamin, 1: array<string, array{0: int, 1: int, 2: int}>}>
      */
@@ -113,13 +114,18 @@ class GuruAtTaufiqSeeder extends Seeder
             ->values();
         $mapel = MataPelajaran::query()->pluck('id', 'nama');
 
-        foreach (static::PEMBAGIAN as $nama => [$jenisKelamin, $daftarMapel]) {
+        foreach (array_keys(static::PEMBAGIAN) as $urutan => $nama) {
+            [$jenisKelamin, $daftarMapel] = static::PEMBAGIAN[$nama];
             $gtk = $this->cariGtk($nama) ?? Gtk::query()->create([
                 'nama' => $nama,
                 'jenis_kelamin' => $jenisKelamin,
                 'jenis_gtk' => JenisGtk::Guru,
                 'status_kepegawaian' => StatusKepegawaian::TetapYayasan,
             ]);
+
+            if ($gtk->nomor_kode === null && Gtk::query()->where('nomor_kode', $urutan + 1)->doesntExist()) {
+                $gtk->update(['nomor_kode' => $urutan + 1]);
+            }
 
             foreach ($daftarMapel as $namaMapel => $jpPerKelas) {
                 foreach ($jpPerKelas as $i => $jp) {

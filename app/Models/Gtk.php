@@ -26,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int|null $user_id The login account that opens the teacher panel.
  * @property string $nama Full name with academic titles, as printed on documents.
+ * @property int|null $nomor_kode The teacher's number in the timetable codes (13 → "13", "13 A").
  * @property string|null $nip
  * @property string|null $nuptk
  * @property string|null $peg_id
@@ -48,7 +49,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable([
-    'nama', 'nip', 'nuptk', 'peg_id', 'nik', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir', 'jenis_gtk',
+    'nama', 'nomor_kode', 'nip', 'nuptk', 'peg_id', 'nik', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir', 'jenis_gtk',
     'status_kepegawaian', 'jabatan', 'pendidikan_terakhir', 'program_studi', 'is_sertifikasi', 'tmt_tugas',
     'nomor_hp', 'email', 'alamat', 'is_aktif',
 ])]
