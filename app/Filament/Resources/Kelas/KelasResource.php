@@ -12,6 +12,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -19,6 +20,7 @@ use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class KelasResource extends Resource
@@ -58,12 +60,22 @@ class KelasResource extends Resource
                     ->required()
                     ->maxLength(50)
                     ->unique(ignoreRecord: true),
-                TextInput::make('wali_kelas')
+                Select::make('wali_kelas_id')
                     ->label('Wali Kelas')
-                    ->helperText('Disalin ke rapor baru sebagai penanda tangan; rapor lama tidak ikut berubah.')
+                    ->relationship('waliKelas', 'nama', fn (Builder $query, ?Kelas $record): Builder => $query
+                        ->where(fn (Builder $gtk) => $gtk->where('is_aktif', true)->when($record?->wali_kelas_id, fn (Builder $gtk, int $id) => $gtk->orWhereKey($id)))
+                        ->orderBy('nama'))
+                    ->searchable()
+                    ->preload()
+                    ->live()
+                    ->helperText('Wali kelas bisa mengisi rapor kelas ini di panel guru. Nama dan NIP-nya disalin ke rapor baru sebagai penanda tangan; rapor lama tidak ikut berubah.'),
+                TextInput::make('wali_kelas')
+                    ->label('Nama Wali Kelas (tanpa data GTK)')
+                    ->visible(fn (Get $get): bool => blank($get('wali_kelas_id')))
                     ->maxLength(255),
                 TextInput::make('nip_wali_kelas')
                     ->label('NIP Wali Kelas')
+                    ->visible(fn (Get $get): bool => blank($get('wali_kelas_id')))
                     ->maxLength(30),
                 Toggle::make('is_aktif')
                     ->label('Aktif')

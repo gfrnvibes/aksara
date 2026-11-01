@@ -2,10 +2,14 @@
 
 namespace App\Filament\Imports;
 
+use App\Enums\JenisKelamin;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
 use Illuminate\Support\Number;
+use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Shared helpers for the Buku Induk importers, which run synchronously through romansulzhyk/filament-import.
@@ -51,5 +55,40 @@ abstract class BukuIndukImporter extends Importer
         $teks = trim((string) $state);
 
         return $teks === '' ? null : $teks;
+    }
+
+    protected static function tanggal(mixed $state): ?string
+    {
+        $teks = static::teks($state);
+
+        if ($teks === null) {
+            return null;
+        }
+
+        foreach (['Y-m-d', 'd/m/Y', 'd-m-Y', 'Y-m-d H:i:s'] as $format) {
+            try {
+                $tanggal = CarbonImmutable::createFromFormat($format, $teks);
+
+                if ($tanggal !== null && $tanggal->format($format) === $teks) {
+                    return $tanggal->toDateString();
+                }
+            } catch (Throwable) {
+                continue;
+            }
+        }
+
+        return $teks;
+    }
+
+    protected static function jenisKelamin(mixed $state): ?string
+    {
+        $teks = Str::lower((string) static::teks($state));
+
+        return match (true) {
+            $teks === '' => null,
+            in_array($teks, ['l', 'lk', 'laki-laki', 'laki laki', 'laki'], true) => JenisKelamin::LakiLaki->value,
+            in_array($teks, ['p', 'pr', 'perempuan', 'wanita'], true) => JenisKelamin::Perempuan->value,
+            default => $teks,
+        };
     }
 }

@@ -9,12 +9,10 @@ use App\Enums\StatusSiswa;
 use App\Models\Kelas;
 use App\Models\OrangTua;
 use App\Models\Siswa;
-use Carbon\CarbonImmutable;
 use Filament\Actions\Imports\Exceptions\RowImportFailedException;
 use Filament\Actions\Imports\ImportColumn;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Throwable;
 
 /**
  * Spreadsheet columns for the student biodata and parents, shared by the student and combined importers.
@@ -241,41 +239,6 @@ trait ImportsDataSiswa
 
             $orangTua->fill($atribut)->save();
         }
-    }
-
-    protected static function tanggal(mixed $state): ?string
-    {
-        $teks = static::teks($state);
-
-        if ($teks === null) {
-            return null;
-        }
-
-        foreach (['Y-m-d', 'd/m/Y', 'd-m-Y', 'Y-m-d H:i:s'] as $format) {
-            try {
-                $tanggal = CarbonImmutable::createFromFormat($format, $teks);
-
-                if ($tanggal !== null && $tanggal->format($format) === $teks) {
-                    return $tanggal->toDateString();
-                }
-            } catch (Throwable) {
-                continue;
-            }
-        }
-
-        return $teks;
-    }
-
-    protected static function jenisKelamin(mixed $state): ?string
-    {
-        $teks = Str::lower((string) static::teks($state));
-
-        return match (true) {
-            $teks === '' => null,
-            in_array($teks, ['l', 'lk', 'laki-laki', 'laki laki', 'laki'], true) => JenisKelamin::LakiLaki->value,
-            in_array($teks, ['p', 'pr', 'perempuan', 'wanita'], true) => JenisKelamin::Perempuan->value,
-            default => $teks,
-        };
     }
 
     protected static function agama(mixed $state): ?string

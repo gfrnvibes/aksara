@@ -2,8 +2,10 @@
 
 use App\Filament\Pages\BackupData;
 use App\Filament\Resources\Ekstrakurikulers\EkstrakurikulerResource;
+use App\Filament\Resources\Gtks\GtkResource;
 use App\Filament\Resources\Kelas\KelasResource;
 use App\Filament\Resources\MataPelajarans\MataPelajaranResource;
+use App\Filament\Resources\PembagianMengajars\PembagianMengajarResource;
 use App\Filament\Resources\Rapors\RaporResource;
 use App\Filament\Resources\Siswas\SiswaResource;
 use App\Filament\Resources\TahunAjarans\TahunAjaranResource;
@@ -40,6 +42,8 @@ it('renders every resource page for a super admin', function (Closure $url) {
     'mata pelajaran' => [fn (): string => MataPelajaranResource::getUrl()],
     'ekstrakurikuler' => [fn (): string => EkstrakurikulerResource::getUrl()],
     'pengguna' => [fn (): string => UserResource::getUrl()],
+    'gtk' => [fn (): string => GtkResource::getUrl()],
+    'pembagian mengajar' => [fn (): string => PembagianMengajarResource::getUrl()],
 ]);
 
 it('forbids the panel for a user without any role', function () {

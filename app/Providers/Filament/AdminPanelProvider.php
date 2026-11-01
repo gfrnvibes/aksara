@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Auth\Login;
 use App\Models\User;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use BokshornIt\FilamentActivityTimeline\ActivityTimelinePlugin;
@@ -29,7 +30,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(Login::class)
             ->brandName('AKSARA | AT-TAUFIQ')
             ->colors([
                 'primary' => Color::Emerald,
@@ -43,6 +44,7 @@ class AdminPanelProvider extends PanelProvider
                 'Buku Induk',
                 'Arsip',
                 'Persuratan',
+                'Kepegawaian',
                 'Master Data',
                 'Pengaturan',
             ])

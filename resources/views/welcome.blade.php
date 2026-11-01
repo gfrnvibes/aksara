@@ -331,6 +331,7 @@
                 <ul class="mt-4 space-y-2">
                     <li><a href="{{ route('ppdb') }}" class="transition hover:text-hutan">Pendaftaran SPMB</a></li>
                     <li><a href="{{ url('/admin') }}" class="transition hover:text-hutan">AKSARA (masuk petugas)</a></li>
+                    <li><a href="{{ url('/guru') }}" class="transition hover:text-hutan">AKSARA (masuk guru)</a></li>
                     <li><a href="{{ $tautanPeta }}" target="_blank" rel="noopener" class="transition hover:text-hutan">Lokasi madrasah</a></li>
                     @if ($whatsapp)
                         <li><a href="{{ $whatsapp }}" target="_blank" rel="noopener" class="transition hover:text-hutan">WhatsApp</a></li>

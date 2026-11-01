@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\Rapor;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Foundation\Auth\User as AuthUser;
 
@@ -17,9 +18,13 @@ class RaporPolicy
         return $authUser->can('ViewAny:Rapor');
     }
 
+    /**
+     * Homeroom teachers may open and print the report cards of their own class from the teacher panel.
+     */
     public function view(AuthUser $authUser, Rapor $rapor): bool
     {
-        return $authUser->can('View:Rapor');
+        return $authUser->can('View:Rapor')
+            || ($authUser instanceof User && $authUser->adalahWaliKelas($rapor->kelas_id));
     }
 
     public function create(AuthUser $authUser): bool

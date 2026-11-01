@@ -44,7 +44,8 @@ class UserResource extends Resource
                     ->maxLength(255),
                 TextInput::make('email')
                     ->email()
-                    ->required()
+                    ->required(fn (?User $record): bool => $record?->gtk === null)
+                    ->helperText('Boleh kosong untuk akun guru, yang masuk dengan NIP, NUPTK, atau No. HP.')
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
                 TextInput::make('password')
@@ -74,7 +75,12 @@ class UserResource extends Resource
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('email')
+                    ->placeholder('-')
                     ->searchable(),
+                TextColumn::make('gtk.nama')
+                    ->label('GTK')
+                    ->placeholder('-')
+                    ->toggleable(),
                 TextColumn::make('roles.name')
                     ->label('Peran')
                     ->badge(),

@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
@@ -20,14 +21,16 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $tingkat
  * @property string $nama
+ * @property int|null $wali_kelas_id The GTK who is homeroom teacher; their name and NIP are copied to wali_kelas.
  * @property string|null $wali_kelas
  * @property string|null $nip_wali_kelas
  * @property bool $is_aktif
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read Gtk|null $waliKelas
  */
 #[Table('kelas')]
-#[Fillable(['tingkat', 'nama', 'wali_kelas', 'nip_wali_kelas', 'is_aktif'])]
+#[Fillable(['tingkat', 'nama', 'wali_kelas_id', 'wali_kelas', 'nip_wali_kelas', 'is_aktif'])]
 class Kelas extends Model implements ProvidesActivityTitle, TerlindungDariHapus
 {
     use CatatAktivitas;
@@ -48,6 +51,28 @@ class Kelas extends Model implements ProvidesActivityTitle, TerlindungDariHapus
             'tingkat' => 'integer',
             'is_aktif' => 'boolean',
         ];
+    }
+
+    /**
+     * Keep the printed homeroom teacher in step with the GTK chosen for the class.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Kelas $kelas): void {
+            if ($kelas->isDirty('wali_kelas_id') && ($wali = Gtk::query()->find($kelas->wali_kelas_id)) !== null) {
+                $kelas->wali_kelas = $wali->nama;
+                $kelas->nip_wali_kelas = $wali->nip;
+                $kelas->setRelation('waliKelas', $wali);
+            }
+        });
+    }
+
+    /**
+     * @return BelongsTo<Gtk, $this>
+     */
+    public function waliKelas(): BelongsTo
+    {
+        return $this->belongsTo(Gtk::class, 'wali_kelas_id');
     }
 
     /**

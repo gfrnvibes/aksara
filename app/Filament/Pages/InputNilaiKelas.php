@@ -35,6 +35,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Url;
 use UnitEnum;
 
 /**
@@ -72,9 +73,24 @@ class InputNilaiKelas extends Page
         return Filament::auth()->user()?->can(static::IZIN) ?? false;
     }
 
+    /**
+     * The class a link opens the page on (?kelas=..&mapel=..), with that subject's grade sheet loaded.
+     */
+    #[Url]
+    public ?int $kelas = null;
+
+    #[Url]
+    public ?int $mapel = null;
+
     public function mount(): void
     {
         $this->form->fill();
+
+        if ($this->kelas !== null && $this->mapel !== null) {
+            $this->data['kelas_id'] = $this->kelas;
+            $this->data['mata_pelajaran_id'] = $this->mapel;
+            $this->form->callAfterStateUpdated('data.mata_pelajaran_id');
+        }
     }
 
     public function content(Schema $schema): Schema
@@ -96,7 +112,7 @@ class InputNilaiKelas extends Page
                     ->schema([
                         Select::make('tahun_ajaran_id')
                             ->label('Tahun Ajaran')
-                            ->options(fn (): array => TahunAjaran::query()->orderByDesc('nama')->pluck('nama', 'id')->all())
+                            ->options(fn (): array => static::opsiTahunAjaran())
                             ->default(fn (): ?int => TahunAjaran::query()->where('is_aktif', true)->value('id'))
                             ->live()
                             ->afterStateUpdated($muatUlang)
@@ -109,13 +125,13 @@ class InputNilaiKelas extends Page
                             ->required(),
                         Select::make('kelas_id')
                             ->label('Kelas')
-                            ->options(fn (): array => Kelas::query()->aktif()->orderBy('tingkat')->orderBy('nama')->pluck('nama', 'id')->all())
+                            ->options(fn (Get $get): array => static::opsiKelas($get->integer('tahun_ajaran_id', isNullable: true)))
                             ->live()
                             ->afterStateUpdated($muatUlang)
                             ->required(),
                         Select::make('mata_pelajaran_id')
                             ->label('Mata Pelajaran')
-                            ->options(fn (): array => MataPelajaran::query()->aktifBerurutan()->pluck('nama', 'id')->all())
+                            ->options(fn (Get $get): array => static::opsiMataPelajaran($get->integer('tahun_ajaran_id', isNullable: true), $get->integer('kelas_id', isNullable: true)))
                             ->searchable()
                             ->live()
                             ->afterStateUpdated($muatUlang)
@@ -168,6 +184,8 @@ class InputNilaiKelas extends Page
         $kelasId = (int) $data['kelas_id'];
         $mataPelajaranId = (int) $data['mata_pelajaran_id'];
         $kkm = (int) $data['kkm'];
+
+        abort_unless(static::bolehMengisi($tahunAjaranId, $kelasId, $mataPelajaranId), 403);
 
         $anggota = Siswa::query()->anggotaKelas($kelasId, $tahunAjaranId)->pluck('id')->flip();
         $tersimpan = 0;
@@ -227,6 +245,39 @@ class InputNilaiKelas extends Page
             ->send();
     }
 
+    /**
+     * @return array<int, string>
+     */
+    protected static function opsiTahunAjaran(): array
+    {
+        return TahunAjaran::query()->orderByDesc('nama')->pluck('nama', 'id')->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected static function opsiKelas(?int $tahunAjaranId): array
+    {
+        return Kelas::query()->aktif()->orderBy('tingkat')->orderBy('nama')->pluck('nama', 'id')->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected static function opsiMataPelajaran(?int $tahunAjaranId, ?int $kelasId): array
+    {
+        return MataPelajaran::query()->aktifBerurutan()->pluck('nama', 'id')->all();
+    }
+
+    /**
+     * Whether the signed-in user may enter this subject's grades for the class; the teacher panel narrows it to the
+     * subjects the teacher is assigned.
+     */
+    protected static function bolehMengisi(int $tahunAjaranId, int $kelasId, int $mataPelajaranId): bool
+    {
+        return true;
+    }
+
     protected static function muatNilai(Get $get, Set $set): void
     {
         $tahunAjaranId = $get->integer('tahun_ajaran_id', isNullable: true);
@@ -235,7 +286,7 @@ class InputNilaiKelas extends Page
         $semester = $get('semester');
         $semester = $semester instanceof Semester ? $semester : Semester::tryFrom((int) $semester);
 
-        if ($tahunAjaranId === null || $kelasId === null || $mataPelajaranId === null || $semester === null) {
+        if ($tahunAjaranId === null || $kelasId === null || $mataPelajaranId === null || $semester === null || ! static::bolehMengisi($tahunAjaranId, $kelasId, $mataPelajaranId)) {
             $set('nilai', []);
 
             return;

@@ -7,8 +7,10 @@ use App\Exports\BukuIndukExport;
 use App\Filament\Imports\BukuIndukGabunganImporter;
 use App\Filament\Imports\BukuIndukImporter;
 use App\Filament\Imports\Concerns\ImportsDataNilai;
+use App\Filament\Imports\GtkImporter;
 use App\Filament\Imports\NilaiImporter;
 use App\Filament\Imports\SiswaImporter;
+use App\Models\Gtk;
 use App\Models\Kelas;
 use App\Models\Rapor;
 use App\Models\Siswa;
@@ -67,6 +69,15 @@ class ImportBukuIndukActions
             ->modalHeading('Import Data Siswa & Nilai')
             ->optionsFormComponents([static::petunjuk('Satu baris = satu siswa pada satu semester, biodata diulang di tiap baris. Kosongkan Tahun Ajaran dan Semester untuk baris yang hanya berisi biodata.')])
             ->authorize(fn (): bool => static::bolehMenulis(Siswa::class) && static::bolehMenulis(Rapor::class));
+    }
+
+    public static function gtk(): ExcelImportAction
+    {
+        return static::make('importGtk', GtkImporter::class)
+            ->label('Import Data GTK')
+            ->modalHeading('Import Data GTK')
+            ->optionsFormComponents([static::petunjuk('Satu baris = satu GTK. Bisa memakai template ini atau daftar GTK yang diunduh dari EMIS. GTK dengan NIP, NUPTK, PegID, atau NIK yang sama akan diperbarui; sel kosong tidak menghapus data yang sudah ada.')])
+            ->authorize(fn (): bool => static::bolehMenulis(Gtk::class));
     }
 
     /**

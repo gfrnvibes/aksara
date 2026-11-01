@@ -16,6 +16,7 @@ use App\Models\TahunAjaran;
 use App\Services\CatatanWaliKelas\PenyusunCatatanWaliKelas;
 use App\Services\CatatanWaliKelas\RingkasanRapor;
 use App\Services\Kurikulum\SkemaPenilaian;
+use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
@@ -259,8 +260,11 @@ class RaporForm
 
     /**
      * Drafts the homeroom note from the grades, attitude, activities and attendance currently in the form.
+     *
+     * @param  (Closure(Get): array<array-key, mixed>)|null  $nilaiRapor  The subject grade rows, for a form that
+     *                                                                    does not edit them; read from the form when omitted.
      */
-    protected static function aksiBuatCatatan(): Action
+    public static function aksiBuatCatatan(?Closure $nilaiRapor = null): Action
     {
         return Action::make('buatCatatan')
             ->label('Buat catatan otomatis')
@@ -269,9 +273,9 @@ class RaporForm
             ->modalHeading('Ganti catatan wali kelas?')
             ->modalDescription('Catatan yang sudah ditulis akan diganti dengan catatan baru yang dibuat dari nilai di form ini.')
             ->modalSubmitActionLabel('Ganti catatan')
-            ->action(function (Get $get, Set $set): void {
+            ->action(function (Get $get, Set $set) use ($nilaiRapor): void {
                 $ringkasan = RingkasanRapor::dariForm([
-                    'nilaiRapor' => $get('nilaiRapor'),
+                    'nilaiRapor' => $nilaiRapor !== null ? $nilaiRapor($get) : $get('nilaiRapor'),
                     'nilaiEkstrakurikuler' => $get('nilaiEkstrakurikuler'),
                     'nilai_akhlak' => $get('nilai_akhlak'),
                     'nilai_kepribadian' => $get('nilai_kepribadian'),
@@ -334,7 +338,7 @@ class RaporForm
             ]);
     }
 
-    protected static function sectionPrestasi(): Section
+    public static function sectionPrestasi(): Section
     {
         return Section::make('Prestasi yang Pernah Diraih')
             ->collapsible()
