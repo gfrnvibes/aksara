@@ -7,6 +7,8 @@ use App\Models\User;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use BokshornIt\FilamentActivityTimeline\ActivityTimelinePlugin;
 use Filament\Actions\Action;
+use Filament\Enums\GlobalSearchPosition;
+use Filament\Enums\UserMenuPosition;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -34,14 +36,17 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login(Login::class)
-            ->brandName('AKSARA | AT-TAUFIQ')
+            ->brandName('AKSARA')
             ->colors([
                 'primary' => Color::Emerald,
             ])
             ->font('Geist')
             ->monoFont('Geist Mono')
-            ->sidebarWidth('15rem')
+            ->sidebarWidth('14rem') // Diperlebar di layar besar oleh theme.css.
             ->sidebarCollapsibleOnDesktop()
+            ->topbar(false)
+            ->globalSearch(position: GlobalSearchPosition::Sidebar)
+            ->userMenu(position: UserMenuPosition::Sidebar)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->userMenuItems([
                 Action::make('panelGuru')
@@ -82,7 +87,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                AccountWidget::class,
+                // AccountWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

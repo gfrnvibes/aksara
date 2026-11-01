@@ -28,6 +28,26 @@
     --spacing: 0.225rem;
 }
 
+/*
+| Lebar sidebar mengikuti lebar layar: ramping di laptop, lebih lega di
+| monitor besar. `html.fi` mengalahkan nilai bawaan panel di `:root`.
+*/
+html.fi {
+    --sidebar-width: 14rem;
+}
+
+@media (min-width: 1536px) {
+    html.fi {
+        --sidebar-width: 16rem;
+    }
+}
+
+@media (min-width: 1920px) {
+    html.fi {
+        --sidebar-width: 18rem;
+    }
+}
+
 @layer components {
     /* Kartu: garis tipis tanpa bayangan. */
     .fi-section:not(.fi-section-not-contained):not(.fi-aside),
