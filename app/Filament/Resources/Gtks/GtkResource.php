@@ -74,10 +74,13 @@ class GtkResource extends Resource
                         Select::make('jenis_kelamin')
                             ->options(JenisKelamin::class)
                             ->required(),
+                        // Kept as text: numeric() would turn the 16 digits into a float such as 3.2E+15.
                         TextInput::make('nik')
                             ->label('NIK')
-                            ->length(16)
-                            ->numeric(),
+                            ->inputMode('numeric')
+                            ->extraInputAttributes(['pattern' => '[0-9]*'])
+                            ->rule('digits:16')
+                            ->validationMessages(['digits' => 'NIK harus 16 digit angka.']),
                         TextInput::make('tempat_lahir')
                             ->maxLength(255),
                         DatePicker::make('tanggal_lahir'),

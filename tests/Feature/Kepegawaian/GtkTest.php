@@ -131,3 +131,29 @@ it('refuses to delete a GTK who still has teaching assignments', function () {
     expect($pembagian->gtk->delete())->toBeFalse()
         ->and(Gtk::query()->whereKey($pembagian->gtk_id)->exists())->toBeTrue();
 });
+
+it('keeps a 16-digit NIK entered in the form as text', function () {
+    Livewire::test(ManageGtks::class)
+        ->callAction('create', [
+            'nama' => 'Ahmad Fauzi, S.Pd.',
+            'jenis_kelamin' => 'L',
+            'nik' => '3205010101900001',
+            'jenis_gtk' => 'guru',
+            'status_kepegawaian' => 'gtt',
+        ])
+        ->assertHasNoActionErrors();
+
+    expect(Gtk::query()->sole()->nik)->toBe('3205010101900001');
+});
+
+it('rejects a NIK that is not 16 digits', function () {
+    Livewire::test(ManageGtks::class)
+        ->callAction('create', [
+            'nama' => 'Ahmad Fauzi, S.Pd.',
+            'jenis_kelamin' => 'L',
+            'nik' => '3205-0101',
+            'jenis_gtk' => 'guru',
+            'status_kepegawaian' => 'gtt',
+        ])
+        ->assertHasActionErrors(['nik']);
+});
