@@ -70,7 +70,15 @@ html.fi {
         @apply text-base;
     }
 
-    /* Navigasi samping. */
+    /* Navigasi samping: garis kanan sepanjang layar dan garis di bawah nama aplikasi. */
+    .fi-main-sidebar {
+        @apply lg:border-e lg:border-gray-950/10 dark:lg:border-white/10;
+    }
+
+    .fi-main-sidebar .fi-sidebar-header {
+        @apply border-b border-gray-950/10 dark:border-white/10;
+    }
+
     .fi-sidebar-nav {
         @apply gap-y-5;
     }
