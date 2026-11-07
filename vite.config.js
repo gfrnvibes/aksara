@@ -19,7 +19,7 @@ export default defineConfig({
                 bunny('JetBrains Mono', {
                     weights: [400, 500],
                 }),
-                bunny('Outfit', {
+                bunny('Figtree', {
                     weights: [300, 400, 500, 600, 700],
                 }),
                 bunny('Albert Sans', {
