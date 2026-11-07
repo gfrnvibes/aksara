@@ -10,12 +10,16 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * An official who may sign the madrasah's letters: the principal, a vice principal, the head of administration.
+ * An official who may sign the madrasah's letters, one row per title: a teacher who is also the treasurer and a
+ * committee chair has two rows. Linked to a GTK, the name and NIP come from Data GTK; foundation staff and other
+ * outsiders are typed in without a link.
  *
  * @property int $id
+ * @property int|null $gtk_id
  * @property string $nama
  * @property string $jabatan
  * @property string|null $nip
@@ -24,7 +28,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['nama', 'jabatan', 'nip', 'urutan', 'is_aktif'])]
+#[Fillable(['gtk_id', 'nama', 'jabatan', 'nip', 'urutan', 'is_aktif'])]
 class PenandaTangan extends Model implements ProvidesActivityTitle
 {
     use CatatAktivitas;
@@ -43,6 +47,27 @@ class PenandaTangan extends Model implements ProvidesActivityTitle
             'urutan' => 'integer',
             'is_aktif' => 'boolean',
         ];
+    }
+
+    /**
+     * Copy the name and NIP of the linked GTK, so they always match Data GTK.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (PenandaTangan $penandaTangan): void {
+            if (($gtk = Gtk::query()->find($penandaTangan->gtk_id)) !== null) {
+                $penandaTangan->nama = $gtk->nama;
+                $penandaTangan->nip = $gtk->nip;
+            }
+        });
+    }
+
+    /**
+     * @return BelongsTo<Gtk, $this>
+     */
+    public function gtk(): BelongsTo
+    {
+        return $this->belongsTo(Gtk::class);
     }
 
     /**

@@ -14,7 +14,6 @@ use App\Services\Gemini\KlienGemini;
 use App\Services\Surat\IsianSurat;
 use App\Services\Surat\PenomoranSurat;
 use App\Services\Surat\PenyusunSuratAi;
-use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\RichEditor;
@@ -174,24 +173,7 @@ class SuratKeluarForm
                     ->helperText(fn (Get $get): string => static::keteranganKepala($get))
                     ->placeholder('Hanya kepala madrasah')
                     ->preload()
-                    ->createOptionForm([
-                        TextInput::make('nama')
-                            ->label('Nama Lengkap & Gelar')
-                            ->required()
-                            ->maxLength(255),
-                        TextInput::make('jabatan')
-                            ->datalist(PenandaTanganResource::JABATAN_UMUM)
-                            ->required()
-                            ->maxLength(255)
-                            ->rules([fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
-                                if (PenandaTangan::adalahJabatanKepala((string) $value)) {
-                                    $fail('Kepala madrasah sudah otomatis menandatangani dari data Tahun Ajaran; pilih jabatan lain.');
-                                }
-                            }]),
-                        TextInput::make('nip')
-                            ->label('NIP')
-                            ->maxLength(30),
-                    ])
+                    ->createOptionForm(PenandaTanganResource::isianUtama())
                     ->live(),
                 Select::make('siswa_id')
                     ->label('Siswa (opsional)')

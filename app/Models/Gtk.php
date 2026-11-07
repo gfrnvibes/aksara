@@ -81,13 +81,15 @@ class Gtk extends Model implements ProvidesActivityTitle, TerlindungDariHapus
     }
 
     /**
-     * A corrected name or NIP reaches the classes the GTK looks after, so new report cards print it.
+     * A corrected name or NIP reaches the classes the GTK looks after and their signer titles, so new report cards
+     * and letters print it. Letters already saved keep the copy they made.
      */
     protected static function booted(): void
     {
         static::updated(function (Gtk $gtk): void {
             if ($gtk->wasChanged(['nama', 'nip'])) {
                 $gtk->kelasPerwalian()->update(['wali_kelas' => $gtk->nama, 'nip_wali_kelas' => $gtk->nip]);
+                $gtk->penandaTangan()->update(['nama' => $gtk->nama, 'nip' => $gtk->nip]);
             }
         });
     }
@@ -146,6 +148,16 @@ class Gtk extends Model implements ProvidesActivityTitle, TerlindungDariHapus
     public function permintaanJadwal(): HasMany
     {
         return $this->hasMany(PermintaanJadwal::class);
+    }
+
+    /**
+     * The titles this GTK signs letters under.
+     *
+     * @return HasMany<PenandaTangan, $this>
+     */
+    public function penandaTangan(): HasMany
+    {
+        return $this->hasMany(PenandaTangan::class);
     }
 
     /**
