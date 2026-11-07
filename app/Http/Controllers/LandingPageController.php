@@ -7,7 +7,6 @@ use App\Models\MataPelajaran;
 use App\Models\TahunAjaran;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
-use NumberFormatter;
 
 class LandingPageController extends Controller
 {
@@ -37,7 +36,6 @@ class LandingPageController extends Controller
         return view('welcome', [
             'sekolah' => config('sekolah'),
             'mataPelajaran' => $mataPelajaran,
-            'jumlahMataPelajaran' => static::eja($mataPelajaran->count()),
             'ekstrakurikuler' => Ekstrakurikuler::query()->aktif()->orderByDesc('is_wajib')->orderBy('nama')->pluck('nama'),
             'program' => static::program(),
             'nilai' => static::nilai(),
@@ -173,14 +171,5 @@ class LandingPageController extends Controller
         ];
 
         return $singkatanTetap[$nama] ?? Str::limit($nama, 16, '…');
-    }
-
-    protected static function eja(int $angka): string
-    {
-        $teks = class_exists(NumberFormatter::class)
-            ? (new NumberFormatter('id', NumberFormatter::SPELLOUT))->format($angka)
-            : (string) $angka;
-
-        return Str::ucfirst((string) $teks);
     }
 }

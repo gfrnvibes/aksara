@@ -12,7 +12,7 @@ it('lists only the active subjects from the master data', function () {
 
     get(route('home'))
         ->assertOk()
-        ->assertSeeText(['Satu mata pelajaran.', 'Fikih', 'Pramuka'])
+        ->assertSeeText(['Berilmu dan berakhlak,', 'Fikih', 'Pramuka'])
         ->assertDontSeeText('Bahasa Sunda');
 });
 

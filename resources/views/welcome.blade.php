@@ -55,21 +55,14 @@
                 </p>
             @endif
 
-            <h1 class="mx-auto mt-6 max-w-4xl font-judul text-5xl leading-[1.02] tracking-tight text-tinta sm:text-6xl lg:text-7xl">
-                <span class="baris-judul font-semibold"><span>
-                    @if ($mataPelajaran->isNotEmpty())
-                        {{ $jumlahMataPelajaran }} mata pelajaran.
-                    @else
-                        Berilmu dan berakhlak.
-                    @endif
-                </span></span>
-                <span class="baris-judul font-light"><span style="--jeda: .15s">Satu <span class="font-medium whitespace-nowrap text-hutan">{{ $sekolah['nama_singkat'] }}.</span></span></span>
+            <h1 class="mx-auto mt-6 max-w-5xl font-judul text-5xl leading-[1.02] tracking-tight text-tinta sm:text-6xl lg:text-7xl">
+                <span class="baris-judul font-semibold"><span>Berilmu dan berakhlak,</span></span>
+                <span class="baris-judul font-light"><span style="--jeda: .15s">tumbuh bersama <span class="font-medium whitespace-nowrap text-hutan">{{ $sekolah['nama_singkat'] }}.</span></span></span>
             </h1>
 
             <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed" data-muncul style="--jeda: .25s">
-                {{ $sekolah['nama'] }} adalah {{ Str::lower($sekolah['jenjang']) }} di {{ $sekolah['wilayah'] }}.
-                Al-Qur'an Hadis, Akidah Akhlak, Fikih, Sejarah Kebudayaan Islam, dan Bahasa Arab berjalan berdampingan
-                dengan mata pelajaran umum, agar murid tumbuh berilmu dan berakhlak.
+                Selamat datang di {{ $sekolah['nama'] }}. Kami mendampingi setiap murid agar kuat imannya,
+                luas ilmunya, dan siap melangkah ke jenjang berikutnya dengan percaya diri.
             </p>
 
             <div class="mt-9 flex flex-wrap items-center justify-center gap-3" data-muncul style="--jeda: .35s">
