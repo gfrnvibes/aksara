@@ -4,6 +4,7 @@ namespace App\Filament\Resources\SuratKeluars\Schemas;
 
 use App\Enums\JenisSuratKeluar;
 use App\Enums\SifatSurat;
+use App\Filament\Resources\KopSurats\KopSuratResource;
 use App\Filament\Resources\PenandaTangans\PenandaTanganResource;
 use App\Filament\Resources\Siswas\SiswaResource;
 use App\Models\PenandaTangan;
@@ -12,6 +13,7 @@ use App\Models\SuratKeluar;
 use App\Models\TahunAjaran;
 use App\Services\Gemini\KlienGemini;
 use App\Services\Surat\IsianSurat;
+use App\Services\Surat\PengaturanKop;
 use App\Services\Surat\PenomoranSurat;
 use App\Services\Surat\PenyusunSuratAi;
 use Filament\Actions\Action;
@@ -26,7 +28,6 @@ use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\View;
@@ -52,17 +53,8 @@ class SuratKeluarForm
                         Group::make([
                             static::sectionAi(),
                             static::sectionDetail(),
-                            Section::make('Tanda Isian')
-                                ->icon(Heroicon::OutlinedCodeBracket)
-                                ->description('Tulis tanda seperti {nama_siswa} di Perihal, Kepada Yth., Lampiran, atau Isi Surat; saat dicetak diganti dengan datanya. Data siswa dan orang tua diambil dari Siswa yang dipilih. Klik tanda untuk menyalin.')
-                                ->collapsible()
-                                ->collapsed()
-                                ->schema([
-                                    View::make('filament.surat.daftar-tanda-isian')
-                                        ->viewData(['tanda' => IsianSurat::TANDA]),
-                                ]),
                             Section::make('Isi Surat')
-                                ->description('Lihat Tanda Isian di atas untuk data yang bisa dipanggil otomatis.')
+                                ->headerActions([static::petunjuk('petunjukIsi', 'Gunakan tombol Tanda Isian di kanan atas untuk menyalin data otomatis ke isi surat, perihal, tujuan, atau lampiran.')])
                                 ->schema([
                                     RichEditor::make('isi')
                                         ->hiddenLabel()
@@ -78,7 +70,7 @@ class SuratKeluarForm
                                 ]),
                         ]),
                         Section::make('Pratinjau')
-                            ->description('Tampilan sama dengan hasil cetak. Diperbarui setiap kali isian selesai diubah.')
+                            ->headerActions([static::petunjuk('petunjukPratinjau', 'Tampilan sama dengan hasil cetak dan diperbarui setelah isian selesai diubah.')])
                             ->schema([
                                 View::make('filament.surat.pratinjau')
                                     ->viewData(fn (Get $get, ?SuratKeluar $record): array => ['surat' => static::suratDariIsian($get, $record)]),
@@ -87,21 +79,40 @@ class SuratKeluarForm
             ]);
     }
 
+    public static function aksiKopSurat(): Action
+    {
+        return Action::make('aturKop')->label('Kop Surat')->icon(Heroicon::OutlinedCog6Tooth)->color('gray')
+            ->tooltip(fn (?SuratKeluar $record): string => 'Kop: '.(($record->kop_surat_snapshot ?? PengaturanKop::untuk('surat_keluar'))['sumber_nama'] ?? 'Kop bawaan madrasah').'. Buka pengaturan di tab baru. Perubahan default tidak mengubah kop surat yang sudah tersimpan.')
+            ->url(fn (): string => KopSuratResource::getUrl())->openUrlInNewTab()->visible(fn (): bool => KopSuratResource::canViewAny());
+    }
+
+    public static function aksiTandaIsian(): Action
+    {
+        return Action::make('tandaIsian')->label('Tanda Isian')->icon(Heroicon::OutlinedCodeBracket)->color('gray')
+            ->tooltip('Lihat dan salin tanda untuk mengisi data surat secara otomatis.')
+            ->modalHeading('Tanda Isian Surat')->modalWidth('5xl')->modalSubmitAction(false)->modalCancelActionLabel('Tutup')
+            ->modalDescription('Klik tanda untuk menyalin, lalu tempel di isi surat, perihal, tujuan, atau lampiran. Data siswa dan orang tua mengikuti siswa yang dipilih.')
+            ->modalContent(fn () => view('filament.surat.daftar-tanda-isian', ['tanda' => IsianSurat::TANDA]));
+    }
+
+    protected static function petunjuk(string $name, string $teks): Action
+    {
+        return Action::make($name)->label('Petunjuk')->icon(Heroicon::OutlinedInformationCircle)->iconButton()->color('gray')->tooltip($teks);
+    }
+
     protected static function sectionAi(): Section
     {
         return Section::make('Buat dengan AI')
             ->icon(Heroicon::Sparkles)
-            ->description('Tulis surat yang Anda butuhkan. Bila isi surat sudah ada, perintah dipakai untuk merevisinya.')
+            ->headerActions([static::petunjuk('petunjukAi', 'Tulis kebutuhan surat atau perintah revisi. Jangan sertakan data pribadi siswa, NIK, atau nomor HP; gunakan pilihan Siswa dan Tanda Isian untuk data pribadi.')])
             ->collapsible()
             ->visible(fn (): bool => KlienGemini::aktif())
             ->schema([
                 Textarea::make('perintah')
                     ->hiddenLabel()
-                    ->placeholder('Contoh: Buat surat undangan rapat wali murid kelas IX tentang persiapan ujian, hari Sabtu 7 November 2026 pukul 08.00 di aula madrasah.')
+                    ->placeholder('Tulis kebutuhan surat atau perintah revisi…')
                     ->rows(3)
                     ->dehydrated(false),
-                Text::make('Jangan menulis data pribadi (nama siswa, NIK, nomor HP) di perintah. Untuk surat tentang siswa tertentu, pilih siswanya di bawah; namanya diisi otomatis tanpa dikirim ke AI.')
-                    ->color('gray'),
                 Actions::make([static::aksiBuatDenganAi()])->key('aksiAi'),
             ]);
     }
@@ -116,7 +127,7 @@ class SuratKeluarForm
                     ->options(JenisSuratKeluar::class)
                     ->default(JenisSuratKeluar::Undangan)
                     ->disabledOn('edit')
-                    ->helperText(fn (string $operation): ?string => $operation === 'edit' ? 'Jenis dan nomor tidak berubah setelah surat diberi nomor.' : null)
+                    ->hintIcon(Heroicon::OutlinedInformationCircle, tooltip: 'Jenis dan nomor tidak berubah setelah surat diberi nomor.')
                     ->live()
                     ->required(),
                 DatePicker::make('tanggal')
@@ -126,7 +137,7 @@ class SuratKeluarForm
                     ->required(),
                 Toggle::make('gunakan_sifat')
                     ->label('Cantumkan sifat surat')
-                    ->helperText('Menampilkan baris Sifat di kepala surat.')
+                    ->hintIcon(Heroicon::OutlinedInformationCircle, tooltip: 'Menampilkan baris Sifat di kepala surat.')
                     ->default(false)
                     ->live()
                     ->afterStateUpdated(function (?bool $state, Set $set): void {
@@ -136,7 +147,7 @@ class SuratKeluarForm
                     }),
                 Toggle::make('tanda_tangan_kepala_madrasah')
                     ->label('Tanda tangan kepala madrasah')
-                    ->helperText('Matikan bila surat tidak ditandatangani kepala madrasah.')
+                    ->hintIcon(Heroicon::OutlinedInformationCircle, tooltip: 'Matikan bila surat tidak ditandatangani kepala madrasah.')
                     ->default(true)
                     ->live(),
                 Select::make('sifat')
@@ -170,7 +181,7 @@ class SuratKeluarForm
                         ->orderBy('urutan')
                         ->orderBy('nama'))
                     ->getOptionLabelFromRecordUsing(fn (PenandaTangan $record): string => $record->label())
-                    ->helperText(fn (Get $get): string => static::keteranganKepala($get))
+                    ->hintIcon(Heroicon::OutlinedInformationCircle, tooltip: fn (Get $get): string => static::keteranganKepala($get))
                     ->placeholder('Hanya kepala madrasah')
                     ->preload()
                     ->createOptionForm(PenandaTanganResource::isianUtama())
@@ -182,7 +193,7 @@ class SuratKeluarForm
                     ->searchable(['nama_lengkap', 'nis', 'nisn'])
                     ->preload()
                     ->optionsLimit(SiswaResource::BATAS_PILIHAN)
-                    ->helperText('Untuk surat tentang satu siswa; mengisi tanda isian siswa dan orang tua, seperti {nama_siswa} dan {nama_orang_tua}.')
+                    ->hintIcon(Heroicon::OutlinedInformationCircle, tooltip: 'Pilih siswa untuk mengisi tanda data siswa dan orang tua, seperti {nama_siswa} dan {nama_orang_tua}.')
                     ->live(),
             ]);
     }
@@ -254,7 +265,7 @@ class SuratKeluarForm
         $tahunAjaran = TahunAjaran::untukTanggal(filled($get('tanggal')) ? Carbon::parse($get('tanggal')) : now());
 
         if (blank($tahunAjaran?->kepala_madrasah)) {
-            return 'Kepala madrasah dapat diaktifkan atau dinonaktifkan di toggle di bawah. Isi namanya di menu Tahun Ajaran agar tercetak bila diaktifkan.';
+            return 'Isi nama kepala madrasah di menu Tahun Ajaran agar tercetak saat tanda tangannya diaktifkan. Pilih pejabat tambahan jika diperlukan.';
         }
 
         return "Kepala madrasah ({$tahunAjaran->kepala_madrasah}, Tahun Ajaran {$tahunAjaran->nama}) aktif default, tetapi bisa dinonaktifkan bila perlu. Pilih bila surat juga ditandatangani pejabat lain.";

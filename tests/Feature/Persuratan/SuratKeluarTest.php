@@ -2,6 +2,7 @@
 
 use App\Enums\JenisOrangTua;
 use App\Enums\JenisSuratKeluar;
+use App\Filament\Resources\KopSurats\KopSuratResource;
 use App\Filament\Resources\PenandaTangans\Pages\ManagePenandaTangans;
 use App\Filament\Resources\SuratKeluars\Pages\CreateSuratKeluar;
 use App\Filament\Resources\SuratKeluars\Pages\ListSuratKeluars;
@@ -81,6 +82,25 @@ it('writes a letter from the page and shows it in the live preview', function ()
     expect(SuratKeluar::query()->sole())
         ->nomor->toBe('001/PEMB/MTs-AT/X/2026')
         ->jabatan_penanda_tangan->toBe('Wakil Kepala Madrasah Bidang Kesiswaan');
+});
+
+it('opens the placeholder modal from the header without changing the letter draft', function () {
+    actingAs(userWithPermissions(['ViewAny:SuratKeluar', 'Create:SuratKeluar']));
+    $page = Livewire::test(CreateSuratKeluar::class)->fillForm(['perihal' => 'Draf tetap tersimpan', 'tujuan' => 'Wali murid'])
+        ->assertActionVisible('tandaIsian')->assertActionHidden('aturKop')
+        ->mountAction('tandaIsian')->assertActionMounted('tandaIsian')
+        ->assertSee('{nama_siswa}')->assertSee('{nama_orang_tua}')
+        ->assertSet('data.perihal', 'Draf tetap tersimpan')->assertSet('data.tujuan', 'Wali murid');
+    $page->unmountAction()->assertSet('data.perihal', 'Draf tetap tersimpan');
+    expect(SuratKeluar::count())->toBe(0);
+});
+
+it('offers the letterhead settings as a header link and keeps field guidance in tooltips', function () {
+    actingAs(userWithPermissions(['ViewAny:SuratKeluar', 'Create:SuratKeluar', 'ViewAny:KopSurat']));
+    Livewire::test(CreateSuratKeluar::class)
+        ->assertActionHasUrl('aturKop', KopSuratResource::getUrl())
+        ->assertFormFieldExists('siswa_id', fn (Select $field): bool => filled($field->getHintIconTooltip()))
+        ->assertFormFieldExists('penanda_tangan_id', fn (Select $field): bool => filled($field->getHintIconTooltip()));
 });
 
 it('drafts the letter with Gemini without sending any student data', function () {

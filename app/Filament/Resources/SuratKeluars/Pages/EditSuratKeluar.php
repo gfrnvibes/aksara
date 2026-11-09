@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SuratKeluars\Pages;
 
+use App\Filament\Resources\SuratKeluars\Schemas\SuratKeluarForm;
 use App\Filament\Resources\SuratKeluars\SuratKeluarResource;
 use App\Filament\Resources\SuratKeluars\Tables\SuratKeluarsTable;
 use Filament\Actions\DeleteAction;
@@ -17,6 +18,8 @@ class EditSuratKeluar extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            SuratKeluarForm::aksiKopSurat(),
+            SuratKeluarForm::aksiTandaIsian(),
             SuratKeluarsTable::aksiCetak()->button()->color('gray'),
             SuratKeluarsTable::aksiDuplikat(),
             DeleteAction::make()

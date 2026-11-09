@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SuratKeluars\Pages;
 
+use App\Filament\Resources\SuratKeluars\Schemas\SuratKeluarForm;
 use App\Filament\Resources\SuratKeluars\SuratKeluarResource;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Support\Enums\Width;
@@ -13,6 +14,11 @@ class CreateSuratKeluar extends CreateRecord
     protected static ?string $title = 'Buat Surat';
 
     protected Width|string|null $maxContentWidth = Width::Full;
+
+    protected function getHeaderActions(): array
+    {
+        return [SuratKeluarForm::aksiKopSurat(), SuratKeluarForm::aksiTandaIsian()];
+    }
 
     protected function getCreatedNotificationTitle(): ?string
     {
