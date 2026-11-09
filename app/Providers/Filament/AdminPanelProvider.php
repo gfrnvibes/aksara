@@ -37,6 +37,9 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login(Login::class)
             ->brandName('Aksara')
+            ->brandLogo(fn () => view('filament.components.brand-logo'))
+            ->brandLogoHeight('2.5rem')
+            ->favicon(asset('LOGO%20ATTAUFIQ%20Revisi.png'))
             ->colors([
                 'primary' => Color::Emerald,
             ])

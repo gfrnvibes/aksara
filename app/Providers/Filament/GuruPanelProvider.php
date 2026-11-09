@@ -40,7 +40,10 @@ class GuruPanelProvider extends PanelProvider
             ->path('guru')
             ->login(Login::class)
             ->profile(EditProfile::class, isSimple: false)
-            ->brandName('AKSARA | GURU')
+            ->brandName('Aksara: Guru')
+            ->brandLogo(fn () => view('filament.components.brand-logo'))
+            ->brandLogoHeight('2.5rem')
+            ->favicon(asset('LOGO%20ATTAUFIQ%20Revisi.png'))
             ->colors([
                 'primary' => Color::Emerald,
             ])

@@ -36,7 +36,10 @@ class BendaharaPanelProvider extends PanelProvider
             ->path('bendahara')
             ->login(Login::class)
             ->profile(EditProfile::class, isSimple: false)
-            ->brandName('Aksara | Bendahara')
+            ->brandName('Bendahara')
+            ->brandLogo(fn () => view('filament.components.brand-logo'))
+            ->brandLogoHeight('2.5rem')
+            ->favicon(asset('LOGO%20ATTAUFIQ%20Revisi.png'))
             ->colors([
                 'primary' => Color::Emerald,
             ])

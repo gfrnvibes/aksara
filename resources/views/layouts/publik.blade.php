@@ -16,8 +16,7 @@
         <meta name="description" content="{{ $description }}">
     @endif
     <meta name="theme-color" content="#0f7a4f">
-    <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" type="image/png" href="{{ asset('LOGO%20ATTAUFIQ%20Revisi.png') }}">
     <script>document.documentElement.classList.add('js')</script>
     @fonts
     @vite(['resources/css/app.css'])
@@ -115,7 +114,7 @@
         <header class="sticky top-0 z-50 border-b border-garis bg-kertas/90 backdrop-blur">
             <div class="flex h-16 items-stretch">
                 <a href="{{ route('home') }}" class="group flex items-center gap-2.5 border-r border-garis px-4 sm:px-6" aria-label="{{ $sekolah['nama'] }}">
-                    <svg class="putar-lambat size-7 fill-hutan transition group-hover:fill-emas"><use href="#bintang" /></svg>
+                    <x-app-logo-icon class="size-10 shrink-0" />
                     <span class="font-judul text-lg leading-none font-semibold tracking-tight text-tinta">
                         {{ $sekolah['nama_singkat'] }}
                         <span class="block font-kode text-[9px] font-normal tracking-[0.2em] text-stone-500 uppercase">{{ $sekolah['jenjang'] }}</span>

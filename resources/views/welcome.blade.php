@@ -299,7 +299,7 @@
 
         <footer class="grid gap-10 px-5 py-14 sm:px-10 md:grid-cols-[1.5fr_repeat(3,1fr)] lg:px-14">
             <div>
-                <svg class="size-9 fill-hutan"><use href="#bintang" /></svg>
+                <x-app-logo-icon class="size-12" />
                 <p class="mt-4 max-w-xs leading-relaxed">{{ $sekolah['slogan'] ?: $sekolah['nama'].', '.Str::lower($sekolah['jenjang']).' di '.$sekolah['wilayah'].'.' }}</p>
                 @if (filled($sekolah['email']))
                     <a href="mailto:{{ $sekolah['email'] }}" class="mt-4 block text-sm text-hutan hover:underline">{{ $sekolah['email'] }}</a>
