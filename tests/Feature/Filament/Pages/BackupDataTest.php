@@ -1,6 +1,8 @@
 <?php
 
 use App\Filament\Pages\BackupData;
+use App\Jobs\BuatBackup;
+use App\Models\RiwayatBackup;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Support\Facades\Bus;
@@ -10,7 +12,6 @@ use Illuminate\Support\Str;
 use Livewire\Livewire;
 use ShuvroRoy\FilamentSpatieLaravelBackup\Enums\BackupType;
 use ShuvroRoy\FilamentSpatieLaravelBackup\FilamentSpatieLaravelBackup;
-use ShuvroRoy\FilamentSpatieLaravelBackup\Jobs\CreateBackupJob;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Role;
 
@@ -72,9 +73,27 @@ it('queues a backup of the chosen type and records who started it', function () 
         ->callAction('buatBackup', ['jenis' => BackupType::ONLY_DATABASE->value])
         ->assertNotified('Backup sedang diproses');
 
-    Bus::assertDispatched(CreateBackupJob::class, fn (CreateBackupJob $job): bool => (fn () => $this->type)->call($job) === BackupType::ONLY_DATABASE);
+    $riwayat = RiwayatBackup::query()->sole();
+    expect($riwayat->jenis)->toBe(BackupType::ONLY_DATABASE->value)
+        ->and($riwayat->status)->toBe('menunggu');
+    Bus::assertDispatched(BuatBackup::class, fn (BuatBackup $job): bool => $job->batch === $riwayat->batch && $job->connection === 'deferred');
 
     expect(Activity::query()->where('event', 'backup_dibuat')->sole()->causer->is($this->admin))->toBeTrue();
+});
+
+it('shows failed attempts even when there is no archive to download', function () {
+    $failure = RiwayatBackup::query()->create([
+        'batch' => (string) Str::uuid(), 'disk' => 'local',
+        'jenis' => BackupType::ONLY_DATABASE->value, 'sumber' => 'terjadwal',
+        'status' => 'gagal', 'kesalahan' => 'pg_dump tidak tersedia',
+    ]);
+    actingAs($this->admin);
+
+    Livewire::test(BackupData::class)
+        ->assertSee('Gagal')
+        ->assertSee('pg_dump tidak tersedia')
+        ->assertActionHidden(TestAction::make('unduh')->table('riwayat:'.$failure->id))
+        ->assertActionHidden(TestAction::make('hapus')->table('riwayat:'.$failure->id));
 });
 
 it('deletes a backup file from its disk', function () {

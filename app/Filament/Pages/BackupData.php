@@ -3,6 +3,11 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Widgets\StatusBackup;
+use App\Jobs\BuatBackup;
+use App\Models\RiwayatBackup;
+use App\Models\User;
+use App\Services\BackupSekolah;
+use App\Support\PemantauanBackup;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -23,7 +28,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use ShuvroRoy\FilamentSpatieLaravelBackup\Enums\BackupType;
 use ShuvroRoy\FilamentSpatieLaravelBackup\FilamentSpatieLaravelBackup;
-use ShuvroRoy\FilamentSpatieLaravelBackup\Jobs\CreateBackupJob;
+use Spatie\Backup\Helpers\Format;
+use Throwable;
 use UnitEnum;
 
 /**
@@ -100,7 +106,7 @@ class BackupData extends Page implements HasTable
                 ->label('Buat Backup Sekarang')
                 ->icon(Heroicon::Plus)
                 ->modalHeading('Buat Backup Sekarang')
-                ->modalDescription('Backup diproses di latar belakang dan akan muncul di daftar dalam beberapa menit.')
+                ->modalDescription('Setiap tujuan penyimpanan dicatat di tabel, termasuk jika backup gagal. Proses dimulai setelah permintaan ini selesai.')
                 ->modalSubmitActionLabel('Mulai Backup')
                 ->schema([
                     Radio::make('jenis')
@@ -112,13 +118,24 @@ class BackupData extends Page implements HasTable
                 ->action(function (array $data): void {
                     $jenis = BackupType::from($data['jenis']);
 
-                    CreateBackupJob::dispatch($jenis, timeout: 1800);
+                    $backup = app(BackupSekolah::class);
+                    $user = Filament::auth()->user();
+                    $batch = $backup->mulai($jenis, 'manual', $user instanceof User ? $user->id : null);
 
-                    activity()->event('backup_dibuat')->withProperties(['jenis' => $jenis->value])->log('Backup manual dimulai');
+                    try {
+                        BuatBackup::dispatch($batch)->onConnection(config('backup.queue_connection'));
+                    } catch (Throwable $exception) {
+                        $backup->gagal($batch, $exception->getMessage());
+                        Notification::make()->title('Backup gagal dimulai')->body('Lihat kolom kesalahan pada tabel.')->danger()->send();
+
+                        return;
+                    }
+
+                    activity()->event('backup_dibuat')->withProperties(['jenis' => $jenis->value, 'batch' => $batch])->log('Backup manual dimulai');
 
                     Notification::make()
                         ->title('Backup sedang diproses')
-                        ->body('Muat ulang halaman ini dalam beberapa menit untuk melihat hasilnya.')
+                        ->body('Status setiap tujuan akan diperbarui otomatis pada tabel.')
                         ->success()
                         ->send();
                 }),
@@ -129,7 +146,7 @@ class BackupData extends Page implements HasTable
                 ->requiresConfirmation()
                 ->modalDescription('Backup lama dihapus sesuai aturan masa simpan (semua backup 7 hari terakhir, lalu harian, mingguan, bulanan, dan tahunan). Backup terbaru tidak pernah dihapus.')
                 ->action(function (): void {
-                    Artisan::queue('backup:clean');
+                    Artisan::queue('backup:clean')->onConnection(config('backup.queue_connection'));
 
                     Notification::make()->title('Pembersihan backup lama sedang diproses')->success()->send();
                 }),
@@ -138,7 +155,7 @@ class BackupData extends Page implements HasTable
                 ->icon(Heroicon::ArrowPath)
                 ->color('gray')
                 ->action(function (): void {
-                    FilamentSpatieLaravelBackup::clearBackupDestinationCaches();
+                    PemantauanBackup::clearBackupDestinationCaches();
                 }),
         ];
     }
@@ -146,15 +163,13 @@ class BackupData extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->records(fn (array $filters): Collection => static::daftarBackup()
-                ->when(
-                    filled($filters['disk']['value'] ?? null),
-                    fn (Collection $backup): Collection => $backup->where('disk', $filters['disk']['value']),
-                )
-                ->when(
-                    filled($filters['type']['value'] ?? null),
-                    fn (Collection $backup): Collection => $backup->where('type', $filters['type']['value']),
-                ))
+            ->poll('10s')
+            ->defaultPaginationPageOption(25)
+            ->records(fn (array $filters): Collection => static::daftarBackup()->filter(
+                fn (array $record): bool => (blank($filters['disk']['value'] ?? null) || $record['disk'] === $filters['disk']['value'])
+                    && (blank($filters['type']['value'] ?? null) || $record['type'] === $filters['type']['value'])
+                    && (blank($filters['status']['value'] ?? null) || $record['status'] === $filters['status']['value']),
+            ))
             ->columns([
                 TextColumn::make('date')
                     ->label('Tanggal')
@@ -168,6 +183,21 @@ class BackupData extends Page implements HasTable
                     ->formatStateUsing(fn (string $state): string => static::getJenisBackup()[$state] ?? 'File saja'),
                 TextColumn::make('size')
                     ->label('Ukuran'),
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => ucfirst($state))
+                    ->color(fn (string $state): string => match ($state) {
+                        'berhasil' => 'success', 'gagal' => 'danger', 'diproses' => 'info', default => 'warning',
+                    }),
+                TextColumn::make('source')->label('Pemicu'),
+                TextColumn::make('error')
+                    ->label('Kesalahan')
+                    ->placeholder('—')
+                    ->wrap()
+                    ->limit(160)
+                    ->tooltip(fn (array $record): ?string => $record['error'])
+                    ->color('danger'),
                 TextColumn::make('path')
                     ->label('File')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -179,9 +209,13 @@ class BackupData extends Page implements HasTable
                 SelectFilter::make('type')
                     ->label('Isi')
                     ->options(static::getJenisBackup()),
+                SelectFilter::make('status')
+                    ->label('Status')
+                    ->options(['menunggu' => 'Menunggu', 'diproses' => 'Diproses', 'berhasil' => 'Berhasil', 'gagal' => 'Gagal']),
             ])
             ->recordActions([
                 Action::make('unduh')
+                    ->visible(fn (array $record): bool => $record['available'])
                     ->label('Unduh')
                     ->icon(Heroicon::ArrowDownTray)
                     ->url(fn (array $record): string => URL::temporarySignedRoute(
@@ -190,6 +224,7 @@ class BackupData extends Page implements HasTable
                         ['disk' => $record['disk'], 'path' => $record['path']],
                     )),
                 Action::make('hapus')
+                    ->visible(fn (array $record): bool => $record['available'])
                     ->label('Hapus')
                     ->icon(Heroicon::Trash)
                     ->color('danger')
@@ -224,13 +259,27 @@ class BackupData extends Page implements HasTable
     /**
      * Every backup archive on every configured disk, newest first, keyed by a stable record key.
      *
-     * @return Collection<string, array{key: string, disk: string, path: string, type: string, date: string, size: string}>
+     * @return Collection<array-key, array{key: string, disk: string, path: string|null, type: string, date: string, size: string, status: string, source: string, error: string|null, available: bool}>
      */
     protected static function daftarBackup(): Collection
     {
-        return collect(FilamentSpatieLaravelBackup::getDisks())
+        $files = collect(FilamentSpatieLaravelBackup::getDisks())
             ->flatMap(fn (string $disk): array => FilamentSpatieLaravelBackup::getBackupDestinationData($disk, static::CACHE_DETIK))
-            ->sortByDesc('date')
+            ->map(fn (array $file): array => [...$file, 'status' => 'berhasil', 'source' => 'Arsip', 'error' => null, 'available' => true])
             ->keyBy('key');
+
+        $history = RiwayatBackup::query()->latest('id')->get()->map(function (RiwayatBackup $backup) use ($files): array {
+            $key = $backup->path ? sha1($backup->disk."\0".$backup->path) : 'riwayat:'.$backup->id;
+
+            return [
+                'key' => $key, 'disk' => $backup->disk, 'path' => $backup->path,
+                'type' => $backup->jenis, 'date' => $backup->created_at->format('Y-m-d H:i:s'),
+                'size' => $backup->ukuran === null ? '—' : Format::humanReadableSize($backup->ukuran),
+                'status' => $backup->status, 'source' => ucfirst($backup->sumber),
+                'error' => $backup->kesalahan, 'available' => $files->has($key),
+            ];
+        })->keyBy('key');
+
+        return $files->merge($history)->sortByDesc('date');
     }
 }

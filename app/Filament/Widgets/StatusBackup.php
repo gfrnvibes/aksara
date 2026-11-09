@@ -3,9 +3,9 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Pages\BackupData;
+use App\Support\PemantauanBackup;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use ShuvroRoy\FilamentSpatieLaravelBackup\FilamentSpatieLaravelBackup;
 
 /**
  * Health of each backup destination (age of the newest backup, storage used, reachability).
@@ -25,7 +25,7 @@ class StatusBackup extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        return collect(FilamentSpatieLaravelBackup::getBackupDestinationStatusData(BackupData::CACHE_DETIK))
+        return collect(PemantauanBackup::getBackupDestinationStatusData(BackupData::CACHE_DETIK))
             ->map(fn (array $status): Stat => Stat::make(
                 BackupData::labelDisk($status['disk']),
                 match (true) {

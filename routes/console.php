@@ -9,11 +9,11 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 /*
-| Nightly backup to every disk in BACKUP_DISKS (local and Google Drive), old archives pruned first,
+| Nightly backup to every disk in BACKUP_DISKS, old archives pruned first,
 | and a morning health check that e-mails BACKUP_NOTIFICATION_EMAIL when a backup is missing or too large.
 */
 Schedule::command('backup:clean')->dailyAt('01:00')->timezone('Asia/Jakarta')->onOneServer();
-Schedule::command('backup:run')->dailyAt('01:30')->timezone('Asia/Jakarta')->onOneServer();
+Schedule::command('aksara:backup')->dailyAt('01:30')->timezone('Asia/Jakarta')->onOneServer()->withoutOverlapping(60);
 Schedule::command('backup:monitor')->dailyAt('07:00')->timezone('Asia/Jakarta');
 
 Schedule::command('activitylog:clean')->weekly();

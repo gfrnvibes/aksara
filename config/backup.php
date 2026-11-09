@@ -13,6 +13,10 @@ use Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumStorageInMegabytes;
 
 return [
 
+    // Deferred jobs run after the HTTP response and do not require a queue worker.
+    // Use "database" when a supervised worker is available on the server.
+    'queue_connection' => env('BACKUP_QUEUE_CONNECTION', 'deferred'),
+
     'backup' => [
         /*
          * The name of this application. You can use this name to monitor
@@ -159,7 +163,7 @@ return [
             /*
              * The disk names on which the backups will be stored.
              */
-            'disks' => array_values(array_filter(explode(',', (string) env('BACKUP_DISKS', 'local')))),
+            'disks' => array_values(array_unique(array_filter(array_map('trim', explode(',', (string) env('BACKUP_DISKS', 'local')))))),
 
             /*
              * Keep the local copy even when Google Drive is unreachable; the failure is still reported.
@@ -292,7 +296,7 @@ return [
     'monitor_backups' => [
         [
             'name' => env('BACKUP_NAME', 'buku-induk'),
-            'disks' => array_values(array_filter(explode(',', (string) env('BACKUP_DISKS', 'local')))),
+            'disks' => array_values(array_unique(array_filter(array_map('trim', explode(',', (string) env('BACKUP_DISKS', 'local')))))),
             'health_checks' => [
                 MaximumAgeInDays::class => 1,
                 MaximumStorageInMegabytes::class => 5000,
