@@ -40,3 +40,17 @@ php artisan schedule:list
 ```
 
 Setiap tujuan diproses terpisah sehingga kegagalan adapter/cloud tidak menghalangi salinan lokal. Perintah keluar dengan kode gagal bila setidaknya satu tujuan gagal; rincian per tujuan ada di tabel. `backup:run` bawaan paket tetap tersedia, tetapi gunakan `aksara:backup` untuk mencatat riwayat aplikasi.
+
+## Restore
+
+Aksi **Restore** tersedia pada baris arsip yang masih ditemukan dan berstatus berhasil, khusus **super admin**. Pilih database saja atau aktifkan pemulihan foto/file pada backup lengkap. Ketik `RESTORE` dan masukkan password akun saat ini.
+
+Restore mendukung PostgreSQL dengan schema `public` dan SQLite berbasis file pada satu server, dengan `APP_MAINTENANCE_DRIVER=file` (default), agar status maintenance tidak ikut tertimpa saat database diganti. PostgreSQL memerlukan `psql` pada PATH PHP atau di direktori `DB_DUMP_BINARY_PATH`, selain `pg_dump` untuk backup pengaman. Gunakan arsip ZIP yang dibuat aplikasi dengan satu dump SQL dari driver yang sama. Arsip terenkripsi memakai `BACKUP_ARCHIVE_PASSWORD`; password harus sama dengan saat arsip dibuat. Batas arsip/isi ekstraksi adalah 2 GB, dump SQL 128 MB, dan 100.000 entri.
+
+Proses dimulai setelah respons HTTP, tanpa disimpan dalam antrean database yang akan dipulihkan. Aplikasi masuk maintenance sementara, membuat backup pengaman lengkap bernama `db-and-files-pre-restore-...zip` di disk lokal, lalu memulihkan data. Jika backup pengaman atau validasi gagal, data tidak diganti. PostgreSQL menggunakan satu transaksi untuk mengganti schema; SQLite divalidasi di file sementara sebelum dipasang. Jika langkah setelah impor gagal, sistem mencoba mengembalikan database dan file sebelumnya dari backup pengaman.
+
+Pemulihan foto mengganti **storage/app/public** sesuai isi arsip. Dokumen privat yang disimpan terpisah di R2 tidak termasuk backup/restore ini. Restore tidak menerima unggahan SQL/ZIP sembarang; sumbernya hanya arsip pada lokasi backup yang terdaftar.
+
+Struktur database disesuaikan melalui migrasi setelah impor. Antrean `jobs` dan sesi login lama dari snapshot dibersihkan agar pekerjaan tidak dijalankan ulang dan sesi lama tidak aktif kembali. Setelah selesai, muat ulang halaman dan login menggunakan akun/password yang ada dalam backup.
+
+Riwayat restore beserta pesan kesalahan disimpan di `storage/app/private/restore-history`, terpisah dari database, dan tampil pada tabel **Riwayat Restore** di bawah daftar backup. Proses normal akan keluar dari maintenance otomatis. Jika pemulihan otomatis kondisi sebelumnya gagal, maintenance dan direktori `storage/app/restore-temp/<ID>` dipertahankan untuk pemulihan manual. Jangan menghapus file pemulihan tersebut; periksa pesan kesalahan dan arsip pengaman sebelum menjalankan `php artisan up`. Hal yang sama berlaku jika proses PHP dihentikan mendadak/timeout. Batas waktu web server harus cukup untuk menyelesaikan proses.

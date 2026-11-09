@@ -87,6 +87,7 @@ class AdminPanelProvider extends PanelProvider
                         'backup_dibuat' => ['icon' => 'heroicon-m-circle-stack', 'color' => 'info'],
                         'backup_diunduh' => ['icon' => 'heroicon-m-arrow-down-tray', 'color' => 'warning'],
                         'backup_dihapus' => ['icon' => 'heroicon-m-trash', 'color' => 'danger'],
+                        'backup_direstore' => ['icon' => 'heroicon-m-arrow-path', 'color' => 'warning'],
                     ]),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

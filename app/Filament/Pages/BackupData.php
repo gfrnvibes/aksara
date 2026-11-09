@@ -2,16 +2,21 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\RiwayatRestore;
 use App\Filament\Widgets\StatusBackup;
 use App\Jobs\BuatBackup;
+use App\Jobs\PulihkanBackup;
 use App\Models\RiwayatBackup;
 use App\Models\User;
 use App\Services\BackupSekolah;
+use App\Services\RestoreBackup;
 use App\Support\PemantauanBackup;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\EmbeddedTable;
@@ -97,6 +102,18 @@ class BackupData extends Page implements HasTable
         return [
             StatusBackup::class,
         ];
+    }
+
+    public static function canRestore(): bool
+    {
+        $user = Filament::auth()->user();
+
+        return $user instanceof User && static::canAccess() && $user->hasRole(config('filament-shield.super_admin.name'));
+    }
+
+    protected function getFooterWidgets(): array
+    {
+        return [RiwayatRestore::class];
     }
 
     protected function getHeaderActions(): array
@@ -214,6 +231,40 @@ class BackupData extends Page implements HasTable
                     ->options(['menunggu' => 'Menunggu', 'diproses' => 'Diproses', 'berhasil' => 'Berhasil', 'gagal' => 'Gagal']),
             ])
             ->recordActions([
+                Action::make('restore')
+                    ->label('Restore')->icon(Heroicon::ArrowPath)->color('warning')
+                    ->visible(fn (array $record): bool => static::canRestore() && $record['available'] && $record['status'] === 'berhasil')
+                    ->modalHeading('Pulihkan data dari backup?')
+                    ->modalDescription('Data saat ini akan diganti. Sistem membuat backup pengaman terlebih dahulu dan masuk maintenance sementara. Akun serta password mengikuti backup; Anda mungkin perlu login ulang.')
+                    ->modalSubmitActionLabel('Restore sekarang')
+                    ->schema([
+                        Toggle::make('files')->label('Pulihkan foto/file siswa juga')
+                            ->helperText('Mengganti foto/file siswa sesuai backup. Dokumen privat yang disimpan di R2 tidak termasuk.')
+                            ->visible(fn (array $record): bool => $record['type'] === BackupType::DATABASE_AND_FILES->value)
+                            ->default(false),
+                        TextInput::make('konfirmasi')->label('Ketik RESTORE untuk melanjutkan')->required()->rules(['in:RESTORE']),
+                        TextInput::make('password')->label('Password akun Anda')->password()->required()
+                            ->currentPassword(guard: Filament::getAuthGuard())->dehydrated(false),
+                    ])
+                    ->action(function (array $record, array $data): void {
+                        abort_unless(static::canRestore(), 403);
+                        $user = Filament::auth()->user();
+                        abort_unless($user instanceof User, 403);
+                        $restore = app(RestoreBackup::class);
+                        $id = null;
+                        try {
+                            $id = $restore->mulai($user, $record['disk'], $record['path'], (bool) ($data['files'] ?? false));
+                            // The queue database itself will be restored: do not enqueue this job in it.
+                            PulihkanBackup::dispatch($id)->onConnection('deferred');
+                            Notification::make()->title('Restore dijadwalkan')->body('Aplikasi masuk maintenance saat proses berjalan. Setelah selesai, muat ulang dan login kembali.')->success()->send();
+                        } catch (Throwable $exception) {
+                            if ($id !== null) {
+                                $restore->gagal($id, $exception->getMessage());
+                            }
+                            Notification::make()->title('Restore gagal dimulai')
+                                ->body(app(BackupSekolah::class)->pesanKesalahan($exception->getMessage()))->danger()->send();
+                        }
+                    }),
                 Action::make('unduh')
                     ->visible(fn (array $record): bool => $record['available'])
                     ->label('Unduh')

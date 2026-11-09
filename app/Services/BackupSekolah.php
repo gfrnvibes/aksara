@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\RiwayatBackup;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -38,6 +39,11 @@ class BackupSekolah
 
     public function jalankan(string $batch): void
     {
+        if (File::exists(storage_path('framework/restore-in-progress'))) {
+            $this->gagal($batch, 'Restore sedang berjalan. Backup dibatalkan.');
+
+            return;
+        }
         // Spatie uses a shared temporary directory. Never run two dumps concurrently.
         $lock = Cache::lock('aksara:backup', 3600);
         if (! $lock->get()) {
