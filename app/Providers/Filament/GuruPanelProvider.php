@@ -4,8 +4,11 @@ namespace App\Providers\Filament;
 
 use App\Filament\Auth\EditProfile;
 use App\Filament\Auth\Login;
+use App\Filament\GlobalSearch\PencarianPanel;
 use App\Http\Middleware\WajibGantiPassword;
 use Filament\Actions\Action;
+use Filament\Enums\GlobalSearchPosition;
+use Filament\Enums\UserMenuPosition;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -16,6 +19,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -43,7 +47,15 @@ class GuruPanelProvider extends PanelProvider
             ->font('Geist')
             ->monoFont('Geist Mono')
             ->sidebarWidth('15rem')
+            ->sidebarCollapsibleOnDesktop()
+            ->topbar(false)
+            ->globalSearch(PencarianPanel::class, position: GlobalSearchPosition::Sidebar)
+            ->userMenu(position: UserMenuPosition::Sidebar)
+            ->renderHook(PanelsRenderHook::SIDEBAR_NAV_START, fn () => view('filament.components.pencarian-sidebar'))
             ->userMenuItems([
+                Action::make('panelBendahara')->label('Buka Panel Bendahara')->icon(Heroicon::OutlinedBanknotes)
+                    ->url(fn (): string => Filament::getPanel('bendahara')->getUrl())
+                    ->visible(fn (): bool => Filament::auth()->user()?->canAccessPanel(Filament::getPanel('bendahara')) ?? false),
                 Action::make('panelAdmin')
                     ->label('Buka Panel Admin')
                     ->icon(Heroicon::OutlinedBuildingOffice2)

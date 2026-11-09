@@ -194,3 +194,42 @@ html.fi {
         @apply text-2xl font-semibold;
     }
 }
+
+
+/* Financial cards use the same status colors as the treasurer's tables. */
+@layer components {
+    .keuangan-stat {
+        @apply border-t-4 transition duration-150;
+    }
+    a.keuangan-stat {
+        @apply hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500;
+    }
+    .keuangan-stat-masuk {
+        @apply border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/25;
+    }
+    .keuangan-stat-masuk .fi-wi-stats-overview-stat-value,
+    .keuangan-stat-masuk .fi-wi-stats-overview-stat-label-ctn > .fi-icon {
+        @apply text-emerald-700 dark:text-emerald-400;
+    }
+    .keuangan-stat-keluar {
+        @apply border-slate-400 bg-slate-50 dark:bg-slate-800/40;
+    }
+    .keuangan-stat-keluar .fi-wi-stats-overview-stat-value,
+    .keuangan-stat-keluar .fi-wi-stats-overview-stat-label-ctn > .fi-icon {
+        @apply text-slate-600 dark:text-slate-300;
+    }
+    .keuangan-stat-sisa {
+        @apply border-red-500 bg-red-50/70 dark:bg-red-950/25;
+    }
+    .keuangan-stat-sisa .fi-wi-stats-overview-stat-value,
+    .keuangan-stat-sisa .fi-wi-stats-overview-stat-label-ctn > .fi-icon {
+        @apply text-red-600 dark:text-red-400;
+    }
+    .keuangan-stat-saldo {
+        @apply border-blue-500 bg-blue-50/70 dark:bg-blue-950/25;
+    }
+    .keuangan-stat-saldo .fi-wi-stats-overview-stat-value,
+    .keuangan-stat-saldo .fi-wi-stats-overview-stat-label-ctn > .fi-icon {
+        @apply text-blue-700 dark:text-blue-400;
+    }
+}

@@ -36,7 +36,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login(Login::class)
-            ->brandName('AKSARA')
+            ->brandName('Aksara')
             ->colors([
                 'primary' => Color::Emerald,
             ])
@@ -49,6 +49,9 @@ class AdminPanelProvider extends PanelProvider
             ->userMenu(position: UserMenuPosition::Sidebar)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->userMenuItems([
+                Action::make('panelBendahara')->label('Buka Panel Bendahara')->icon(Heroicon::OutlinedBanknotes)
+                    ->url(fn (): string => Filament::getPanel('bendahara')->getUrl())
+                    ->visible(fn (): bool => Filament::auth()->user()?->canAccessPanel(Filament::getPanel('bendahara')) ?? false),
                 Action::make('panelGuru')
                     ->label('Buka Panel Guru')
                     ->icon(Heroicon::OutlinedAcademicCap)

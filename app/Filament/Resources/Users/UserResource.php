@@ -58,6 +58,7 @@ class UserResource extends Resource
                     ->maxLength(255),
                 Select::make('roles')
                     ->label('Peran')
+                    ->helperText('Tambahkan peran bendahara pada akun guru yang merangkap bendahara. Panel Guru tetap dapat digunakan.')
                     ->relationship('roles', 'name')
                     ->multiple()
                     ->preload()
