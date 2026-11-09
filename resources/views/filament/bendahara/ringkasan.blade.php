@@ -1,15 +1,32 @@
 <x-filament-panels::page>
-    <x-filament::section heading="Laporan Keuangan Sekolah" icon="heroicon-o-calendar-days" description="Pilih periode laporan. Klik kartu pemasukan atau pengeluaran untuk membuka rincian Buku Kas.">
-        <div class="mb-4 flex flex-wrap gap-2">
-            <x-filament::button size="sm" color="gray" outlined wire:click="pilihPeriode('bulan-ini')">Bulan ini</x-filament::button>
-            <x-filament::button size="sm" color="gray" outlined wire:click="pilihPeriode('bulan-lalu')">Bulan lalu</x-filament::button>
-            <x-filament::button size="sm" color="gray" outlined wire:click="pilihPeriode('tahun-ini')">Tahun ini</x-filament::button>
-        </div>
-        <form wire:submit="terapkan" class="flex flex-wrap items-end gap-4">
-            <div><label for="mulai" class="mb-2 block text-sm font-medium">Dari tanggal</label><x-filament::input.wrapper prefix-icon="heroicon-o-calendar-days"><x-filament::input id="mulai" type="date" wire:model="mulai" required /></x-filament::input.wrapper>@error('mulai')<p class="text-danger-600">{{ $message }}</p>@enderror</div>
-            <div><label for="selesai" class="mb-2 block text-sm font-medium">Sampai tanggal</label><x-filament::input.wrapper prefix-icon="heroicon-o-calendar-days"><x-filament::input id="selesai" type="date" wire:model="selesai" required /></x-filament::input.wrapper>@error('selesai')<p class="text-danger-600">{{ $message }}</p>@enderror</div>
-            <x-filament::button type="submit" icon="heroicon-o-funnel" wire:loading.attr="disabled">Tampilkan</x-filament::button>
-            <x-filament::button tag="a" color="gray" icon="heroicon-o-arrow-down-tray" :href="route('keuangan.laporan', ['mulai' => $periodeMulai, 'selesai' => $periodeSelesai])">Ekspor CSV</x-filament::button>
+    <x-filament::section heading="Laporan Keuangan Sekolah" icon="heroicon-o-calendar-days" compact>
+        <x-slot name="afterHeader">
+            <div class="flex flex-wrap gap-1.5" role="group" aria-label="Pilihan periode cepat">
+                <x-filament::button size="sm" color="gray" outlined wire:click="pilihPeriode('bulan-ini')">Bulan ini</x-filament::button>
+                <x-filament::button size="sm" color="gray" outlined wire:click="pilihPeriode('bulan-lalu')">Bulan lalu</x-filament::button>
+                <x-filament::button size="sm" color="gray" outlined wire:click="pilihPeriode('tahun-ini')">Tahun ini</x-filament::button>
+            </div>
+        </x-slot>
+
+        <form wire:submit="terapkan" class="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+            <div class="min-w-0">
+                <label for="mulai" class="mb-1 block text-sm font-medium">Dari tanggal</label>
+                <x-filament::input.wrapper>
+                    <x-filament::input id="mulai" type="date" wire:model="mulai" required />
+                </x-filament::input.wrapper>
+                @error('mulai')<p class="mt-1 text-sm text-danger-600">{{ $message }}</p>@enderror
+            </div>
+            <div class="min-w-0">
+                <label for="selesai" class="mb-1 block text-sm font-medium">Sampai tanggal</label>
+                <x-filament::input.wrapper>
+                    <x-filament::input id="selesai" type="date" wire:model="selesai" required />
+                </x-filament::input.wrapper>
+                @error('selesai')<p class="mt-1 text-sm text-danger-600">{{ $message }}</p>@enderror
+            </div>
+            <div class="grid grid-cols-2 gap-2 sm:col-span-2 xl:col-span-1">
+                <x-filament::button type="submit" icon="heroicon-o-funnel" wire:loading.attr="disabled">Tampilkan</x-filament::button>
+                <x-filament::button tag="a" color="gray" icon="heroicon-o-arrow-down-tray" :href="route('keuangan.laporan', ['mulai' => $periodeMulai, 'selesai' => $periodeSelesai])">Ekspor CSV</x-filament::button>
+            </div>
         </form>
     </x-filament::section>
 
