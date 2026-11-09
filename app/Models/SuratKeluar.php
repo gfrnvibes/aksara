@@ -6,6 +6,7 @@ use App\Enums\JenisSuratKeluar;
 use App\Enums\SifatSurat;
 use App\Models\Concerns\CatatAktivitas;
 use App\Services\Surat\IsianSurat;
+use App\Services\Surat\PengaturanKop;
 use App\Services\Surat\PenomoranSurat;
 use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Carbon\CarbonInterface;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 
 /**
  * An outgoing letter, signed by the principal of its academic year and, when chosen, another official. It is
@@ -42,6 +44,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $jabatan_penanda_tangan
  * @property string|null $nip_penanda_tangan
  * @property int|null $dibuat_oleh
+ * @property array<string, mixed>|null $kop_surat_snapshot
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -68,15 +71,23 @@ class SuratKeluar extends Model implements ProvidesActivityTitle
             'tanggal' => 'date',
             'tahun' => 'integer',
             'nomor_urut' => 'integer',
+            'kop_surat_snapshot' => 'array',
         ];
     }
 
     protected static function booted(): void
     {
         static::creating(function (SuratKeluar $surat): void {
+            $surat->kop_surat_snapshot = PengaturanKop::untuk('surat_keluar');
             $surat->dibuat_oleh ??= auth()->id() === null ? null : (int) auth()->id();
 
             app(PenomoranSurat::class)->beriNomorSuratKeluar($surat);
+        });
+
+        static::updating(function (SuratKeluar $surat): void {
+            if ($surat->isDirty('kop_surat_snapshot')) {
+                throw ValidationException::withMessages(['kop_surat_snapshot' => 'Kop surat arsip tidak dapat diganti. Buat surat baru untuk menggunakan kop terbaru.']);
+            }
         });
 
         static::saving(function (SuratKeluar $surat): void {

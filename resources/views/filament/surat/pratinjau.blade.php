@@ -27,7 +27,7 @@
 
 <div class="pratinjau-surat-wadah">
     <div class="pratinjau-surat">
-        @include('cetak.partials.kop')
+        @include('cetak.partials.kop', ['kop' => $surat->kop_surat_snapshot ?? \App\Services\Surat\PengaturanKop::untuk('surat_keluar')])
         @include('cetak.partials.badan-surat-keluar', ['surat' => $surat])
     </div>
 </div>

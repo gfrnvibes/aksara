@@ -55,7 +55,7 @@
     @endunless
 
     <div class="sheet">
-        @include('cetak.partials.kop')
+        @include('cetak.partials.kop', ['jenisKop' => 'rapor'])
 
         <table class="identitas">
             <tr>
