@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Auth\Login;
+use App\Filament\Resources\Activities\ActivityResource;
 use App\Models\User;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use BokshornIt\FilamentActivityTimeline\ActivityTimelinePlugin;
@@ -75,6 +76,8 @@ class AdminPanelProvider extends PanelProvider
                     ->navigationGroup('Pengaturan')
                     ->navigationSort(2),
                 ActivityTimelinePlugin::make()
+                    ->resource(ActivityResource::class)
+                    ->timelineLimit(25)
                     ->navigationGroup('Pengaturan')
                     ->navigationSort(4)
                     ->dateFormat('d-m-Y')

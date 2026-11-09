@@ -31,3 +31,12 @@ it('never writes passwords or tokens to the activity log', function () {
         ->not->toHaveKey('password')
         ->not->toHaveKey('remember_token');
 });
+
+it('does not create another audit entry when saving unchanged data', function () {
+    $siswa = Siswa::factory()->create();
+    $count = Activity::query()->whereMorphedTo('subject', $siswa)->count();
+
+    $siswa->save();
+
+    expect(Activity::query()->whereMorphedTo('subject', $siswa)->count())->toBe($count);
+});

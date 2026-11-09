@@ -16,7 +16,7 @@ Schedule::command('backup:clean')->dailyAt('01:00')->timezone('Asia/Jakarta')->o
 Schedule::command('aksara:backup')->dailyAt('01:30')->timezone('Asia/Jakarta')->onOneServer()->withoutOverlapping(60);
 Schedule::command('backup:monitor')->dailyAt('07:00')->timezone('Asia/Jakarta');
 
-Schedule::command('activitylog:clean')->weekly();
+Schedule::command('activitylog:clean --force')->weeklyOn(0, '02:30')->timezone('Asia/Jakarta')->withoutOverlapping(30);
 
 if (config('queue.run_via_scheduler')) {
     Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=1')
