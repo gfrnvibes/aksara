@@ -2,6 +2,7 @@
 
 namespace App\Filament\Bendahara\Pages;
 
+use App\Filament\Bendahara\Widgets\RingkasanBukuKas;
 use App\Models\TransaksiKeuangan;
 use App\Services\Keuangan\PencatatanKeuangan;
 use BackedEnum;
@@ -14,9 +15,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
-use Filament\Schemas\Components\EmbeddedTable;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -25,6 +24,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 
 class BukuKas extends HalamanKeuangan implements HasTable
@@ -70,24 +70,30 @@ class BukuKas extends HalamanKeuangan implements HasTable
         })];
     }
 
-    public function content(Schema $schema): Schema
+    protected function getHeaderWidgets(): array
     {
-        return $schema->components([
-            Section::make('Ringkasan Transaksi')->description('Mengikuti filter dan pencarian. Transaksi yang dibatalkan tidak dihitung.')
-                ->schema(function (): array {
-                    $query = $this->getFilteredTableQuery()->whereNull('dibatalkan_at');
-                    $masuk = (int) (clone $query)->where('jenis', 'pemasukan')->sum('nominal');
-                    $keluar = (int) (clone $query)->where('jenis', 'pengeluaran')->sum('nominal');
+        return [RingkasanBukuKas::class];
+    }
 
-                    return [
-                        TextEntry::make('masuk')->label('Pemasukan')->state($masuk)->money('IDR', decimalPlaces: 0)->color('success')->icon(Heroicon::OutlinedArrowDownLeft),
-                        TextEntry::make('keluar')->label('Pengeluaran')->state($keluar)->money('IDR', decimalPlaces: 0)->color('gray')->icon(Heroicon::OutlinedArrowUpRight),
-                        TextEntry::make('selisih')->label('Selisih Masuk - Keluar')->state($masuk - $keluar)->money('IDR', decimalPlaces: 0)
-                            ->color($masuk < $keluar ? 'danger' : 'success')->icon(Heroicon::OutlinedScale),
-                    ];
-                })->columns(['default' => 1, 'sm' => 3]),
-            EmbeddedTable::make(),
-        ]);
+    public function getWidgetData(): array
+    {
+        $query = $this->getFilteredTableQuery()->whereNull('dibatalkan_at');
+
+        return ['ringkasan' => [
+            'masuk' => (int) (clone $query)->where('jenis', 'pemasukan')->sum('nominal'),
+            'keluar' => (int) (clone $query)->where('jenis', 'pengeluaran')->sum('nominal'),
+        ]];
+    }
+
+    #[On('filter-ringkasan-kas')]
+    public function filterRingkasanKas(string $jenis = ''): void
+    {
+        abort_unless(static::canAccess(), 403);
+        abort_unless(in_array($jenis, ['', 'pemasukan', 'pengeluaran'], true), 422);
+        $this->tableFilters['jenis']['value'] = $jenis === '' ? null : $jenis;
+        $this->tableFilters['status']['value'] = 'sah';
+        $this->updatedTableFilters();
+        $this->flushCachedTableRecords();
     }
 
     protected function detailAction(): Action

@@ -201,7 +201,8 @@ html.fi {
     .keuangan-stat {
         @apply border-t-4 transition duration-150;
     }
-    a.keuangan-stat {
+    a.keuangan-stat,
+    .keuangan-stat[role="button"] {
         @apply hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500;
     }
     .keuangan-stat-masuk {

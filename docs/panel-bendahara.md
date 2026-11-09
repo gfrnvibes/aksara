@@ -26,3 +26,13 @@ Daftar Tagihan Siswa menampilkan satu baris per nama tagihan untuk semua periode
 ## Tampilan Panel
 
 Seluruh tabel bendahara menggunakan paginasi awal 25 baris, dengan pilihan 10, 25, 50, dan 100. Rekap kategori menggunakan tabel Filament yang dapat dicari dan diurutkan. Kartu ringkasan dan grafik arus kas mengikuti periode terapan; tersedia pilihan Bulan ini, Bulan lalu, dan Tahun ini. Klik kartu pemasukan/pengeluaran untuk membuka Buku Kas dengan jenis dan periode yang sama. Pemasukan memakai hijau, pengeluaran abu-abu, serta sisa tagihan merah; ikon dan label tetap membedakan jenisnya. Nama siswa dan guru dalam tabel tampil satu baris tanpa subjudul nomor identitas.
+
+## Widget Ringkasan pada Detail Tagihan dan Buku Kas
+
+Kedua halaman memakai StatsOverviewWidget/Stat bawaan Filament 5 sebagai widget header. Data ringkasan dikirim lewat getWidgetData dan properti Livewire Reactive, sehingga mengikuti filter, pencarian, dan perubahan transaksi pada halaman. Pembaruan tidak menggunakan polling berkala.
+
+Di detail tagihan: kartu Siswa Ditagih menghapus filter status; Total Tagihan Aktif memilih semua tagihan yang tidak dibatalkan; Total Terbayar memilih tagihan yang sudah memiliki pembayaran (termasuk cicilan); Total Sisa Tagihan memilih tagihan belum lunas. Filter tahun ajaran dan pencarian tetap berlaku.
+
+Di Buku Kas: kartu Pemasukan/Pengeluaran memilih jenis tersebut dan status sah; kartu Selisih menampilkan kedua jenis dengan status sah. Filter periode, metode, dan pencarian dipertahankan. Selisih merupakan masuk dikurangi keluar pada hasil filter, bukan saldo keseluruhan sekolah. Kartu dapat diaktifkan melalui klik, Enter, atau Spasi.
+
+Referensi: https://filamentphp.com/docs/5.x/widgets/stats-overview dan https://filamentphp.com/docs/5.x/navigation/custom-pages.

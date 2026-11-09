@@ -2,18 +2,14 @@
 
 namespace App\Filament\Bendahara\Pages;
 
+use App\Filament\Bendahara\Widgets\RingkasanDetailTagihan;
 use App\Models\TagihanSiswa as Tagihan;
 use App\Services\Keuangan\PencatatanKeuangan;
 use App\Services\Keuangan\RingkasanTagihan;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
-use Filament\Schemas\Components\EmbeddedTable;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -21,6 +17,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 
 class DetailTagihanSiswa extends HalamanKeuangan implements HasTable
 {
@@ -58,22 +55,32 @@ class DetailTagihanSiswa extends HalamanKeuangan implements HasTable
         return [Action::make('kembali')->label('Kembali ke Daftar Tagihan')->url(TagihanSiswa::getUrl())->color('gray')];
     }
 
-    public function content(Schema $schema): Schema
+    protected function getHeaderWidgets(): array
     {
-        return $schema->components([
-            Section::make('Ringkasan Tagihan')->schema(function (): array {
-                $ids = $this->getFilteredTableQuery()->toBase()->reorder()->select('tagihan_siswas.id');
-                $ringkasan = RingkasanTagihan::query(Tagihan::query()->whereIn('tagihan_siswas.id', $ids))->first();
+        return [RingkasanDetailTagihan::class];
+    }
 
-                return [
-                    TextEntry::make('penerima')->label('Siswa Ditagih')->state((int) $ringkasan?->getAttribute('jumlah_siswa')),
-                    TextEntry::make('total')->label('Total Tagihan Aktif')->state((int) $ringkasan?->getAttribute('total_nominal'))->money('IDR'),
-                    TextEntry::make('terbayar')->label('Total Terbayar')->color('success')->icon(Heroicon::OutlinedCheckCircle)->state((int) $ringkasan?->getAttribute('total_terbayar'))->money('IDR'),
-                    TextEntry::make('sisa')->label('Total Sisa Tagihan')->color('danger')->icon(Heroicon::OutlinedExclamationCircle)->state((int) $ringkasan?->getAttribute('total_sisa'))->money('IDR'),
-                ];
-            })->columns(['default' => 1, 'sm' => 2, 'xl' => 4]),
-            EmbeddedTable::make(),
-        ]);
+    public function getWidgetData(): array
+    {
+        $ids = $this->getFilteredTableQuery()->toBase()->reorder()->select('tagihan_siswas.id');
+        $ringkasan = RingkasanTagihan::query(Tagihan::query()->whereIn('tagihan_siswas.id', $ids))->first();
+
+        return ['ringkasan' => [
+            'jumlah_siswa' => (int) $ringkasan?->getAttribute('jumlah_siswa'),
+            'total_nominal' => (int) $ringkasan?->getAttribute('total_nominal'),
+            'total_terbayar' => (int) $ringkasan?->getAttribute('total_terbayar'),
+            'total_sisa' => (int) $ringkasan?->getAttribute('total_sisa'),
+        ]];
+    }
+
+    #[On('filter-ringkasan-tagihan')]
+    public function filterRingkasanTagihan(string $status = ''): void
+    {
+        abort_unless(static::canAccess(), 403);
+        abort_unless(in_array($status, ['', 'berlaku', 'terbayar', 'aktif'], true), 422);
+        $this->tableFilters['status']['value'] = $status === '' ? null : $status;
+        $this->updatedTableFilters();
+        $this->flushCachedTableRecords();
     }
 
     public function table(Table $table): Table
@@ -96,7 +103,7 @@ class DetailTagihanSiswa extends HalamanKeuangan implements HasTable
                 TextColumn::make('alasan_pembatalan')->toggleable(isToggledHiddenByDefault: true),
             ])->filters([
                 SelectFilter::make('tahun_ajaran_id')->label('Tahun Ajaran')->relationship('tahunAjaran', 'nama'),
-                SelectFilter::make('status')->options(['aktif' => 'Belum Lunas', 'menunggak' => 'Menunggak', 'lunas' => 'Lunas', 'batal' => 'Dibatalkan'])->query(function (Builder $query, array $data): Builder {
+                SelectFilter::make('status')->options(['berlaku' => 'Semua Tagihan Aktif', 'terbayar' => 'Sudah Ada Pembayaran', 'aktif' => 'Belum Lunas', 'menunggak' => 'Menunggak', 'lunas' => 'Lunas', 'batal' => 'Dibatalkan'])->query(function (Builder $query, array $data): Builder {
                     $status = $data['value'] ?? null;
                     if ($status === 'batal') {
                         return $query->whereNotNull('dibatalkan_at');
@@ -105,7 +112,13 @@ class DetailTagihanSiswa extends HalamanKeuangan implements HasTable
                         return $query;
                     }
                     $query->whereNull('dibatalkan_at');
+                    if ($status === 'berlaku') {
+                        return $query;
+                    }
                     $sql = '(select coalesce(sum(nominal), 0) from transaksi_keuangans where tagihan_siswa_id = tagihan_siswas.id and dibatalkan_at is null)';
+                    if ($status === 'terbayar') {
+                        return $query->whereRaw("{$sql} > 0");
+                    }
                     $query->whereRaw('nominal '.($status === 'lunas' ? '<=' : '>')." {$sql}");
 
                     return $status === 'menunggak' ? $query->whereDate('jatuh_tempo', '<', today()) : $query;
