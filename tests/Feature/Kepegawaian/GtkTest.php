@@ -1,5 +1,8 @@
 <?php
 
+use App\Filament\Resources\Gtks\GtkResource;
+use App\Filament\Resources\Gtks\Pages\CreateGtk;
+use App\Filament\Resources\Gtks\Pages\EditGtk;
 use App\Filament\Resources\Gtks\Pages\ManageGtks;
 use App\Filament\Resources\PembagianMengajars\Pages\ManagePembagianMengajars;
 use App\Models\Gtk;
@@ -133,27 +136,85 @@ it('refuses to delete a GTK who still has teaching assignments', function () {
 });
 
 it('keeps a 16-digit NIK entered in the form as text', function () {
-    Livewire::test(ManageGtks::class)
-        ->callAction('create', [
+    Livewire::test(CreateGtk::class)
+        ->fillForm([
             'nama' => 'Ahmad Fauzi, S.Pd.',
             'jenis_kelamin' => 'L',
             'nik' => '3205010101900001',
             'jenis_gtk' => 'guru',
             'status_kepegawaian' => 'gtt',
         ])
-        ->assertHasNoActionErrors();
+        ->call('create')
+        ->assertHasNoFormErrors();
 
     expect(Gtk::query()->sole()->nik)->toBe('3205010101900001');
 });
 
 it('rejects a NIK that is not 16 digits', function () {
-    Livewire::test(ManageGtks::class)
-        ->callAction('create', [
+    Livewire::test(CreateGtk::class)
+        ->fillForm([
             'nama' => 'Ahmad Fauzi, S.Pd.',
             'jenis_kelamin' => 'L',
             'nik' => '3205-0101',
             'jenis_gtk' => 'guru',
             'status_kepegawaian' => 'gtt',
         ])
-        ->assertHasActionErrors(['nik']);
+        ->call('create')
+        ->assertHasFormErrors(['nik']);
+});
+
+it('creates and resets a teacher account from the account tab using the existing rules', function () {
+    $gtk = Gtk::factory()->create(['email' => 'guru-tab@example.com']);
+    $buat = TestAction::make('buatAkun')->schemaComponent('aksiAkun', 'form');
+    $reset = TestAction::make('resetPassword')->schemaComponent('aksiAkun', 'form');
+    $page = Livewire::test(EditGtk::class, ['record' => $gtk->getRouteKey()])
+        ->assertSee('Akun')->assertActionVisible($buat)->assertActionDoesNotExist($reset)
+        ->fillForm(['password_akun' => 'Awal12345'])->callAction($buat)->assertHasNoActionErrors();
+    $user = $gtk->refresh()->user;
+    expect($user)->not->toBeNull()->and($user->wajib_ganti_password)->toBeTrue()->and(Hash::check('Awal12345', $user->password))->toBeTrue();
+    $page->assertActionDoesNotExist($buat)->assertActionVisible($reset)
+        ->fillForm(['password_akun' => 'Baru12345'])->callAction($reset)->assertHasNoActionErrors();
+    expect(Hash::check('Baru12345', $user->refresh()->password))->toBeTrue()->and($user->wajib_ganti_password)->toBeTrue();
+});
+
+it('requires a saved login identifier before creating an account from the tab', function () {
+    $gtk = Gtk::factory()->create(['nip' => null, 'nuptk' => null, 'nomor_hp' => null, 'email' => null]);
+    Livewire::test(EditGtk::class, ['record' => $gtk->getRouteKey()])
+        ->fillForm(['password_akun' => 'Awal12345'])->callAction(TestAction::make('buatAkun')->schemaComponent('aksiAkun', 'form'));
+    expect($gtk->refresh()->user_id)->toBeNull();
+});
+
+it('protects admin accounts in the account tab and allows super admin resets', function () {
+    $gtk = Gtk::factory()->denganAkun()->create();
+    $gtk->user->assignRole('operator');
+    $reset = TestAction::make('resetPassword')->schemaComponent('aksiAkun', 'form');
+    Livewire::test(EditGtk::class, ['record' => $gtk->getRouteKey()])->assertActionDoesNotExist($reset)
+        ->assertSee('Reset password hanya dapat dilakukan oleh super admin.');
+    actingAs(User::factory()->create()->assignRole(config('filament-shield.super_admin.name')));
+    Livewire::test(EditGtk::class, ['record' => $gtk->getRouteKey()])->assertActionVisible($reset)
+        ->fillForm(['password_akun' => 'Super12345'])->callAction($reset)->assertHasNoActionErrors();
+    expect(Hash::check('Super12345', $gtk->user->refresh()->password))->toBeTrue();
+});
+
+it('saves a new GTK from the account tab and opens the inline account form', function () {
+    Livewire::test(CreateGtk::class)->fillForm([
+        'nama' => 'Guru Akun Baru', 'jenis_kelamin' => 'L', 'nip' => '198501012010012001', 'jenis_gtk' => 'guru', 'status_kepegawaian' => 'gtt',
+    ])->callAction(TestAction::make('simpanDanAturAkun')->schemaComponent('simpanUntukAkun', 'form'))
+        ->assertHasNoFormErrors()
+        ->assertRedirect(GtkResource::getUrl('edit', ['record' => Gtk::query()->sole(), 'tab' => 'akun']));
+    expect(Gtk::query()->sole()->user_id)->toBeNull();
+    Livewire::withQueryParams(['tab' => 'akun'])->test(EditGtk::class, ['record' => Gtk::query()->sole()->getRouteKey()])
+        ->assertFormFieldVisible('password_akun');
+});
+
+it('validates GTK data before leaving the create page and validates the inline account password', function () {
+    Livewire::test(CreateGtk::class)
+        ->callAction(TestAction::make('simpanDanAturAkun')->schemaComponent('simpanUntukAkun', 'form'))
+        ->assertHasFormErrors(['nama', 'jenis_kelamin', 'status_kepegawaian']);
+    expect(Gtk::count())->toBe(0);
+    $gtk = Gtk::factory()->create();
+    Livewire::test(EditGtk::class, ['record' => $gtk->getRouteKey()])->fillForm(['password_akun' => '123'])
+        ->callAction(TestAction::make('buatAkun')->schemaComponent('aksiAkun', 'form'))
+        ->assertHasErrors(['data.password_akun']);
+    expect($gtk->refresh()->user_id)->toBeNull();
 });

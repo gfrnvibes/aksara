@@ -11,7 +11,6 @@ use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Tabs\Tab;
-use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -35,8 +34,7 @@ class ListPpdbs extends ListRecords
                 ->tooltip('Tanggal buka dan tutup formulir SPMB diatur per tahun ajaran.')
                 ->visible(fn (): bool => TahunAjaranResource::canViewAny()),
             ImportPpdbAction::make(),
-            CreateAction::make()
-                ->modalWidth(Width::FourExtraLarge),
+            CreateAction::make(),
         ];
     }
 

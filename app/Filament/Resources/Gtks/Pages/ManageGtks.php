@@ -5,9 +5,9 @@ namespace App\Filament\Resources\Gtks\Pages;
 use App\Filament\Actions\ImportBukuIndukActions;
 use App\Filament\Resources\Gtks\GtkResource;
 use Filament\Actions\CreateAction;
-use Filament\Resources\Pages\ManageRecords;
+use Filament\Resources\Pages\ListRecords;
 
-class ManageGtks extends ManageRecords
+class ManageGtks extends ListRecords
 {
     protected static string $resource = GtkResource::class;
 
@@ -15,8 +15,7 @@ class ManageGtks extends ManageRecords
     {
         return [
             ImportBukuIndukActions::gtk(),
-            CreateAction::make()
-                ->modalWidth('3xl'),
+            CreateAction::make(),
         ];
     }
 }
