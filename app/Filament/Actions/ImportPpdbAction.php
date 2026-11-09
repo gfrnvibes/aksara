@@ -14,9 +14,9 @@ class ImportPpdbAction
     public static function make(): ExcelImportAction
     {
         return ExcelImportAction::make('importPpdb')
-            ->label('Import Data PPDB')
+            ->label('Import Data SPMB')
             ->importer(PpdbImporter::class)
-            ->modalHeading('Import Data PPDB')
+            ->modalHeading('Import Data SPMB')
             ->registerModalActions([
                 Action::make('downloadTemplate')
                     ->label('Unduh template Excel')

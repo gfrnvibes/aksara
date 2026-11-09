@@ -15,6 +15,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationGroup;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -64,12 +65,11 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationGroups([
                 'Buku Induk',
-                'Kurikulum',
-                'Arsip',
-                'Persuratan',
                 'Kepegawaian',
-                'Master Data',
-                'Pengaturan',
+                'Kurikulum',
+                'Tata Usaha',
+                NavigationGroup::make()->label('Master Data')->collapsed(),
+                NavigationGroup::make()->label('Pengaturan')->collapsed(),
             ])
             ->plugins([
                 FilamentShieldPlugin::make()

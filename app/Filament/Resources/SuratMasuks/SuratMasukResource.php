@@ -35,7 +35,7 @@ class SuratMasukResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxArrowDown;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Persuratan';
+    protected static string|UnitEnum|null $navigationGroup = 'Tata Usaha';
 
     protected static ?int $navigationSort = 2;
 

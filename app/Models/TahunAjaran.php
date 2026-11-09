@@ -24,7 +24,7 @@ use Illuminate\Support\Carbon;
  * @property bool $is_aktif
  * @property string|null $kepala_madrasah
  * @property string|null $nip_kepala_madrasah
- * @property Carbon|null $ppdb_dibuka First day the public PPDB form takes registrations for this year.
+ * @property Carbon|null $ppdb_dibuka First day the public SPMB form takes registrations for this year.
  * @property Carbon|null $ppdb_ditutup Last day of registration; open-ended when empty.
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -89,7 +89,7 @@ class TahunAjaran extends Model implements ProvidesActivityTitle, TerlindungDari
     }
 
     /**
-     * The academic year whose PPDB registration is open today, if any.
+     * The academic year whose SPMB registration is open today, if any.
      */
     public static function pendaftaranPpdbDibuka(): ?self
     {
@@ -103,7 +103,7 @@ class TahunAjaran extends Model implements ProvidesActivityTitle, TerlindungDari
     }
 
     /**
-     * The academic year a new registration belongs to: the one open today, else the latest year given a PPDB
+     * The academic year a new registration belongs to: the one open today, else the latest year given a SPMB
      * period, else the active year.
      */
     public static function untukPpdb(): ?self
@@ -155,7 +155,7 @@ class TahunAjaran extends Model implements ProvidesActivityTitle, TerlindungDari
 
         return $jumlahRapor === 0 && $jumlahRiwayat === 0 && $jumlahPendaftar === 0
             ? null
-            : "Tahun ajaran {$this->nama} masih dipakai oleh {$jumlahRapor} rapor, {$jumlahRiwayat} riwayat kelas, dan {$jumlahPendaftar} pendaftar PPDB.";
+            : "Tahun ajaran {$this->nama} masih dipakai oleh {$jumlahRapor} rapor, {$jumlahRiwayat} riwayat kelas, dan {$jumlahPendaftar} pendaftar SPMB.";
     }
 
     public function activityTitle(): ?string

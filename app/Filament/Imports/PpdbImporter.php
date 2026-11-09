@@ -112,7 +112,7 @@ class PpdbImporter extends Importer
 
     public static function getCompletedNotificationBody(Import $import): string
     {
-        return 'Import PPDB selesai: '.Number::format($import->successful_rows).' baris berhasil.';
+        return 'Import SPMB selesai: '.Number::format($import->successful_rows).' baris berhasil.';
     }
 
     /**

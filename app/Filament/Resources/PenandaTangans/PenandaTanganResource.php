@@ -30,7 +30,7 @@ class PenandaTanganResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPencilSquare;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Persuratan';
+    protected static string|UnitEnum|null $navigationGroup = 'Tata Usaha';
 
     protected static ?int $navigationSort = 3;
 

@@ -66,7 +66,7 @@ class TahunAjaranResource extends Resource
                 TextInput::make('nip_kepala_madrasah')
                     ->label('NIP Kepala Madrasah')
                     ->maxLength(30),
-                Fieldset::make('Periode Pendaftaran PPDB')
+                Fieldset::make('Periode Pendaftaran SPMB')
                     ->columns(2)
                     ->schema([
                         DatePicker::make('ppdb_dibuka')
@@ -75,7 +75,7 @@ class TahunAjaranResource extends Resource
                             ->label('Ditutup')
                             ->afterOrEqual('ppdb_dibuka')
                             ->helperText('Kosongkan bila belum ditentukan.'),
-                        Text::make('Formulir PPDB di halaman publik hanya menerima pendaftaran pada rentang tanggal ini, untuk calon siswa tahun ajaran ini.')
+                        Text::make('Formulir SPMB di halaman publik hanya menerima pendaftaran pada rentang tanggal ini, untuk calon siswa tahun ajaran ini.')
                             ->color('gray')
                             ->columnSpanFull(),
                     ]),
@@ -101,7 +101,7 @@ class TahunAjaranResource extends Resource
                     ->label('Kepala Madrasah')
                     ->placeholder('Belum diisi'),
                 TextColumn::make('ppdb_dibuka')
-                    ->label('Periode PPDB')
+                    ->label('Periode SPMB')
                     ->formatStateUsing(fn (TahunAjaran $record): string => $record->ppdb_dibuka->format('d-m-Y').' s.d. '.($record->ppdb_ditutup?->format('d-m-Y') ?? 'belum ditentukan'))
                     ->placeholder('-'),
                 TextColumn::make('rapor_count')

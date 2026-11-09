@@ -19,6 +19,11 @@ class ListPpdbs extends ListRecords
 {
     protected static string $resource = PpdbResource::class;
 
+    public function getSubheading(): ?string
+    {
+        return 'SPMB — Sistem Penerimaan Murid Baru';
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -27,7 +32,7 @@ class ListPpdbs extends ListRecords
                 ->icon(Heroicon::OutlinedCalendarDays)
                 ->color('gray')
                 ->url(TahunAjaranResource::getUrl())
-                ->tooltip('Tanggal buka dan tutup formulir PPDB diatur per tahun ajaran.')
+                ->tooltip('Tanggal buka dan tutup formulir SPMB diatur per tahun ajaran.')
                 ->visible(fn (): bool => TahunAjaranResource::canViewAny()),
             ImportPpdbAction::make(),
             CreateAction::make()
