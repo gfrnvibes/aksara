@@ -4,6 +4,7 @@ use App\Http\Controllers\CetakBukuIndukController;
 use App\Http\Controllers\CetakJadwalController;
 use App\Http\Controllers\CetakRaporController;
 use App\Http\Controllers\CetakSuratController;
+use App\Http\Controllers\KeuanganController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\PpdbController;
 use App\Http\Controllers\UnduhBackupController;
@@ -20,6 +21,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('keuangan/kuitansi/{transaksi}', [KeuanganController::class, 'kuitansi'])->name('keuangan.kuitansi');
+    Route::get('keuangan/slip-gaji/{gaji}', [KeuanganController::class, 'slipGaji'])->name('keuangan.slip-gaji');
+    Route::get('keuangan/laporan', [KeuanganController::class, 'laporan'])->name('keuangan.laporan');
     Route::get('siswa/{siswa}/cetak-buku-induk', [CetakBukuIndukController::class, 'siswa'])->name('siswa.cetak');
     Route::get('rapor/{rapor}/cetak', CetakRaporController::class)->name('rapor.cetak');
     Route::get('siswa/{siswa}/surat-keterangan-aktif', [CetakSuratController::class, 'keteranganAktif'])->name('surat.keterangan-aktif');

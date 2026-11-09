@@ -56,13 +56,16 @@ class User extends Authenticatable implements FilamentUser, ProvidesActivityTitl
         ];
     }
 
-    /**
-     * The admin panel opens to any user holding at least one role, and Shield policies decide what they can see. The
-     * teacher panel opens to users linked to an active GTK, and shows only their own classes and subjects.
-     */
+    /** Financial access is an additional role, independent of a teacher's GTK account. */
+    public function bolehKelolaKeuangan(): bool
+    {
+        return $this->hasAnyRole(['bendahara', config('filament-shield.super_admin.name')]);
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         return match ($panel->getId()) {
+            'bendahara' => $this->bolehKelolaKeuangan(),
             'guru' => $this->gtk()->aktif()->exists(),
             default => $this->roles()->exists(),
         };

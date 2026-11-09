@@ -42,6 +42,8 @@ class RoleSeeder extends Seeder
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
+        Role::findOrCreate('bendahara', 'web');
+
         $superAdmin = Role::findOrCreate(config('filament-shield.super_admin.name'), 'web');
         $superAdmin->syncPermissions(Permission::all());
 

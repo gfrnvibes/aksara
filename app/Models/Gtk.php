@@ -169,8 +169,17 @@ class Gtk extends Model implements ProvidesActivityTitle, TerlindungDariHapus
         $query->where('is_aktif', true);
     }
 
+    /** @return HasMany<GajiGuru, $this> */
+    public function gaji(): HasMany
+    {
+        return $this->hasMany(GajiGuru::class);
+    }
+
     public function keteranganPemakaian(): ?string
     {
+        if ($this->gaji()->exists()) {
+            return "{$this->nama} memiliki riwayat penggajian. Nonaktifkan GTK ini jika tidak bertugas lagi.";
+        }
         $jumlahMengajar = $this->pembagianMengajar()->count();
 
         return $jumlahMengajar === 0
