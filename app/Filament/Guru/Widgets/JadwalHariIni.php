@@ -2,56 +2,46 @@
 
 namespace App\Filament\Guru\Widgets;
 
-use App\Enums\Hari;
-use App\Filament\Guru\Pages\JadwalSaya;
-use App\Models\IsiJadwal;
+use App\Filament\Guru\Pages\JurnalMengajar;
+use App\Models\JurnalMengajar as Jurnal;
 use App\Models\User;
-use App\Services\Jadwal\PolaJam;
+use App\Services\Harian\AksesHarian;
+use App\Services\Harian\PertemuanMengajar;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
-use Illuminate\Database\Eloquent\Builder;
 
-/**
- * The teacher's lessons today, from the published timetable.
- */
 class JadwalHariIni extends TableWidget
 {
     protected static ?int $sort = 0;
 
     protected int|string|array $columnSpan = 'full';
 
+    protected ?string $pollingInterval = null;
+
     public function table(Table $table): Table
     {
         $user = Filament::auth()->user();
-        $gtk = $user instanceof User ? $user->gtk : null;
-        $jadwal = JadwalSaya::jadwalTerbit();
-        $hari = Hari::dariTanggal(now());
-        $pola = PolaJam::muat();
 
-        return $table
-            ->heading('Jadwal Mengajar Hari Ini')
-            ->description(now()->translatedFormat('l, j F Y'))
-            ->query(fn (): Builder => IsiJadwal::query()
-                ->with(['kelas', 'pembagianMengajar.mataPelajaran'])
-                ->where('jadwal_id', $jadwal->id ?? 0)
-                ->where('hari', $hari->value ?? 0)
-                ->whereHas('pembagianMengajar', fn (Builder $query) => $query->where('gtk_id', $gtk->id ?? 0))
-                ->orderBy('jp_ke'))
-            ->paginated(false)
-            ->emptyStateHeading($jadwal === null ? 'Jadwal semester ini belum terbit' : 'Tidak ada jam mengajar hari ini')
-            ->emptyStateIcon('heroicon-o-calendar-days')
+        return $table->heading('Jadwal Mengajar Hari Ini')->description(now('Asia/Jakarta')->translatedFormat('l, j F Y'))
+            ->records(fn () => $user instanceof User ? app(PertemuanMengajar::class)->daftar($user, AksesHarian::hariIni()) : collect())
+            ->paginated(false)->emptyStateHeading('Tidak ada jam mengajar hari ini')->emptyStateIcon('heroicon-o-calendar-days')
             ->columns([
-                TextColumn::make('jp_ke')
-                    ->label('Jam')
-                    ->formatStateUsing(fn (int $state): string => "JP {$state}")
-                    ->description(fn (IsiJadwal $record): ?string => $pola->jamUntuk($record->hari, $record->jp_ke)?->rentang()),
-                TextColumn::make('kelas.nama')
-                    ->label('Kelas')
-                    ->weight('bold'),
-                TextColumn::make('pembagianMengajar.mataPelajaran.nama')
-                    ->label('Mata Pelajaran'),
+                TextColumn::make('jp_mulai')->label('Jam')->formatStateUsing(fn (array $record): string => 'JP '.$record['jp_mulai'].'–'.$record['jp_selesai'])->description(fn (array $record): ?string => $record['waktu']),
+                TextColumn::make('nama_kelas')->label('Kelas')->weight('bold'),
+                TextColumn::make('nama_mapel')->label('Mata pelajaran'),
+                TextColumn::make('status')->badge()->formatStateUsing(fn (string $state): string => Jurnal::STATUS[$state] ?? 'Belum dicatat')->color(fn (string $state): string => $state === 'terlaksana' ? 'success' : 'warning'),
+            ])->recordActions([
+                Action::make('hadir')->label('Hadir mengajar')->icon('heroicon-o-check')->visible(fn (array $record): bool => $record['status'] === 'belum_dicatat')
+                    ->action(function (array $record) use ($user): void {
+                        abort_unless($user instanceof User, 403);
+                        app(PertemuanMengajar::class)->simpan($user, AksesHarian::hariIni(), $record['sumber_jadwal'], [], true);
+                        Notification::make()->success()->title('Kehadiran tercatat; lengkapi jurnal setelah mengajar')->send();
+                    }),
+                Action::make('jurnal')->label('Isi jurnal')->icon('heroicon-o-pencil-square')->url(JurnalMengajar::getUrl()),
             ]);
     }
 }

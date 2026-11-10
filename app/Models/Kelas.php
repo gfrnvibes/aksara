@@ -125,6 +125,9 @@ class Kelas extends Model implements ProvidesActivityTitle, TerlindungDariHapus
 
     public function keteranganPemakaian(): ?string
     {
+        if (PresensiSiswa::query()->where('kelas_id', $this->id)->exists() || JurnalMengajar::query()->where('kelas_id', $this->id)->exists() || CatatanPiket::query()->where('kelas_id', $this->id)->exists()) {
+            return "Kelas {$this->nama} memiliki riwayat administrasi harian. Nonaktifkan kelas jika tidak digunakan lagi.";
+        }
         $jumlahSiswa = $this->siswa()->count();
         $jumlahRapor = $this->rapor()->withTrashed()->count();
         $jumlahRiwayat = $this->riwayatKelas()->count();
