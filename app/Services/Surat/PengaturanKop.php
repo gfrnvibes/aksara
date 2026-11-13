@@ -13,7 +13,7 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class PengaturanKop
 {
-    public const array JENIS = ['surat_keluar' => 'Surat keluar', 'surat_keterangan' => 'Surat keterangan, pindah & transkrip', 'rapor' => 'Rapor'];
+    public const array JENIS = ['surat_keluar' => 'Surat keluar', 'surat_keterangan' => 'Surat keterangan, pindah & transkrip', 'rapor' => 'Rapor', 'naskah_ujian' => 'Naskah ujian'];
 
     /** @return array<string, mixed> */
     public static function bawaan(): array

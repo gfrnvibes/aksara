@@ -54,6 +54,9 @@ class AdminPanelProvider extends PanelProvider
             ->userMenu(position: UserMenuPosition::Sidebar)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->userMenuItems([
+                Action::make('panelUjian')->label('Buka Panel Ujian')->icon(Heroicon::OutlinedClipboardDocumentCheck)
+                    ->url(fn (): string => Filament::getPanel('ujian')->getUrl())
+                    ->visible(fn (): bool => Filament::auth()->user()?->canAccessPanel(Filament::getPanel('ujian')) ?? false),
                 Action::make('panelBendahara')->label('Buka Panel Bendahara')->icon(Heroicon::OutlinedBanknotes)
                     ->url(fn (): string => Filament::getPanel('bendahara')->getUrl())
                     ->visible(fn (): bool => Filament::auth()->user()?->canAccessPanel(Filament::getPanel('bendahara')) ?? false),

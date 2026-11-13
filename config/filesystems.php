@@ -100,6 +100,9 @@ return [
 
     'arsip' => env('ARSIP_DISK', 'local'),
 
+    // Question-bank images; "local" keeps them on this server, "r2" in the cloud. Follows the archive by default.
+    'cbt' => env('CBT_DISK') ?: env('ARSIP_DISK', 'local'),
+
     /*
     |--------------------------------------------------------------------------
     | Symbolic Links

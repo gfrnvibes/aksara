@@ -67,6 +67,7 @@ class User extends Authenticatable implements FilamentUser, ProvidesActivityTitl
         return match ($panel->getId()) {
             'bendahara' => $this->bolehKelolaKeuangan(),
             'guru' => $this->gtk()->aktif()->exists(),
+            'ujian' => $this->gtk()->aktif()->exists() || $this->can('ViewAny:Soal'),
             default => $this->roles()->exists(),
         };
     }

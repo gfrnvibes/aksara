@@ -71,8 +71,20 @@ class MataPelajaran extends Model implements ProvidesActivityTitle, TerlindungDa
         return $this->hasMany(NilaiRapor::class);
     }
 
+    /**
+     * @return HasMany<Soal, $this>
+     */
+    public function soal(): HasMany
+    {
+        return $this->hasMany(Soal::class);
+    }
+
     public function keteranganPemakaian(): ?string
     {
+        if (($jumlahSoal = $this->soal()->count()) > 0) {
+            return "Mata pelajaran {$this->nama} memiliki {$jumlahSoal} soal di bank soal. Nonaktifkan mata pelajaran ini jika tidak dipakai lagi.";
+        }
+
         $jumlah = $this->nilaiRapor()->count();
 
         return $jumlah === 0
