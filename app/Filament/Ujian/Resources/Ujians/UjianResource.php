@@ -5,9 +5,11 @@ namespace App\Filament\Ujian\Resources\Ujians;
 use App\Enums\Semester;
 use App\Filament\Resources\Kelas\KelasResource;
 use App\Filament\Ujian\Concerns\AksesGuruAtauIzin;
+use App\Filament\Ujian\Resources\Ujians\Pages\AnalisisUjian;
 use App\Filament\Ujian\Resources\Ujians\Pages\CreateUjian;
 use App\Filament\Ujian\Resources\Ujians\Pages\EditUjian;
 use App\Filament\Ujian\Resources\Ujians\Pages\ListUjians;
+use App\Filament\Ujian\Resources\Ujians\Pages\NilaiUjian;
 use App\Models\Soal;
 use App\Models\TahunAjaran;
 use App\Models\Ujian;
@@ -205,6 +207,11 @@ class UjianResource extends Resource
                         ->icon(Heroicon::OutlinedTableCells)
                         ->url(fn (Ujian $record): string => route('ujian.cetak', ['ujian' => $record, 'dokumen' => 'kisi-kisi']), shouldOpenInNewTab: true),
                 ])->label('Cetak')->icon(Heroicon::OutlinedPrinter)->button()->color('gray'),
+                Action::make('nilai')
+                    ->label('Nilai')
+                    ->icon(Heroicon::OutlinedClipboardDocumentList)
+                    ->color('gray')
+                    ->url(fn (Ujian $record): string => static::getUrl('nilai', ['record' => $record])),
                 ViewAction::make()->hidden(fn (Ujian $record): bool => static::canEdit($record)),
                 EditAction::make(),
                 DeleteAction::make(),
@@ -217,6 +224,8 @@ class UjianResource extends Resource
             'index' => ListUjians::route('/'),
             'create' => CreateUjian::route('/create'),
             'edit' => EditUjian::route('/{record}/edit'),
+            'nilai' => NilaiUjian::route('/{record}/nilai'),
+            'analisis' => AnalisisUjian::route('/{record}/analisis'),
         ];
     }
 }

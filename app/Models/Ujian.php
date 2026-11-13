@@ -34,6 +34,7 @@ use Illuminate\Support\Carbon;
  * @property-read TahunAjaran $tahunAjaran
  * @property-read MataPelajaran $mataPelajaran
  * @property-read Collection<int, ButirUjian> $butir
+ * @property-read Collection<int, PesertaUjian> $peserta
  */
 #[Fillable(['nama', 'tahun_ajaran_id', 'semester', 'mata_pelajaran_id', 'tingkat', 'tanggal', 'durasi_menit', 'jumlah_paket', 'petunjuk', 'user_id'])]
 class Ujian extends Model implements ProvidesActivityTitle
@@ -86,6 +87,14 @@ class Ujian extends Model implements ProvidesActivityTitle
     public function butir(): HasMany
     {
         return $this->hasMany(ButirUjian::class)->orderBy('urutan');
+    }
+
+    /**
+     * @return HasMany<PesertaUjian, $this>
+     */
+    public function peserta(): HasMany
+    {
+        return $this->hasMany(PesertaUjian::class);
     }
 
     public function activityTitle(): ?string

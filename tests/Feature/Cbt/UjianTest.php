@@ -3,15 +3,21 @@
 use App\Enums\JenisSoal;
 use App\Filament\Ujian\Resources\Soals\Pages\ListSoals;
 use App\Filament\Ujian\Resources\Ujians\Pages\CreateUjian;
+use App\Filament\Ujian\Resources\Ujians\Pages\NilaiUjian;
+use App\Filament\Ujian\Resources\Ujians\UjianResource;
 use App\Models\Gtk;
+use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\PembagianMengajar;
+use App\Models\Siswa;
 use App\Models\Soal;
 use App\Models\TahunAjaran;
 use App\Models\Ujian;
 use App\Services\Cbt\NaskahUjian;
+use App\Services\Cbt\PenilaianUjian;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Illuminate\Support\Collection;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -152,4 +158,79 @@ it('keeps a question that an exam uses', function () {
 
     expect($soal->delete())->toBeFalse()
         ->and($soal->keteranganPemakaian())->toContain('1 ujian');
+});
+
+it('scores answers proportionally for every kind of question', function () {
+    $soal = soalTiapJenis($this->ujian);
+    $butir = collect(NaskahUjian::susun($this->ujian, 'A'))->pluck('butir')->flatten(1)->keyBy(fn (array $b): int => $b['soal']->id);
+    $skor = fn (string $jenis, mixed $jawaban): float => PenilaianUjian::skor($butir[$soal[$jenis]->id], $jawaban);
+
+    expect($skor('pg', 'b'))->toBe(1.0)
+        ->and($skor('pg', 'A'))->toBe(0.0)
+        ->and($skor('kompleks', 'a, c'))->toBe(1.0)
+        ->and($skor('kompleks', 'A'))->toBe(0.5)
+        ->and($skor('kompleks', 'ABC'))->toBe(0.5)
+        ->and($skor('kompleks', 'ABCD'))->toBe(0.0)
+        ->and($skor('bs', 'BB'))->toBe(0.5)
+        ->and($skor('bs', 'BS'))->toBe(1.0)
+        ->and($skor('jodoh', $butir[$soal['jodoh']->id]['kunciHuruf']))->toBe(1.0)
+        ->and($skor('esai', 3))->toBe(3.0)
+        ->and($skor('esai', 9))->toBe(5.0)
+        ->and($skor('pg', null))->toBe(0.0);
+});
+
+it('lists the grade\'s students, takes typed answers per packet and analyses the questions', function () {
+    $soal = soalTiapJenis($this->ujian);
+    $kelas = Kelas::factory()->create(['tingkat' => 7, 'nama' => '7-A', 'is_aktif' => true]);
+    Kelas::factory()->create(['tingkat' => 8, 'is_aktif' => true])->siswa()->save(Siswa::factory()->make());
+    collect(['Ahmad', 'Budi', 'Citra'])->each(fn (string $nama): Siswa => Siswa::factory()->create(['nama_lengkap' => $nama, 'kelas_id' => $kelas->id]));
+    actingAs($this->guru);
+
+    $halaman = Livewire::test(NilaiUjian::class, ['record' => $this->ujian->getRouteKey()]);
+
+    $peserta = $this->ujian->peserta()->with('siswa')->get()->keyBy('siswa.nama_lengkap');
+    expect($peserta)->toHaveCount(3)
+        ->and($peserta->map->paket->all())->toBe(['Ahmad' => 'A', 'Budi' => 'B', 'Citra' => 'A']);
+
+    // Budi sat packet B, where the PG choices are shuffled: his letter must still be read against packet B's key.
+    $naskahB = collect(NaskahUjian::susun($this->ujian, 'B'))->pluck('butir')->flatten(1)->keyBy(fn (array $b): int => $b['soal']->id);
+    $semuaBenar = fn (Collection $naskah): array => $naskah->mapWithKeys(fn (array $b, int $id): array => [$id => $b['soal']->jenis === JenisSoal::Esai ? 5 : $b['kunciHuruf']])->all();
+
+    $halaman
+        ->callAction(TestAction::make('isiJawaban')->table($peserta['Budi']), ['jawaban' => $semuaBenar($naskahB)])
+        ->assertHasNoFormErrors()
+        ->callAction(TestAction::make('isiJawaban')->table($peserta['Ahmad']), ['jawaban' => [$soal['pg']->id => 'A', $soal['esai']->id => 1]])
+        ->assertHasNoFormErrors()
+        ->callAction(TestAction::make('isiJawaban')->table($peserta['Citra']), ['jawaban' => [$soal['pg']->id => 'Z']])
+        ->assertHasFormErrors();
+
+    expect($peserta['Budi']->refresh()->nilai)->toBe('100.00')
+        ->and($peserta['Ahmad']->refresh()->nilai)->toBe('11.11') // 1 of 9 points: the essay
+        ->and($peserta['Citra']->refresh()->nilai)->toBeNull();
+
+    $analisis = PenilaianUjian::analisis($this->ujian);
+    $pg = collect($analisis['butir'])->firstWhere('soal.id', $soal['pg']->id);
+    expect($analisis['peserta'])->toBe(2)
+        ->and($pg['kesukaran'])->toBe(0.5)
+        ->and($pg['dayaBeda'])->toBe(1.0)
+        ->and(collect($pg['pengecoh'])->pluck('persen', 'huruf')->all())->toBe(['A' => 0.5, 'B' => 0.5, 'C' => 0.0, 'D' => 0.0]);
+
+    $this->get(UjianResource::getUrl('analisis', ['record' => $this->ujian]))->assertOk()->assertSee('Pakai lagi', false);
+    Livewire::test(NilaiUjian::class, ['record' => $this->ujian->getRouteKey()])->callAction('unduh')->assertFileDownloaded();
+});
+
+it('shows the scores to the subject\'s other teachers but keeps answer entry to the author', function () {
+    $siswa = Siswa::factory()->create();
+    $peserta = $this->ujian->peserta()->create(['siswa_id' => $siswa->id, 'paket' => 'A']);
+    $rekan = Gtk::factory()->denganAkun()->create();
+    PembagianMengajar::factory()->for($this->tahunAjaran)->for($this->mapel)->for($rekan)->create();
+    actingAs($rekan->user);
+
+    Livewire::test(NilaiUjian::class, ['record' => $this->ujian->getRouteKey()])
+        ->assertCanSeeTableRecords([$peserta])
+        ->assertActionHidden(TestAction::make('isiJawaban')->table($peserta));
+
+    actingAs(Gtk::factory()->denganAkun()->create()->user)
+        ->get(UjianResource::getUrl('nilai', ['record' => $this->ujian]))
+        ->assertNotFound();
 });
