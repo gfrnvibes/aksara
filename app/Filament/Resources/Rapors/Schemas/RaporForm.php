@@ -10,6 +10,7 @@ use App\Models\Ekstrakurikuler;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\NilaiEkstrakurikuler;
+use App\Models\PresensiSiswa;
 use App\Models\Rapor;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
@@ -192,22 +193,26 @@ class RaporForm
                                     ->options(static::PREDIKAT_HURUF),
                             ]),
                         Section::make('Ketidakhadiran')
+                            ->description('Jika tersedia, S/I/A mengikuti presensi harian. Data rapor yang dikunci tetap dibekukan sampai koreksi dibuka.')
                             ->columnSpan(fn (Get $get): int|string => static::skemaDari($get)->pakaiAkhlakKepribadian() ? 1 : 'full')
                             ->columns(3)
                             ->schema([
                                 TextInput::make('sakit')
+                                    ->readOnly(fn (Get $get, ?Rapor $record): bool => static::presensiOtomatis($get, $record))
                                     ->numeric()
                                     ->minValue(0)
                                     ->default(0)
                                     ->suffix('hari')
                                     ->required(),
                                 TextInput::make('izin')
+                                    ->readOnly(fn (Get $get, ?Rapor $record): bool => static::presensiOtomatis($get, $record))
                                     ->numeric()
                                     ->minValue(0)
                                     ->default(0)
                                     ->suffix('hari')
                                     ->required(),
                                 TextInput::make('tanpa_keterangan')
+                                    ->readOnly(fn (Get $get, ?Rapor $record): bool => static::presensiOtomatis($get, $record))
                                     ->numeric()
                                     ->minValue(0)
                                     ->default(0)
@@ -300,6 +305,12 @@ class RaporForm
                     ->color($hasil['alasanGagalAi'] !== null ? 'warning' : 'success')
                     ->send();
             });
+    }
+
+    protected static function presensiOtomatis(Get $get, ?Rapor $record): bool
+    {
+        return $record?->presensi_dikunci_at !== null || PresensiSiswa::query()
+            ->where('siswa_id', $get('siswa_id'))->where('tahun_ajaran_id', $get('tahun_ajaran_id'))->where('semester', $get('semester'))->exists();
     }
 
     protected static function sectionEkstrakurikuler(): Section

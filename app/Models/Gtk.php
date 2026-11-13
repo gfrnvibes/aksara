@@ -177,6 +177,10 @@ class Gtk extends Model implements ProvidesActivityTitle, TerlindungDariHapus
 
     public function keteranganPemakaian(): ?string
     {
+        if (PresensiGtk::query()->where('gtk_id', $this->id)->exists() || PenugasanPiket::query()->where('gtk_id', $this->id)->exists()
+            || JurnalMengajar::query()->where('guru_id', $this->id)->orWhere('pelaksana_id', $this->id)->exists() || CatatanPiket::query()->where('gtk_id', $this->id)->exists()) {
+            return "{$this->nama} memiliki riwayat administrasi harian. Nonaktifkan GTK ini jika tidak bertugas lagi.";
+        }
         if ($this->gaji()->exists()) {
             return "{$this->nama} memiliki riwayat penggajian. Nonaktifkan GTK ini jika tidak bertugas lagi.";
         }

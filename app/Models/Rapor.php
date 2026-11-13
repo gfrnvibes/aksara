@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\KeputusanKenaikan;
 use App\Enums\Semester;
 use App\Models\Concerns\CatatAktivitas;
+use App\Services\Harian\RekapPresensi;
 use App\Services\Kurikulum\SkemaPenilaian;
 use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\RaporFactory;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 
 /**
  * @property int $id
@@ -33,6 +35,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $catatan
  * @property string|null $wali_kelas
  * @property string|null $nip_wali_kelas
+ * @property Carbon|null $presensi_dikunci_at
  * @property KeputusanKenaikan|null $keputusan
  * @property Carbon|null $tanggal_keputusan
  * @property Carbon|null $created_at
@@ -60,6 +63,7 @@ class Rapor extends Model implements ProvidesActivityTitle
             'keputusan' => KeputusanKenaikan::class,
             'tanggal_keputusan' => 'date',
             'prestasi' => 'array',
+            'presensi_dikunci_at' => 'datetime',
         ];
     }
 
@@ -71,6 +75,16 @@ class Rapor extends Model implements ProvidesActivityTitle
     protected static function booted(): void
     {
         static::saving(function (Rapor $rapor): void {
+            if ($rapor->exists && $rapor->getRawOriginal('presensi_dikunci_at') !== null
+                && $rapor->isDirty(['sakit', 'izin', 'tanpa_keterangan', 'siswa_id', 'tahun_ajaran_id', 'semester', 'kelas_id'])) {
+                throw ValidationException::withMessages(['sakit' => 'Presensi rapor sudah dikunci. Buka koreksi terlebih dahulu.']);
+            }
+            if ($rapor->presensi_dikunci_at === null && $rapor->siswa_id && $rapor->tahun_ajaran_id && isset($rapor->getAttributes()['semester'])) {
+                $rekap = RekapPresensi::siswa($rapor->siswa_id, $rapor->tahun_ajaran_id, $rapor->semester);
+                if ($rekap !== null) {
+                    $rapor->fill($rekap);
+                }
+            }
             if (blank($rapor->wali_kelas)) {
                 $kelas = Kelas::query()->find($rapor->kelas_id);
 

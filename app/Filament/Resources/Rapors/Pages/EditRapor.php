@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Rapors\Pages;
 
+use App\Filament\Actions\KunciPresensiRapor;
 use App\Filament\Resources\Rapors\RaporResource;
 use BokshornIt\FilamentActivityTimeline\Actions\ActivityTimelineAction;
 use Filament\Actions\DeleteAction;
@@ -16,6 +17,8 @@ class EditRapor extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            KunciPresensiRapor::make(true, fn ($record) => $record),
+            KunciPresensiRapor::make(false, fn ($record) => $record),
             ActivityTimelineAction::make()
                 ->label('Riwayat Perubahan')
                 ->withRelations(['nilaiRapor', 'nilaiEkstrakurikuler']),

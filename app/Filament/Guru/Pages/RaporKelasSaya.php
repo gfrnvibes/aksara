@@ -4,14 +4,17 @@ namespace App\Filament\Guru\Pages;
 
 use App\Enums\KeputusanKenaikan;
 use App\Enums\Semester;
+use App\Filament\Actions\KunciPresensiRapor;
 use App\Filament\Resources\Rapors\Schemas\RaporForm;
 use App\Models\Ekstrakurikuler;
 use App\Models\Gtk;
 use App\Models\Kelas;
+use App\Models\PresensiSiswa;
 use App\Models\Rapor;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Services\Harian\RekapPresensi;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -150,6 +153,8 @@ class RaporKelasSaya extends Page implements HasTable
             ])
             ->recordActions([
                 $this->aksiIsiRapor(),
+                KunciPresensiRapor::make(true, fn (Siswa $record) => $this->raporDari($record)),
+                KunciPresensiRapor::make(false, fn (Siswa $record) => $this->raporDari($record)),
                 Action::make('cetak')
                     ->label('Cetak')
                     ->icon(Heroicon::OutlinedPrinter)
@@ -195,11 +200,12 @@ class RaporKelasSaya extends Page implements HasTable
             Hidden::make('semester'),
             Grid::make(['default' => 1, 'lg' => 2])->schema([
                 Section::make('Ketidakhadiran')
+                    ->description('S/I/A otomatis mengikuti presensi harian jika tersedia. Kunci presensi untuk membekukan rekap rapor.')
                     ->columns(3)
                     ->schema([
-                        TextInput::make('sakit')->numeric()->integer()->minValue(0)->suffix('hari')->required(),
-                        TextInput::make('izin')->numeric()->integer()->minValue(0)->suffix('hari')->required(),
-                        TextInput::make('tanpa_keterangan')->label('Alpa')->numeric()->integer()->minValue(0)->suffix('hari')->required(),
+                        TextInput::make('sakit')->readOnly(fn (Get $get): bool => $this->presensiOtomatis($get))->numeric()->integer()->minValue(0)->suffix('hari')->required(),
+                        TextInput::make('izin')->readOnly(fn (Get $get): bool => $this->presensiOtomatis($get))->numeric()->integer()->minValue(0)->suffix('hari')->required(),
+                        TextInput::make('tanpa_keterangan')->readOnly(fn (Get $get): bool => $this->presensiOtomatis($get))->label('Alpa')->numeric()->integer()->minValue(0)->suffix('hari')->required(),
                     ]),
                 Section::make('Akhlak & Kepribadian')
                     ->visible($skema->pakaiAkhlakKepribadian())
@@ -251,15 +257,16 @@ class RaporKelasSaya extends Page implements HasTable
     protected function isianRapor(Siswa $siswa): array
     {
         $rapor = $this->raporDari($siswa)?->load('nilaiEkstrakurikuler');
+        $rekap = $rapor?->presensi_dikunci_at !== null ? null : RekapPresensi::siswa($siswa->id, $this->tahunAjaran()->id, $this->semesterTerpilih());
 
         return [
             'siswa_id' => $siswa->id,
             'tahun_ajaran_id' => $this->tahunAjaran()?->id,
             'kelas_id' => $this->kelasTerpilih()?->id,
             'semester' => $this->semesterTerpilih()->value,
-            'sakit' => $rapor->sakit ?? 0,
-            'izin' => $rapor->izin ?? 0,
-            'tanpa_keterangan' => $rapor->tanpa_keterangan ?? 0,
+            'sakit' => $rekap['sakit'] ?? $rapor->sakit ?? 0,
+            'izin' => $rekap['izin'] ?? $rapor->izin ?? 0,
+            'tanpa_keterangan' => $rekap['tanpa_keterangan'] ?? $rapor->tanpa_keterangan ?? 0,
             'nilai_akhlak' => $rapor?->nilai_akhlak,
             'nilai_kepribadian' => $rapor?->nilai_kepribadian,
             'nilaiEkstrakurikuler' => $rapor === null
@@ -340,6 +347,12 @@ class RaporKelasSaya extends Page implements HasTable
     protected function tahunAjaran(): ?TahunAjaran
     {
         return once(fn (): ?TahunAjaran => TahunAjaran::query()->where('is_aktif', true)->first());
+    }
+
+    protected function presensiOtomatis(Get $get): bool
+    {
+        return Rapor::query()->where('siswa_id', $get('siswa_id'))->where('tahun_ajaran_id', $get('tahun_ajaran_id'))->where('semester', $this->semesterTerpilih())->whereNotNull('presensi_dikunci_at')->exists()
+            || PresensiSiswa::query()->where('siswa_id', $get('siswa_id'))->where('tahun_ajaran_id', $get('tahun_ajaran_id'))->where('semester', $this->semesterTerpilih())->exists();
     }
 
     /**

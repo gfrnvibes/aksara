@@ -85,6 +85,10 @@ class MataPelajaran extends Model implements ProvidesActivityTitle, TerlindungDa
             return "Mata pelajaran {$this->nama} memiliki {$jumlahSoal} soal di bank soal. Nonaktifkan mata pelajaran ini jika tidak dipakai lagi.";
         }
 
+        if (JurnalMengajar::query()->where('mata_pelajaran_id', $this->id)->exists()) {
+            return "Mata pelajaran {$this->nama} memiliki riwayat jurnal mengajar. Nonaktifkan mata pelajaran jika tidak dipakai lagi.";
+        }
+
         $jumlah = $this->nilaiRapor()->count();
 
         return $jumlah === 0

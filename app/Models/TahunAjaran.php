@@ -149,6 +149,9 @@ class TahunAjaran extends Model implements ProvidesActivityTitle, TerlindungDari
 
     public function keteranganPemakaian(): ?string
     {
+        if (PresensiSiswa::query()->where('tahun_ajaran_id', $this->id)->exists() || JurnalMengajar::query()->where('tahun_ajaran_id', $this->id)->exists()) {
+            return "Tahun ajaran {$this->nama} memiliki riwayat presensi atau jurnal mengajar.";
+        }
         $jumlahRapor = $this->rapor()->withTrashed()->count();
         $jumlahRiwayat = $this->riwayatKelas()->count();
         $jumlahPendaftar = $this->ppdb()->count();

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CetakBukuIndukController;
+use App\Http\Controllers\CetakHarianController;
 use App\Http\Controllers\CetakJadwalController;
 use App\Http\Controllers\CetakRaporController;
 use App\Http\Controllers\CetakSuratController;
@@ -22,6 +23,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('administrasi-harian/cetak', CetakHarianController::class)->name('harian.cetak');
     Route::get('keuangan/kuitansi/{transaksi}', [KeuanganController::class, 'kuitansi'])->name('keuangan.kuitansi');
     Route::get('keuangan/slip-gaji/{gaji}', [KeuanganController::class, 'slipGaji'])->name('keuangan.slip-gaji');
     Route::get('keuangan/laporan', [KeuanganController::class, 'laporan'])->name('keuangan.laporan');
