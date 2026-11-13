@@ -14,14 +14,14 @@ class RoleSeeder extends Seeder
 {
     /**
      * The vice principal for curriculum: timetables, bell schedule, academic calendar, teaching assignments,
-     * teachers' scheduling wishes and subjects, and a read-only view of teachers and classes.
+     * teachers' scheduling wishes, subjects, the question bank and exams, and a read-only view of teachers and classes.
      */
     public const string WK_KURIKULUM = 'wk_kurikulum';
 
     /**
      * @var list<string>
      */
-    protected const array DIKELOLA_KURIKULUM = ['Jadwal', 'JamPelajaran', 'KalenderAkademik', 'PembagianMengajar', 'PermintaanJadwal', 'MataPelajaran'];
+    protected const array DIKELOLA_KURIKULUM = ['Jadwal', 'JamPelajaran', 'KalenderAkademik', 'PembagianMengajar', 'PermintaanJadwal', 'MataPelajaran', 'Soal', 'Ujian'];
 
     /**
      * Seed the Shield permissions plus the default roles.
@@ -39,6 +39,13 @@ class RoleSeeder extends Seeder
             '--option' => 'permissions',
             '--no-interaction' => true,
         ]);
+
+        // The exam panel's models, which Shield does not scan.
+        foreach (['Soal', 'Ujian'] as $model) {
+            foreach (['ViewAny', 'View', 'Create', 'Update', 'Delete', 'DeleteAny'] as $aksi) {
+                Permission::findOrCreate("{$aksi}:{$model}", 'web');
+            }
+        }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 

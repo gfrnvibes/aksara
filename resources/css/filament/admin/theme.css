@@ -234,3 +234,31 @@ html.fi {
         @apply text-blue-700 dark:text-blue-400;
     }
 }
+
+/* Bank soal: the question editor stretches to the height of the image panel beside it. */
+@layer components {
+    .fi-sc-component:has(> .soal-pertanyaan) {
+        @apply h-full;
+    }
+    .soal-pertanyaan {
+        @apply flex h-full flex-col;
+    }
+    .soal-pertanyaan .fi-fo-field-content-col,
+    .soal-pertanyaan .fi-input-wrp,
+    .soal-pertanyaan .fi-input-wrp-content-ctn,
+    .soal-pertanyaan .fi-input-wrp-content-ctn > div,
+    .soal-pertanyaan .fi-input-wrp-content-ctn .fi-fo-rich-editor,
+    .soal-pertanyaan .fi-fo-rich-editor-main {
+        @apply flex flex-auto flex-col;
+    }
+    .soal-pertanyaan .fi-fo-rich-editor-toolbar {
+        @apply flex-none;
+    }
+    .soal-pertanyaan .fi-fo-rich-editor-content {
+        @apply flex-auto;
+    }
+    /* Centre the "Benar" switch in its table cell. */
+    .soal-tengah {
+        @apply flex justify-center;
+    }
+}
