@@ -3,6 +3,8 @@
 use App\Http\Controllers\CetakBukuIndukController;
 use App\Http\Controllers\CetakHarianController;
 use App\Http\Controllers\CetakJadwalController;
+use App\Http\Controllers\CetakProsemController;
+use App\Http\Controllers\CetakProtaController;
 use App\Http\Controllers\CetakRaporController;
 use App\Http\Controllers\CetakSuratController;
 use App\Http\Controllers\CetakUjianController;
@@ -34,6 +36,8 @@ Route::middleware('auth')->group(function () {
     Route::get('mutasi/{mutasi}/surat-pindah', [CetakSuratController::class, 'pindah'])->name('surat.pindah');
     Route::get('surat-keluar/{surat}/cetak', [CetakSuratController::class, 'keluar'])->name('surat.keluar');
     Route::get('jadwal/{jadwal}/cetak', CetakJadwalController::class)->name('jadwal.cetak');
+    Route::get('program-tahunan/{prota}/cetak', CetakProtaController::class)->name('prota.cetak');
+    Route::get('program-semester/{prosem}/cetak', CetakProsemController::class)->name('prosem.cetak');
     Route::get('cetak-ujian/{ujian}/{dokumen}/{paket?}', CetakUjianController::class)
         ->whereIn('dokumen', ['naskah', 'kunci', 'kisi-kisi'])
         ->name('ujian.cetak');
