@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Concerns\CatatAktivitas;
-use App\Concerns\ProvidesActivityTitle;
+use App\Models\Concerns\CatatAktivitas;
+use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

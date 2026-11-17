@@ -50,31 +50,49 @@ class PerangkatAjar extends Page
 
     // Identitas & Parameter
     public string $satuan_pendidikan = '';
+
     public string $kepala_madrasah = '';
+
     public string $nip_kepala = '';
+
     public string $guru_pengampu = '';
+
     public string $nip_guru = '';
+
     public string $kota_titimangsa = '';
+
     public string $tanggal_titimangsa = '';
+
     public string $jenjang = 'MTs';
+
     public string $kelas_teks = '';
+
     public string $fase = 'D';
+
     public string $tahun_pelajaran = '';
+
     public int $jp_per_minggu = 5;
 
     // Perangkat Ajar state
     public ?int $perangkatAjarId = null;
+
     public array $data_ame = [];
+
     public array $master_tp = [];
+
     public array $modul_ajars = [];
+
     public ?string $catatan = null;
 
     // Modul Ajar Modal
     public bool $modalModulOpen = false;
+
     public ?string $selectedModulTp = null;
+
     public ?array $activeModulData = null;
 
     public bool $isGenerating = false;
+
     public ?string $generatingTpCode = null;
 
     public static function canAccess(): bool
@@ -143,14 +161,18 @@ class PerangkatAjar extends Page
     public function muatDataPerangkat(): void
     {
         $gtk = static::gtk();
-        $sekolahNama = config('sekolah.nama', 'MTs At-Taufiq Cisurupan');
-        $kepalaDefault = config('sekolah.kepala_madrasah', 'Drs. H. Mulyana, M.Pd.');
-        $nipKepalaDefault = config('sekolah.nip_kepala_madrasah', '-');
-        $kotaDefault = config('sekolah.tempat_tanda_tangan', config('sekolah.kota', 'Cisurupan'));
-
         $tahun = TahunAjaran::find($this->tahun_ajaran_id);
         $kelas = Kelas::find($this->kelas_id);
         $mapel = MataPelajaran::find($this->mata_pelajaran_id);
+
+        $sekolahNama = config('sekolah.nama', 'MTs At-Taufiq Cisurupan');
+        $kepalaDefault = filled($tahun?->kepala_madrasah)
+            ? $tahun->kepala_madrasah
+            : (config('sekolah.kepala_madrasah') ?? '');
+        $nipKepalaDefault = filled($tahun?->nip_kepala_madrasah)
+            ? $tahun->nip_kepala_madrasah
+            : (config('sekolah.nip_kepala_madrasah') ?? '-');
+        $kotaDefault = config('sekolah.tempat_tanda_tangan', config('sekolah.kota', 'Cisurupan'));
 
         $tingkat = $kelas?->tingkat ?? 7;
         $faseDefault = match (true) {
@@ -272,6 +294,7 @@ class PerangkatAjar extends Page
             $service = app(GeminiKurikulumService::class);
 
             $params = [
+                'tahun_ajaran_id' => $this->tahun_ajaran_id,
                 'satuan_pendidikan' => $this->satuan_pendidikan,
                 'kepala_madrasah' => $this->kepala_madrasah,
                 'nip_kepala' => $this->nip_kepala,
@@ -561,7 +584,8 @@ class PerangkatAjar extends Page
     {
         return [
             Action::make('cetakPerangkatIni')
-                ->label('🖨️ Cetak Perangkat Ini')
+                ->label('Cetak Perangkat Ini')
+                ->icon(Heroicon::OutlinedPrinter)
                 ->color('gray')
                 ->visible(fn (): bool => $this->perangkatAjarId !== null)
                 ->url(fn (): string => route('perangkat-ajar.cetak-satuan', [
@@ -572,8 +596,9 @@ class PerangkatAjar extends Page
                 ->openUrlInNewTab(),
 
             Action::make('cetakBundel')
-                ->label('📚 Cetak Paket Lengkap (Bundel)')
-                ->color('emerald')
+                ->label('Cetak Paket Lengkap (Bundel)')
+                ->icon(Heroicon::OutlinedBookOpen)
+                ->color('primary')
                 ->visible(fn (): bool => $this->perangkatAjarId !== null)
                 ->url(fn (): string => route('perangkat-ajar.cetak-bundel', [
                     'perangkatAjar' => $this->perangkatAjarId ?: 0,

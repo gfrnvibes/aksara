@@ -1,4 +1,4 @@
-Susun dan sinkronkan Analisis Minggu Efektif (AME), ATP, PROTA, dan PROSEM berdasarkan data berikut:
+Susun dan sinkronkan Analisis Minggu Efektif (AME), ATP, dan PROTA untuk SATU TAHUN PENUH (Semester 1 dan Semester 2, mencakup seluruh bab resmi Kurikulum Merdeka minimal 3-5 TP per semester) berdasarkan data berikut:
 
 PARAMETER INPUT:
 {
@@ -17,13 +17,16 @@ PARAMETER INPUT:
   "kalender_pendidikan": {{json_kalender_atau_kosong_untuk_otomatis}}
 }
 
-STRUKTUR JSON OUTPUT WAJIB:
+STRUKTUR JSON OUTPUT WAJIB (TANPA `jadwal_prosem`, WAJIB LENGKAP SEM 1 & SEM 2):
 {
   "analisis_minggu_efektif": {
     "semester_1": [
       { "bulan": "Juli", "jml_minggu": 5, "mgg_tidak_efektif": 3, "mgg_efektif": 2, "indeks_minggu_efektif": [3, 4], "keterangan": "M1-M2 Libur Akhir TP, M3 MATSAMA" }
     ],
-    "semester_2": [],
+    "semester_2": [
+      { "bulan": "Januari", "jml_minggu": 5, "mgg_tidak_efektif": 1, "mgg_efektif": 4, "indeks_minggu_efektif": [1, 2, 3, 4], "keterangan": "M1 Libur Semester 1, HAB Kemenag" },
+      { "bulan": "Februari", "jml_minggu": 4, "mgg_tidak_efektif": 1, "mgg_efektif": 3, "indeks_minggu_efektif": [0, 1, 3], "keterangan": "M3 Libur Awal Ramadhan 1448 H, KBM Ramadhan" }
+    ],
     "ringkasan": {
       "total_mgg_efektif_sem_1": 18,
       "total_mgg_efektif_sem_2": 16,
@@ -36,21 +39,24 @@ STRUKTUR JSON OUTPUT WAJIB:
     {
       "semester": 1,
       "kode_tp": "7.1",
-      "elemen_cp": "Menyimak dan Membaca",
+      "elemen_cp": "Elemen CP Bab 1",
       "capaian_pembelajaran": "Bunyi CP sesuai fase...",
-      "materi_pokok": "Teks Deskripsi: Mengenal Objek di Sekitar Kita",
+      "materi_pokok": "Bab 1: Materi Pokok Semester 1",
       "tujuan_pembelajaran": "Peserta didik mampu...",
       "alokasi_jp": 20,
       "jumlah_minggu": 4,
-      "jenis_asesmen": "Formatif & Sumatif LM 1",
-      "jadwal_prosem": {
-        "juli": [0, 0, 0, 5, 5],
-        "agustus": [5, 5, 0, 0],
-        "september": [0, 0, 0, 0, 0],
-        "oktober": [0, 0, 0, 0],
-        "november": [0, 0, 0, 0],
-        "desember": [0, 0, 0, 0]
-      }
+      "jenis_asesmen": "Formatif & Sumatif LM 1"
+    },
+    {
+      "semester": 2,
+      "kode_tp": "7.5",
+      "elemen_cp": "Elemen CP Bab 5",
+      "capaian_pembelajaran": "Bunyi CP sesuai fase...",
+      "materi_pokok": "Bab 5: Materi Pokok Semester 2",
+      "tujuan_pembelajaran": "Peserta didik mampu...",
+      "alokasi_jp": 20,
+      "jumlah_minggu": 4,
+      "jenis_asesmen": "Formatif & Sumatif LM 5"
     }
   ]
 }

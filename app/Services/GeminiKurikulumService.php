@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\KalenderAkademik;
 use App\Services\Gemini\KlienGemini;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -37,10 +38,30 @@ class GeminiKurikulumService
         $systemPrompt = $this->bacaPrompt('tahunan_system.txt');
         $userPrompt = $this->bacaPrompt('tahunan_user.txt');
 
+        $kalenderJson = '""';
+        if (! empty($params['tahun_ajaran_id'])) {
+            $agenda = KalenderAkademik::query()
+                ->where('tahun_ajaran_id', (int) $params['tahun_ajaran_id'])
+                ->orderBy('tanggal_mulai')
+                ->get(['nama', 'jenis', 'tanggal_mulai', 'tanggal_selesai', 'keterangan'])
+                ->map(fn (KalenderAkademik $k) => [
+                    'nama' => $k->nama,
+                    'jenis' => $k->jenis->value,
+                    'tanggal_mulai' => $k->tanggal_mulai->format('Y-m-d'),
+                    'tanggal_selesai' => $k->tanggal_selesai->format('Y-m-d'),
+                    'keterangan' => $k->keterangan,
+                ])
+                ->all();
+
+            if (! empty($agenda)) {
+                $kalenderJson = json_encode($agenda, JSON_UNESCAPED_UNICODE) ?: '""';
+            }
+        }
+
         // Ganti variabel placeholder {{...}}
         $placeholders = [
             '{{nama_madrasah}}' => $params['satuan_pendidikan'] ?? 'MTs At-Taufiq Cisurupan',
-            '{{nama_kepala}}' => $params['kepala_madrasah'] ?? 'Drs. H. Mulyana, M.Pd.',
+            '{{nama_kepala}}' => $params['kepala_madrasah'] ?? '',
             '{{nip_kepala}}' => $params['nip_kepala'] ?? '-',
             '{{nama_guru}}' => $params['guru_pengampu'] ?? 'Guru Pengampu',
             '{{nip_guru}}' => $params['nip_guru'] ?? '-',
@@ -49,9 +70,9 @@ class GeminiKurikulumService
             '{{mapel}}' => $params['mata_pelajaran'] ?? 'Matematika',
             '{{kelas}}' => $params['kelas'] ?? 'VII',
             '{{fase}}' => $params['fase'] ?? 'D',
-            '{{tahun_pelajaran}}' => $params['tahun_pelajaran'] ?? '2024/2025',
+            '{{tahun_pelajaran}}' => $params['tahun_pelajaran'] ?? '2026/2027',
             '{{jp_per_minggu}}' => (string) ($params['jp_per_minggu'] ?? 5),
-            '{{json_kalender_atau_kosong_untuk_otomatis}}' => '""',
+            '{{json_kalender_atau_kosong_untuk_otomatis}}' => $kalenderJson,
         ];
 
         $renderedUserPrompt = str_replace(array_keys($placeholders), array_values($placeholders), $userPrompt);
@@ -87,7 +108,7 @@ class GeminiKurikulumService
         }
 
         // Validasi matematika JP & sinkronisasi mutlak di sisi PHP
-        return $this->validasiDanSinkronkanTahunan($hasil, (int) ($params['jp_per_minggu'] ?? 5));
+        return $this->validasiDanSinkronkanTahunan($hasil, (int) ($params['jp_per_minggu'] ?? 5), $params);
     }
 
     /**
@@ -134,30 +155,18 @@ class GeminiKurikulumService
     /**
      * Memvalidasi dan menyeimbangkan matematika JP kalender dan master_tp
      */
-    public function validasiDanSinkronkanTahunan(array $data, int $jpPerMinggu): array
+    public function validasiDanSinkronkanTahunan(array $data, int $jpPerMinggu, array $params = []): array
     {
         $ame = $data['analisis_minggu_efektif'] ?? [];
-        $sem1 = $ame['semester_1'] ?? $this->drafKalenderSemester1();
-        $sem2 = $ame['semester_2'] ?? $this->drafKalenderSemester2();
+        $sem1 = ! empty($ame['semester_1']) ? $ame['semester_1'] : $this->drafKalenderSemester1();
+        $sem2 = ! empty($ame['semester_2']) ? $ame['semester_2'] : $this->drafKalenderSemester2();
 
-        // Hitung ulang minggu efektif tiap bulan
-        $totalMggSem1 = 0;
-        foreach ($sem1 as &$bulan) {
-            $bulan['jml_minggu'] = (int) ($bulan['jml_minggu'] ?? 4);
-            $bulan['mgg_tidak_efektif'] = (int) ($bulan['mgg_tidak_efektif'] ?? 0);
-            $bulan['mgg_efektif'] = max(0, $bulan['jml_minggu'] - $bulan['mgg_tidak_efektif']);
-            $totalMggSem1 += $bulan['mgg_efektif'];
-        }
-        unset($bulan);
+        // Hitung ulang minggu efektif tiap bulan & pastikan jumlah indeks_minggu_efektif == mgg_efektif
+        $sem1 = $this->normalisasiBulanAme($sem1);
+        $sem2 = $this->normalisasiBulanAme($sem2);
 
-        $totalMggSem2 = 0;
-        foreach ($sem2 as &$bulan) {
-            $bulan['jml_minggu'] = (int) ($bulan['jml_minggu'] ?? 4);
-            $bulan['mgg_tidak_efektif'] = (int) ($bulan['mgg_tidak_efektif'] ?? 0);
-            $bulan['mgg_efektif'] = max(0, $bulan['jml_minggu'] - $bulan['mgg_tidak_efektif']);
-            $totalMggSem2 += $bulan['mgg_efektif'];
-        }
-        unset($bulan);
+        $totalMggSem1 = (int) collect($sem1)->sum('mgg_efektif');
+        $totalMggSem2 = (int) collect($sem2)->sum('mgg_efektif');
 
         $totalJpSem1 = $totalMggSem1 * $jpPerMinggu;
         $totalJpSem2 = $totalMggSem2 * $jpPerMinggu;
@@ -175,13 +184,30 @@ class GeminiKurikulumService
             ],
         ];
 
-        // Validasi & seimbangkan master_tp
+        // Validasi & seimbangkan master_tp (pastikan Semester 1 dan Semester 2 keduanya terisi)
         $masterTp = $data['master_tp'] ?? [];
         $tpSem1 = array_values(array_filter($masterTp, fn ($t) => (int) ($t['semester'] ?? 1) === 1));
         $tpSem2 = array_values(array_filter($masterTp, fn ($t) => (int) ($t['semester'] ?? 1) === 2));
 
-        $this->seimbangkanJpSemester($tpSem1, $totalJpSem1, $jpPerMinggu, 'semester_1');
-        $this->seimbangkanJpSemester($tpSem2, $totalJpSem2, $jpPerMinggu, 'semester_2');
+        if (empty($tpSem1) || empty($tpSem2)) {
+            $fallback = $this->drafStandarTahunan(
+                $params['mata_pelajaran'] ?? 'Mata Pelajaran',
+                $params['kelas'] ?? 'VII',
+                $params['fase'] ?? 'D',
+                $jpPerMinggu
+            );
+            $fallbackTp = $fallback['master_tp'] ?? [];
+
+            if (empty($tpSem1)) {
+                $tpSem1 = array_values(array_filter($fallbackTp, fn ($t) => (int) ($t['semester'] ?? 1) === 1));
+            }
+            if (empty($tpSem2)) {
+                $tpSem2 = array_values(array_filter($fallbackTp, fn ($t) => (int) ($t['semester'] ?? 1) === 2));
+            }
+        }
+
+        $this->seimbangkanJpSemester($tpSem1, $totalJpSem1, $jpPerMinggu, 'semester_1', $sem1);
+        $this->seimbangkanJpSemester($tpSem2, $totalJpSem2, $jpPerMinggu, 'semester_2', $sem2);
 
         $data['master_tp'] = array_merge($tpSem1, $tpSem2);
 
@@ -189,9 +215,49 @@ class GeminiKurikulumService
     }
 
     /**
-     * Menyeimbangkan alokasi JP TP dalam 1 semester dan menyesuaikan matriks jadwal_prosem
+     * Normalisasi data AME tiap bulan agar mgg_efektif dan jumlah indeks_minggu_efektif selalu sinkron.
      */
-    protected function seimbangkanJpSemester(array &$tpList, int $targetJp, int $jpPerMinggu, string $semesterKey): void
+    protected function normalisasiBulanAme(array $bulanList): array
+    {
+        foreach ($bulanList as &$bulan) {
+            $jml = max(1, (int) ($bulan['jml_minggu'] ?? 4));
+            $tdk = max(0, min($jml, (int) ($bulan['mgg_tidak_efektif'] ?? 0)));
+            $efk = max(0, $jml - $tdk);
+
+            $bulan['jml_minggu'] = $jml;
+            $bulan['mgg_tidak_efektif'] = $tdk;
+            $bulan['mgg_efektif'] = $efk;
+
+            $indeks = is_array($bulan['indeks_minggu_efektif'] ?? null)
+                ? array_values(array_unique(array_filter(
+                    array_map('intval', $bulan['indeks_minggu_efektif']),
+                    fn (int $i): bool => $i >= 0 && $i < $jml
+                )))
+                : [];
+
+            if (count($indeks) > $efk) {
+                $indeks = array_slice($indeks, 0, $efk);
+            } elseif (count($indeks) < $efk) {
+                for ($i = 0; $i < $jml && count($indeks) < $efk; $i++) {
+                    if (! in_array($i, $indeks, true)) {
+                        $indeks[] = $i;
+                    }
+                }
+            }
+
+            sort($indeks);
+            $bulan['indeks_minggu_efektif'] = $indeks;
+        }
+        unset($bulan);
+
+        return $bulanList;
+    }
+
+    /**
+     * Menyeimbangkan alokasi JP TP dalam 1 semester dan menyesuaikan matriks jadwal_prosem
+     * hanya pada minggu yang berstatus efektif di AME.
+     */
+    protected function seimbangkanJpSemester(array &$tpList, int $targetJp, int $jpPerMinggu, string $semesterKey, array $ameBulan = []): void
     {
         if (empty($tpList)) {
             return;
@@ -201,44 +267,61 @@ class GeminiKurikulumService
         $selisih = $targetJp - $sumJp;
 
         if ($selisih !== 0 && count($tpList) > 0) {
-            // Distribusikan selisih ke TP terakhir
             $lastIndex = count($tpList) - 1;
             $tpList[$lastIndex]['alokasi_jp'] = max($jpPerMinggu, (int) $tpList[$lastIndex]['alokasi_jp'] + $selisih);
         }
 
-        // Sinkronkan matriks jadwal_prosem tiap TP agar total kotaknya sama persis dengan alokasi_jp
         $bulanNames = $semesterKey === 'semester_1'
             ? ['juli', 'agustus', 'september', 'oktober', 'november', 'desember']
             : ['januari', 'februari', 'maret', 'april', 'mei', 'juni'];
 
-        $currentWeekCursor = 0;
+        // Petakan data AME per nama bulan (lowercase)
+        $ameMap = [];
+        foreach ($ameBulan as $row) {
+            $nama = mb_strtolower((string) ($row['bulan'] ?? ''));
+            if ($nama !== '') {
+                $ameMap[$nama] = $row;
+            }
+        }
+
+        // Kumpulkan slot minggu efektif secara berurutan: [bulan, indexMinggu]
+        $slotEfektif = [];
+        $templateBulan = [];
+        foreach ($bulanNames as $bulan) {
+            $info = $ameMap[$bulan] ?? null;
+            $jmlMgg = $info ? (int) ($info['jml_minggu'] ?? 4) : (($bulan === 'juli' || $bulan === 'september' || $bulan === 'desember' || $bulan === 'maret' || $bulan === 'mei') ? 5 : 4);
+            $templateBulan[$bulan] = array_fill(0, $jmlMgg, 0);
+
+            $indeksEfektif = $info['indeks_minggu_efektif'] ?? null;
+            if (! is_array($indeksEfektif)) {
+                $mggEfektif = $info ? (int) ($info['mgg_efektif'] ?? $jmlMgg) : $jmlMgg;
+                $indeksEfektif = $mggEfektif > 0 ? range(0, min($jmlMgg, $mggEfektif) - 1) : [];
+            }
+
+            foreach ($indeksEfektif as $idxMgg) {
+                $idxInt = (int) $idxMgg;
+                if ($idxInt >= 0 && $idxInt < $jmlMgg) {
+                    $slotEfektif[] = [$bulan, $idxInt];
+                }
+            }
+        }
+
+        $slotCursor = 0;
+        $totalSlots = count($slotEfektif);
 
         foreach ($tpList as &$tp) {
             $alokasiJp = (int) ($tp['alokasi_jp'] ?? $jpPerMinggu);
             $tp['jumlah_minggu'] = max(1, (int) ceil($alokasiJp / max(1, $jpPerMinggu)));
 
-            $jadwal = [];
+            $jadwal = $templateBulan;
             $sisaJpToDistribute = $alokasiJp;
 
-            foreach ($bulanNames as $bIndex => $bulan) {
-                // Minggu standar tiap bulan (Juli: 5, dll)
-                $jmlMgg = ($bulan === 'juli' || $bulan === 'september' || $bulan === 'desember' || $bulan === 'maret' || $bulan === 'mei') ? 5 : 4;
-                $jadwal[$bulan] = array_fill(0, $jmlMgg, 0);
-            }
-
-            // Alokasikan jam ke minggu-minggu prosem secara sekuensial
-            $weekCounter = 0;
-            foreach ($bulanNames as $bulan) {
-                $jmlMgg = count($jadwal[$bulan]);
-                for ($w = 0; $w < $jmlMgg; $w++) {
-                    if ($weekCounter >= $currentWeekCursor && $sisaJpToDistribute > 0) {
-                        $porsi = min($jpPerMinggu, $sisaJpToDistribute);
-                        $jadwal[$bulan][$w] = $porsi;
-                        $sisaJpToDistribute -= $porsi;
-                        $currentWeekCursor = $weekCounter + 1;
-                    }
-                    $weekCounter++;
-                }
+            while ($sisaJpToDistribute > 0 && $slotCursor < $totalSlots) {
+                [$bulan, $w] = $slotEfektif[$slotCursor];
+                $porsi = min($jpPerMinggu, $sisaJpToDistribute);
+                $jadwal[$bulan][$w] = $porsi;
+                $sisaJpToDistribute -= $porsi;
+                $slotCursor++;
             }
 
             $tp['jadwal_prosem'] = $jadwal;
@@ -262,16 +345,16 @@ class GeminiKurikulumService
     }
 
     /**
-     * Draf Kalender Standar Semester 2 (Januari-Juni)
+     * Draf Kalender Standar Semester 2 (Januari-Juni 2027)
      */
     protected function drafKalenderSemester2(): array
     {
         return [
             ['bulan' => 'Januari', 'jml_minggu' => 5, 'mgg_tidak_efektif' => 1, 'mgg_efektif' => 4, 'indeks_minggu_efektif' => [1, 2, 3, 4], 'keterangan' => 'M1 Libur Semester 1, HAB Kemenag'],
-            ['bulan' => 'Februari', 'jml_minggu' => 4, 'mgg_tidak_efektif' => 0, 'mgg_efektif' => 4, 'indeks_minggu_efektif' => [0, 1, 2, 3], 'keterangan' => 'KBM Efektif, Isra Miraj'],
-            ['bulan' => 'Maret', 'jml_minggu' => 5, 'mgg_tidak_efektif' => 2, 'mgg_efektif' => 3, 'indeks_minggu_efektif' => [0, 1, 2], 'keterangan' => 'M3 STS, M4-M5 Libur Awal Ramadhan'],
-            ['bulan' => 'April', 'jml_minggu' => 4, 'mgg_tidak_efektif' => 2, 'mgg_efektif' => 2, 'indeks_minggu_efektif' => [2, 3], 'keterangan' => 'M1-M2 Libur Idul Fitri'],
-            ['bulan' => 'Mei', 'jml_minggu' => 5, 'mgg_tidak_efektif' => 1, 'mgg_efektif' => 4, 'indeks_minggu_efektif' => [0, 1, 2, 3], 'keterangan' => 'KBM Efektif, Asesmen Madrasah'],
+            ['bulan' => 'Februari', 'jml_minggu' => 4, 'mgg_tidak_efektif' => 1, 'mgg_efektif' => 3, 'indeks_minggu_efektif' => [0, 1, 3], 'keterangan' => 'M3 Libur Awal Ramadhan 1448 H, Isra Miraj, KBM Ramadhan'],
+            ['bulan' => 'Maret', 'jml_minggu' => 5, 'mgg_tidak_efektif' => 2, 'mgg_efektif' => 3, 'indeks_minggu_efektif' => [0, 1, 4], 'keterangan' => 'M3-M4 Libur Hari Raya Idul Fitri 1448 H'],
+            ['bulan' => 'April', 'jml_minggu' => 4, 'mgg_tidak_efektif' => 1, 'mgg_efektif' => 3, 'indeks_minggu_efektif' => [1, 2, 3], 'keterangan' => 'M1 Sumatif Tengah Semester (STS), KBM Efektif'],
+            ['bulan' => 'Mei', 'jml_minggu' => 5, 'mgg_tidak_efektif' => 1, 'mgg_efektif' => 4, 'indeks_minggu_efektif' => [0, 1, 2, 3], 'keterangan' => 'M5 Asesmen Madrasah / Persiapan SAT'],
             ['bulan' => 'Juni', 'jml_minggu' => 4, 'mgg_tidak_efektif' => 4, 'mgg_efektif' => 0, 'indeks_minggu_efektif' => [], 'keterangan' => 'M1 SAT/SAS, M2 Pengolahan Nilai, M3 Pembagian Rapor, M4 Libur Akhir TP'],
         ];
     }
@@ -362,50 +445,109 @@ class GeminiKurikulumService
                 ],
             ];
         } else {
-            // General draf Kurikulum Merdeka
+            // General draf Kurikulum Merdeka (8 Bab / TP: 4 Semester 1 + 4 Semester 2)
+            $jpSem1 = $totalMgg1 * $jpPerMinggu;
+            $jpSem2 = $totalMgg2 * $jpPerMinggu;
+
+            $mgg1A = max(1, (int) floor($totalMgg1 / 4));
+            $mgg1B = max(1, (int) floor($totalMgg1 / 4));
+            $mgg1C = max(1, (int) floor($totalMgg1 / 4));
+            $mgg1D = max(1, $totalMgg1 - ($mgg1A + $mgg1B + $mgg1C));
+
+            $mgg2A = max(1, (int) floor($totalMgg2 / 4));
+            $mgg2B = max(1, (int) floor($totalMgg2 / 4));
+            $mgg2C = max(1, (int) floor($totalMgg2 / 4));
+            $mgg2D = max(1, $totalMgg2 - ($mgg2A + $mgg2B + $mgg2C));
+
             $tps = [
+                // Semester 1 (4 Bab)
                 [
                     'semester' => 1,
                     'kode_tp' => '1.1',
-                    'elemen_cp' => 'Pemahaman dan Penalaran Konsep',
-                    'capaian_pembelajaran' => "Peserta didik memahami konsep dasar mata pelajaran {$mapel} pada fase {$fase} dan menerapkannya dalam konteks madrasah.",
-                    'materi_pokok' => "Konsep Fundamental dan Dasar Keilmuan {$mapel}",
-                    'tujuan_pembelajaran' => "Peserta didik mampu mengidentifikasi prinsip-prinsip utama {$mapel} serta menjelaskannya secara terstruktur.",
-                    'alokasi_jp' => (int) round($totalMgg1 * $jpPerMinggu * 0.5),
-                    'jumlah_minggu' => (int) round($totalMgg1 * 0.5),
+                    'elemen_cp' => 'Pemahaman Konsep Dasar',
+                    'capaian_pembelajaran' => "Peserta didik memahami konsep fundamental dan ruang lingkup {$mapel} pada fase {$fase}.",
+                    'materi_pokok' => "Bab 1: Pengenalan dan Konsep Dasar {$mapel}",
+                    'tujuan_pembelajaran' => "Peserta didik mampu mengidentifikasi prinsip-prinsip dasar {$mapel} serta menjelaskannya secara runtut.",
+                    'alokasi_jp' => $mgg1A * $jpPerMinggu,
+                    'jumlah_minggu' => $mgg1A,
                     'jenis_asesmen' => 'Formatif & Sumatif LM 1',
                 ],
                 [
                     'semester' => 1,
                     'kode_tp' => '1.2',
-                    'elemen_cp' => 'Keterampilan Proses dan Aplikasi',
-                    'capaian_pembelajaran' => "Peserta didik mampu mengaplikasikan keterampilan proses {$mapel} dalam memecahkan masalah kontekstual.",
-                    'materi_pokok' => "Penerapan Praktis dan Analisis Masalah {$mapel}",
+                    'elemen_cp' => 'Analisis & Pemahaman Teks/Konteks',
+                    'capaian_pembelajaran' => "Peserta didik mampu menelaah struktur, kaidah, dan hubungan antar konsep dalam {$mapel}.",
+                    'materi_pokok' => "Bab 2: Struktur, Kaidah, dan Pendalaman {$mapel}",
+                    'tujuan_pembelajaran' => "Peserta didik mampu menganalisis unsur-unsur penting materi {$mapel} melalui studi kasus kontekstual.",
+                    'alokasi_jp' => $mgg1B * $jpPerMinggu,
+                    'jumlah_minggu' => $mgg1B,
+                    'jenis_asesmen' => 'Formatif & Sumatif LM 2',
+                ],
+                [
+                    'semester' => 1,
+                    'kode_tp' => '1.3',
+                    'elemen_cp' => 'Keterampilan Proses & Komunikasi',
+                    'capaian_pembelajaran' => "Peserta didik mampu menyajikan gagasan dan temuan terkait {$mapel} secara lisan maupun tertulis.",
+                    'materi_pokok' => "Bab 3: Komunikasi Ilmiah dan Praktik {$mapel}",
+                    'tujuan_pembelajaran' => "Peserta didik mampu mengomunikasikan hasil telaah {$mapel} dengan bahasa yang santun, logis, dan sistematis.",
+                    'alokasi_jp' => $mgg1C * $jpPerMinggu,
+                    'jumlah_minggu' => $mgg1C,
+                    'jenis_asesmen' => 'Formatif & Sumatif LM 3',
+                ],
+                [
+                    'semester' => 1,
+                    'kode_tp' => '1.4',
+                    'elemen_cp' => 'Aplikasi Kontekstual',
+                    'capaian_pembelajaran' => "Peserta didik mampu menerapkan keterampilan {$mapel} dalam pemecahan masalah kehidupan sehari-hari.",
+                    'materi_pokok' => "Bab 4: Penerapan Praktis {$mapel} di Lingkungan Madrasah",
                     'tujuan_pembelajaran' => "Peserta didik mampu merancang solusi dan mempresentasikan karya sederhana terkait materi {$mapel}.",
-                    'alokasi_jp' => (int) ($totalMgg1 * $jpPerMinggu - round($totalMgg1 * $jpPerMinggu * 0.5)),
-                    'jumlah_minggu' => (int) ($totalMgg1 - round($totalMgg1 * 0.5)),
+                    'alokasi_jp' => max($jpPerMinggu, $jpSem1 - (($mgg1A + $mgg1B + $mgg1C) * $jpPerMinggu)),
+                    'jumlah_minggu' => $mgg1D,
                     'jenis_asesmen' => 'Formatif & Sumatif Akhir Semester (SAS)',
                 ],
+                // Semester 2 (4 Bab)
                 [
                     'semester' => 2,
                     'kode_tp' => '2.1',
-                    'elemen_cp' => 'Eksplorasi dan Integrasi',
-                    'capaian_pembelajaran' => "Peserta didik mampu mengeksplorasi hubungan antar konsep {$mapel} dan mengintegrasikannya dengan nilai-nilai keislaman dan kebangsaan.",
-                    'materi_pokok' => "Pendalaman Materi dan Integrasi Nilai {$mapel}",
-                    'tujuan_pembelajaran' => "Peserta didik mampu menganalisis hubungan sebab-akibat fenomena terkait {$mapel} secara kolaboratif.",
-                    'alokasi_jp' => (int) round($totalMgg2 * $jpPerMinggu * 0.5),
-                    'jumlah_minggu' => (int) round($totalMgg2 * 0.5),
-                    'jenis_asesmen' => 'Formatif & Sumatif LM 2',
+                    'elemen_cp' => 'Eksplorasi Lanjutan',
+                    'capaian_pembelajaran' => "Peserta didik mampu mengeksplorasi konsep lanjutan {$mapel} serta kaitannya dengan kearifan lokal.",
+                    'materi_pokok' => "Bab 5: Eksplorasi Materi Lanjutan {$mapel}",
+                    'tujuan_pembelajaran' => "Peserta didik mampu menganalisis hubungan sebab-akibat dan konteks budaya dalam pembelajaran {$mapel}.",
+                    'alokasi_jp' => $mgg2A * $jpPerMinggu,
+                    'jumlah_minggu' => $mgg2A,
+                    'jenis_asesmen' => 'Formatif & Sumatif LM 4',
                 ],
                 [
                     'semester' => 2,
                     'kode_tp' => '2.2',
-                    'elemen_cp' => 'Kreasi dan Refleksi Kritis',
-                    'capaian_pembelajaran' => "Peserta didik mampu menghasilkan karya inovatif dan mengevaluasi capaian belajar secara mandiri pada pembelajaran {$mapel}.",
-                    'materi_pokok' => "Proyek Kreatif dan Refleksi Akhir {$mapel}",
-                    'tujuan_pembelajaran' => "Peserta didik mampu membuat produk/laporan proyek {$mapel} yang bernilai guna serta merefleksikan proses belajarnya.",
-                    'alokasi_jp' => (int) ($totalMgg2 * $jpPerMinggu - round($totalMgg2 * $jpPerMinggu * 0.5)),
-                    'jumlah_minggu' => (int) ($totalMgg2 - round($totalMgg2 * 0.5)),
+                    'elemen_cp' => 'Integrasi Nilai & Literasi',
+                    'capaian_pembelajaran' => "Peserta didik mampu mengintegrasikan pemahaman {$mapel} dengan nilai-nilai keislaman dan kebangsaan.",
+                    'materi_pokok' => "Bab 6: Integrasi Nilai P5RA dalam {$mapel}",
+                    'tujuan_pembelajaran' => "Peserta didik mampu mengevaluasi pesan moral, nilai karakter, dan relevansi materi {$mapel} secara kritis.",
+                    'alokasi_jp' => $mgg2B * $jpPerMinggu,
+                    'jumlah_minggu' => $mgg2B,
+                    'jenis_asesmen' => 'Formatif & Sumatif LM 5',
+                ],
+                [
+                    'semester' => 2,
+                    'kode_tp' => '2.3',
+                    'elemen_cp' => 'Produksi & Kreasi Karya',
+                    'capaian_pembelajaran' => "Peserta didik mampu berkreasi menghasilkan produk/karya tulis atau praktik berbasis {$mapel}.",
+                    'materi_pokok' => "Bab 7: Proyek Kreatif dan Karya Terapan {$mapel}",
+                    'tujuan_pembelajaran' => "Peserta didik mampu menyusun dan menyajikan karya inovatif {$mapel} secara mandiri maupun berkelompok.",
+                    'alokasi_jp' => $mgg2C * $jpPerMinggu,
+                    'jumlah_minggu' => $mgg2C,
+                    'jenis_asesmen' => 'Formatif & Sumatif LM 6',
+                ],
+                [
+                    'semester' => 2,
+                    'kode_tp' => '2.4',
+                    'elemen_cp' => 'Evaluasi & Refleksi Kritis',
+                    'capaian_pembelajaran' => "Peserta didik mampu merefleksikan dan mengevaluasi penguasaan materi {$mapel} selama satu tahun pelajaran.",
+                    'materi_pokok' => "Bab 8: Penguatan Kompetensi dan Refleksi Akhir {$mapel}",
+                    'tujuan_pembelajaran' => "Peserta didik mampu menyelesaikan masalah terpadu {$mapel} dan merefleksikan capaian belajarnya.",
+                    'alokasi_jp' => max($jpPerMinggu, $jpSem2 - (($mgg2A + $mgg2B + $mgg2C) * $jpPerMinggu)),
+                    'jumlah_minggu' => $mgg2D,
                     'jenis_asesmen' => 'Formatif & Sumatif Akhir Tahun (SAT)',
                 ],
             ];
