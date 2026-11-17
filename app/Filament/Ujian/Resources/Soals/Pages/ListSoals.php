@@ -4,6 +4,7 @@ namespace App\Filament\Ujian\Resources\Soals\Pages;
 
 use App\Filament\Resources\Kelas\KelasResource;
 use App\Filament\Ujian\Resources\Soals\SoalResource;
+use App\Filament\Ujian\Widgets\ProgressSoalAiWidget;
 use App\Models\MataPelajaran;
 use App\Services\Gemini\KlienGemini;
 use Filament\Actions\Action;
@@ -13,6 +14,7 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Livewire\Attributes\On;
 
 /**
  * The questions of one subject, with a tab per grade.
@@ -93,13 +95,36 @@ class ListSoals extends ListRecords
         return SoalResource::canCreate() && array_key_exists($this->mapel, SoalResource::pilihanMapel());
     }
 
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            ProgressSoalAiWidget::class,
+        ];
+    }
+
+    public function getWidgetData(): array
+    {
+        return [
+            'mapel' => $this->mapel,
+        ];
+    }
+
+    #[On('soal-ai-selesai')]
+    public function muatUlangSetelahAi(): void
+    {
+        $this->resetTable();
+    }
+
     protected function getHeaderActions(): array
     {
         return [
             Action::make('buatDenganAi')
                 ->label('Buat dengan AI')
                 ->icon(Heroicon::Sparkles)
-                ->color('gray')
+                ->extraAttributes([
+                    'style' => 'background: linear-gradient(135deg, #2563eb 0%, #6366f1 50%, #a855f7 100%); color: #ffffff; border: 0;',
+                    'class' => 'shadow-sm hover:opacity-90 transition-opacity',
+                ])
                 ->url(fn (): string => SoalResource::getUrl('ai', array_filter(['mapel' => $this->mapel, 'tingkat' => $this->tingkatAktif()])))
                 ->visible(fn (): bool => KlienGemini::aktif() && $this->bolehMenulis()),
             CreateAction::make()

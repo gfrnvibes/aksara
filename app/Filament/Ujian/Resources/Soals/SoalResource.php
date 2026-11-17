@@ -18,6 +18,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 /**
  * The question bank: a card per subject, each opening its list of questions with a tab per grade. See
@@ -96,6 +98,14 @@ class SoalResource extends Resource
     public static function table(Table $table): Table
     {
         return SoalsTable::configure($table);
+    }
+
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        return static::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
     }
 
     public static function getPages(): array

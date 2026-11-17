@@ -38,6 +38,6 @@ class ButirUjian extends Model
      */
     public function soal(): BelongsTo
     {
-        return $this->belongsTo(Soal::class);
+        return $this->belongsTo(Soal::class)->withTrashed();
     }
 }

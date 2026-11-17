@@ -5,15 +5,15 @@ namespace App\Models;
 use App\Enums\JenisSoal;
 use App\Enums\LevelKognitif;
 use App\Models\Concerns\CatatAktivitas;
-use App\Models\Concerns\MenolakHapusSaatDipakai;
-use App\Models\Contracts\TerlindungDariHapus;
 use BokshornIt\FilamentActivityTimeline\Contracts\ProvidesActivityTitle;
 use Database\Factories\SoalFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
@@ -48,14 +48,14 @@ use Illuminate\Support\Facades\Storage;
     'mata_pelajaran_id', 'tingkat', 'user_id', 'jenis', 'materi', 'indikator', 'level_kognitif', 'pertanyaan', 'gambar',
     'opsi', 'pembahasan', 'is_siap',
 ])]
-class Soal extends Model implements ProvidesActivityTitle, TerlindungDariHapus
+class Soal extends Model implements ProvidesActivityTitle
 {
     use CatatAktivitas;
 
     /** @use HasFactory<SoalFactory> */
     use HasFactory;
 
-    use MenolakHapusSaatDipakai;
+    use SoftDeletes;
 
     protected function casts(): array
     {
@@ -79,7 +79,9 @@ class Soal extends Model implements ProvidesActivityTitle, TerlindungDariHapus
             static::hapusGambar(array_diff($lama, static::daftarGambar($soal->gambar, $soal->opsi ?? [])));
         });
 
-        static::deleted(fn (Soal $soal) => static::hapusGambar(static::daftarGambar($soal->gambar, $soal->opsi ?? [])));
+        static::forceDeleting(fn (Soal $soal): bool => $soal->keteranganPemakaian() === null);
+
+        static::forceDeleted(fn (Soal $soal) => static::hapusGambar(static::daftarGambar($soal->gambar, $soal->opsi ?? [])));
     }
 
     /**
@@ -135,6 +137,16 @@ class Soal extends Model implements ProvidesActivityTitle, TerlindungDariHapus
     public function butirUjian(): HasMany
     {
         return $this->hasMany(ButirUjian::class);
+    }
+
+    /**
+     * Exams that have included this question.
+     *
+     * @return BelongsToMany<Ujian, $this>
+     */
+    public function ujians(): BelongsToMany
+    {
+        return $this->belongsToMany(Ujian::class, 'butir_ujians')->distinct();
     }
 
     public function keteranganPemakaian(): ?string

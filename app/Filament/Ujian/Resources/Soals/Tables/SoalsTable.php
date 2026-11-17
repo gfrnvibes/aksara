@@ -3,14 +3,19 @@
 namespace App\Filament\Ujian\Resources\Soals\Tables;
 
 use App\Enums\JenisSoal;
-use App\Filament\Actions\HapusMasterDataActions;
 use App\Filament\Resources\Kelas\KelasResource;
 use App\Filament\Ujian\Resources\Soals\Pages\ListSoals;
 use App\Filament\Ujian\Resources\Ujians\UjianResource;
 use App\Models\Soal;
 use App\Models\Ujian;
 use Filament\Actions\BulkAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -20,6 +25,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
 
@@ -29,7 +35,7 @@ class SoalsTable
     {
         return $table
             ->defaultSort('id', 'desc')
-            ->modifyQueryUsing(fn ($query) => $query->with('pembuat'))
+            ->modifyQueryUsing(fn ($query) => $query->with(['pembuat', 'ujians']))
             ->columns([
                 TextColumn::make('pertanyaan')
                     ->formatStateUsing(fn (string $state): string => str(html_entity_decode(strip_tags($state)))->squish()->limit(120)->toString())
@@ -44,10 +50,21 @@ class SoalsTable
                     ->badge(),
                 TextColumn::make('level_kognitif')
                     ->label('Level')
-                    ->formatStateUsing(fn (Soal $record): string => $record->level_kognitif ? "{$record->level_kognitif->value} · {$record->level_kognitif->level()}" : '-'),
+                    ->formatStateUsing(fn (Soal $record): string => $record->level_kognitif ? "{$record->level_kognitif->value} · {$record->level_kognitif->level()}" : '-')
+                    ->tooltip(fn (Soal $record): ?string => $record->level_kognitif?->getLabel())
+                    ->toggleable(),
                 IconColumn::make('is_siap')
                     ->label('Siap')
                     ->boolean(),
+                TextColumn::make('ujians.nama')
+                    ->label('Riwayat Ujian')
+                    ->badge()
+                    ->color('gray')
+                    ->listWithLineBreaks()
+                    ->limitList(2)
+                    ->expandableLimitedList()
+                    ->placeholder('Belum dipakai')
+                    ->toggleable(),
                 TextColumn::make('pembuat.name')
                     ->label('Pembuat')
                     ->placeholder('-')
@@ -60,15 +77,27 @@ class SoalsTable
                     ->label('Status')
                     ->trueLabel('Siap')
                     ->falseLabel('Draf'),
+                TrashedFilter::make()
+                    ->label('Arsip / Terhapus'),
             ])
             ->recordActions([
                 ViewAction::make()->hidden(fn (Soal $record, ListRecords $livewire): bool => $livewire::getResource()::canEdit($record)),
                 EditAction::make(),
-                HapusMasterDataActions::hapus(),
+                DeleteAction::make(),
+                RestoreAction::make(),
+                ForceDeleteAction::make()
+                    ->failureNotification(fn (Notification $notification, Soal $record): Notification => $notification
+                        ->title('Soal tidak dapat dihapus permanen')
+                        ->body($record->keteranganPemakaian())),
             ])
             ->toolbarActions([
                 static::tandaiSiap(),
                 static::masukkanKeUjian(),
+                DeleteBulkAction::make()
+                    ->missingBulkProcessingFailureNotificationMessage(fn (int $failureCount): string => "{$failureCount} soal tidak dihapus karena bukan milik Anda."),
+                RestoreBulkAction::make(),
+                ForceDeleteBulkAction::make()
+                    ->missingBulkProcessingFailureNotificationMessage(fn (int $failureCount): string => "{$failureCount} soal tidak dihapus permanen karena masih dipakai di ujian atau bukan milik Anda."),
             ]);
     }
 
@@ -80,6 +109,7 @@ class SoalsTable
         return BulkAction::make('tandaiSiap')
             ->label('Tandai Siap Dipakai')
             ->icon(Heroicon::OutlinedCheckCircle)
+            ->color('success')
             ->requiresConfirmation()
             ->modalDescription('Pastikan setiap soal dan kuncinya sudah diperiksa. Soal milik guru lain dilewati.')
             ->action(function (Collection $records, ListRecords $livewire): void {
@@ -105,6 +135,7 @@ class SoalsTable
         return BulkAction::make('masukkanKeUjian')
             ->label('Masukkan ke Ujian')
             ->icon(Heroicon::OutlinedDocumentPlus)
+            ->color('info')
             ->modalDescription('Hanya soal berstatus siap yang dimasukkan. Ujian yang tampil adalah ujian mapel dan kelas ini yang bisa Anda ubah.')
             ->schema([
                 Select::make('ujian_id')

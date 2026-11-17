@@ -86,7 +86,18 @@ trait AksesGuruAtauIzin
     {
         $user = static::pengguna();
         $action = $action instanceof UnitEnum ? $action->name : $action;
-        $izin = ['viewAny' => 'ViewAny', 'view' => 'View', 'create' => 'Create', 'update' => 'Update', 'delete' => 'Delete', 'deleteAny' => 'DeleteAny'][$action] ?? null;
+        $izin = [
+            'viewAny' => 'ViewAny',
+            'view' => 'View',
+            'create' => 'Create',
+            'update' => 'Update',
+            'delete' => 'Delete',
+            'deleteAny' => 'DeleteAny',
+            'restore' => 'Restore',
+            'restoreAny' => 'RestoreAny',
+            'forceDelete' => 'ForceDelete',
+            'forceDeleteAny' => 'ForceDeleteAny',
+        ][$action] ?? null;
 
         if ($user === null || $izin === null) {
             return Response::deny();
@@ -102,8 +113,8 @@ trait AksesGuruAtauIzin
         $boleh = match ($action) {
             'viewAny' => $guru,
             'view' => $guru && ($record === null || static::getEloquentQuery()->whereKey($record->getKey())->exists()),
-            'create' => $guru && static::pilihanMapel() !== [],
-            'update', 'delete' => $guru && $milikSendiri,
+            'create', 'deleteAny', 'restoreAny', 'forceDeleteAny' => $guru && static::pilihanMapel() !== [],
+            'update', 'delete', 'restore', 'forceDelete' => $guru && $milikSendiri,
             default => false,
         };
 
