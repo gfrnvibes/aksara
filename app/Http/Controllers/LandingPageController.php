@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ekstrakurikuler;
+use App\Models\GaleriKegiatan;
 use App\Models\MataPelajaran;
 use App\Models\TahunAjaran;
 use Illuminate\Support\Str;
@@ -39,6 +40,7 @@ class LandingPageController extends Controller
             'ekstrakurikuler' => Ekstrakurikuler::query()->aktif()->orderByDesc('is_wajib')->orderBy('nama')->pluck('nama'),
             'program' => static::program(),
             'nilai' => static::nilai(),
+            'jumlahGaleri' => GaleriKegiatan::query()->publik()->count(),
             'spmb' => TahunAjaran::pendaftaranPpdbDibuka(),
         ]);
     }

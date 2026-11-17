@@ -10,7 +10,7 @@
         'green' => 'border-hutan/30 text-hutan bg-hutan/5',
         'orange' => 'border-[#c2410c]/30 text-[#c2410c] bg-[#c2410c]/5',
     ];
-    $bagian = ['#kurikulum' => 'Kurikulum', '#program' => 'Program', '#nilai' => 'Nilai', '#spmb' => 'SPMB', '#kontak' => 'Kontak'];
+    $bagian = ['#kurikulum' => 'Kurikulum', '#program' => 'Program', '#nilai' => 'Nilai', route('galeri.index') => 'Galeri', '#spmb' => 'SPMB', '#kontak' => 'Kontak'];
     $tanyaProgram = fn (string $program): string => $whatsapp
         ? $whatsapp.'?text='.rawurlencode("Assalamu'alaikum, saya ingin bertanya tentang program {$program} di {$sekolah['nama']}.")
         : '#kontak';
@@ -243,6 +243,30 @@
         </div>
     </section>
 
+    {{-- Galeri Kegiatan Siswa (Ringkas -> Halaman Terpisah /galeri) --}}
+    <section id="galeri" class="scroll-mt-16 border-b border-garis bg-latar/50 px-5 py-16 sm:px-10 lg:px-14 lg:py-20">
+        <div class="flex flex-col items-start justify-between gap-8 rounded-3xl border border-garis bg-kertas p-8 sm:p-10 lg:flex-row lg:items-center" data-muncul>
+            <div class="max-w-2xl">
+                <p class="font-kode text-[11px] tracking-[0.18em] text-hutan uppercase">04 · Dokumentasi Kegiatan</p>
+                <h2 class="mt-3 font-judul text-3xl font-semibold tracking-tight text-tinta sm:text-4xl">
+                    Galeri kegiatan <span class="font-light text-hutan">{{ $sekolah['nama_singkat'] }}</span>
+                </h2>
+                <p class="mt-3 text-[15px] leading-relaxed text-stone-600">
+                    Lihat dokumentasi foto dan video aktivitas belajar, pentas seni, ekstrakurikuler, serta prestasi siswa dalam tampilan galeri khusus beserta kolom komentar.
+                    @if ($jumlahGaleri > 0)
+                        Saat ini tersedia <strong class="text-tinta">{{ $jumlahGaleri }} album kegiatan</strong> yang dapat dijelajahi.
+                    @endif
+                </p>
+            </div>
+
+            <a href="{{ route('galeri.index') }}" class="inline-flex h-12 shrink-0 items-center gap-2.5 rounded-full bg-hutan pr-4 pl-6 text-sm font-medium text-white shadow-md shadow-hutan/20 transition hover:scale-[1.02] hover:bg-hutan-tua">
+                <x-heroicon-o-photo class="size-5" />
+                Buka Galeri Kegiatan
+                <span class="grid size-7 place-items-center rounded-full bg-white/15"><x-heroicon-m-arrow-right class="size-4" /></span>
+            </a>
+        </div>
+    </section>
+
     {{-- SPMB --}}
     <section id="spmb" class="relative scroll-mt-16 overflow-hidden border-b border-garis bg-tinta px-5 py-20 text-center text-white/80 sm:px-10 lg:py-28">
         <div class="pola-islami-terang pointer-events-none absolute inset-0" aria-hidden="true"></div>
@@ -250,7 +274,7 @@
         <svg class="melayang pointer-events-none absolute right-[12%] bottom-10 size-10 fill-emas/70" aria-hidden="true"><use href="#bintang" /></svg>
 
         <div class="relative mx-auto max-w-3xl" data-muncul="skala">
-            <p class="font-kode text-[11px] tracking-[0.18em] text-emas-muda uppercase">04 · Sistem Penerimaan Murid Baru</p>
+            <p class="font-kode text-[11px] tracking-[0.18em] text-emas-muda uppercase">05 · Sistem Penerimaan Murid Baru</p>
             <h2 class="mt-4 font-judul text-4xl font-semibold tracking-tight text-white sm:text-6xl">
                 Bergabung bersama <span class="font-light whitespace-nowrap text-emas-muda">{{ $sekolah['nama_singkat'] }}.</span>
             </h2>
