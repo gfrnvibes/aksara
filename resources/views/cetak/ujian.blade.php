@@ -24,43 +24,46 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=amiri:400,700" rel="stylesheet">
     <style>
-        @page { size: A4; margin: 15mm 15mm 18mm; }
-        body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.5; color: #000; margin: 0; }
+        @page { size: 215mm 330mm; margin: 10mm 10mm 12mm; }
+        body { font-family: "Times New Roman", serif; font-size: 10.5pt; line-height: 1.35; color: #000; margin: 0; }
         /* Larger than the Latin text so the harakat stay legible. */
-        .arab { font-family: "Amiri", "Traditional Arabic", serif; font-size: 1.4em; line-height: 1.7; }
+        .arab { font-family: "Amiri", "Traditional Arabic", serif; font-size: 1.4em; line-height: 1.65; }
         /* A question paragraph in Arabic runs right to left on its own; numbered rows keep their order. */
-        .isi p { unicode-bidi: plaintext; margin: 0 0 2pt; }
-        h1 { font-size: 13pt; text-align: center; margin: 0 0 6pt; text-transform: uppercase; line-height: 1.3; }
+        .isi p { unicode-bidi: plaintext; margin: 0 0 1.5pt; }
+        h1 { font-size: 12pt; text-align: center; margin: 0 0 4pt; text-transform: uppercase; line-height: 1.25; }
         table { border-collapse: collapse; }
-        .identitas { width: 100%; margin-bottom: 6pt; }
-        .identitas td { padding: 1pt 4pt 1pt 0; vertical-align: top; }
-        .paket { border: 1.5px solid #000; font-size: 16pt; font-weight: bold; text-align: center; width: 18mm; }
-        .petunjuk { border: 1px solid #000; padding: 4pt 6pt; margin-bottom: 8pt; white-space: pre-line; font-size: 11pt; }
-        h2 { font-size: 12pt; margin: 10pt 0 4pt; }
+        .identitas { width: 100%; margin-bottom: 4pt; font-size: 10pt; }
+        .identitas td { padding: 0.5pt 4pt 0.5pt 0; vertical-align: top; }
+        .paket { border: 1.5px solid #000; font-size: 15pt; font-weight: bold; text-align: center; width: 16mm; }
+        .petunjuk { border: 1px solid #000; padding: 3pt 5pt; margin-bottom: 6pt; white-space: pre-line; font-size: 9.5pt; line-height: 1.3; }
+        h2 { font-size: 10.5pt; margin: 7pt 0 3pt; }
         h2 small { font-weight: normal; font-style: italic; }
-        .soal { display: flex; gap: 4pt; margin-bottom: 6pt; break-inside: avoid; }
-        .soal > .no { min-width: 7mm; text-align: right; }
+        .soal { display: flex; gap: 3pt; margin-bottom: 4.5pt; break-inside: avoid; }
+        .soal > .no { min-width: 6mm; text-align: right; }
         .soal > .badan { flex: 1; }
-        .gambar { max-width: 90mm; max-height: 60mm; margin: 2pt 0; display: block; }
-        .opsi td { padding: 0 4pt 1pt 0; vertical-align: top; }
-        .opsi .gambar { max-width: 50mm; max-height: 35mm; }
+        .gambar { max-width: 75mm; max-height: 45mm; margin: 2pt 0; display: block; }
+        .opsi td { padding: 0 4pt 0.5pt 0; vertical-align: top; }
+        .opsi .gambar { max-width: 45mm; max-height: 30mm; }
         .bs, .jodoh, .daftar { width: 100%; margin-top: 2pt; }
-        .bs th, .bs td, .daftar th, .daftar td { border: 1px solid #000; padding: 2pt 4pt; vertical-align: top; }
+        .bs th, .bs td, .daftar th, .daftar td { border: 1px solid #000; padding: 1.5pt 4pt; vertical-align: top; }
         .bs th:nth-last-child(-n+2), .bs td:nth-last-child(-n+2) { width: 9mm; text-align: center; }
         .jodoh td { padding: 1pt 4pt; vertical-align: top; width: 50%; }
         .daftar th { background: #eee; }
         .tengah { text-align: center; }
         .pedoman { white-space: pre-line; }
         .halaman-paket { break-before: page; }
-        @media print { .tanpa-cetak { display: none; } }
+        @media print {
+            .tanpa-cetak { display: none; }
+            .lembar { max-width: none; }
+        }
         .tanpa-cetak { position: sticky; top: 0; background: #fffbe6; border-bottom: 1px solid #e5d9a8; padding: 6px 10px; font-family: sans-serif; font-size: 13px; }
-        .lembar { max-width: 180mm; margin: 0 auto; }
+        .lembar { max-width: 195mm; margin: 0 auto; }
     </style>
 </head>
 <body>
     <div class="tanpa-cetak">
         <button type="button" onclick="window.print()">Cetak</button>
-        Atur kertas A4 dan nonaktifkan "Headers and footers" di dialog cetak browser.
+        Atur kertas Folio / F4 (215 × 330 mm), margin Narrow (10 mm), dan nonaktifkan "Headers and footers" di dialog cetak browser.
     </div>
 
     <div class="lembar">
