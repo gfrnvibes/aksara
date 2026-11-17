@@ -22,10 +22,12 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -52,7 +54,9 @@ class ProgramTahunanResource extends Resource
 
     protected static ?string $slug = 'program-tahunan';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Perencanaan Pembelajaran';
+    protected static string|UnitEnum|null $navigationGroup = 'Perangkat Ajar';
+
+    protected static bool $shouldRegisterNavigation = false;
 
     /**
      * The currently logged-in teacher's GTK record.
@@ -90,155 +94,153 @@ class ProgramTahunanResource extends Resource
     {
         $gtk = static::gtk();
 
-        return $schema->components([
-            Section::make('Identitas Program Tahunan (PROTA)')
+        return $schema
+            ->columns(1)
+            ->components([
+            Section::make('Identitas')
                 ->icon(Heroicon::OutlinedIdentification)
-                ->description('Identitas satuan pendidikan, tahun pelajaran, kelas, fase, dan mata pelajaran.')
-                ->columns(2)
+                ->compact()
                 ->schema([
-                    Select::make('tahun_ajaran_id')
-                        ->label('Tahun Pelajaran')
-                        ->options(function () use ($gtk): array {
-                            $assigned = PembagianMengajar::query()->milik($gtk)->select('tahun_ajaran_id');
+                    Grid::make(4)
+                        ->schema([
+                            Select::make('tahun_ajaran_id')
+                                ->label('Tahun Pelajaran')
+                                ->options(function () use ($gtk): array {
+                                    $assigned = PembagianMengajar::query()->milik($gtk)->select('tahun_ajaran_id');
 
-                            return TahunAjaran::query()
-                                ->when($assigned->exists(), fn (Builder $q) => $q->whereIn('id', $assigned))
-                                ->orderByDesc('is_aktif')
-                                ->orderByDesc('nama')
-                                ->pluck('nama', 'id')
-                                ->all();
-                        })
-                        ->default(fn () => TahunAjaran::query()->where('is_aktif', true)->value('id'))
-                        ->required()
-                        ->live()
-                        ->afterStateUpdated(fn (Set $set) => $set('kelas_id', null)),
+                                    return TahunAjaran::query()
+                                        ->when($assigned->exists(), fn (Builder $q) => $q->whereIn('id', $assigned))
+                                        ->orderByDesc('is_aktif')
+                                        ->orderByDesc('nama')
+                                        ->pluck('nama', 'id')
+                                        ->all();
+                                })
+                                ->default(fn () => TahunAjaran::query()->where('is_aktif', true)->value('id'))
+                                ->required()
+                                ->live()
+                                ->afterStateUpdated(fn (Set $set) => $set('kelas_id', null)),
 
-                    Select::make('kelas_id')
-                        ->label('Kelas')
-                        ->options(function (Get $get) use ($gtk): array {
-                            $tahunAjaranId = $get('tahun_ajaran_id');
-                            if (! $tahunAjaranId) {
-                                return [];
-                            }
+                            Select::make('kelas_id')
+                                ->label('Kelas')
+                                ->options(function (Get $get) use ($gtk): array {
+                                    $tahunAjaranId = $get('tahun_ajaran_id');
+                                    if (! $tahunAjaranId) {
+                                        return [];
+                                    }
 
-                            $assigned = PembagianMengajar::query()->milik($gtk, (int) $tahunAjaranId)->select('kelas_id');
+                                    $assigned = PembagianMengajar::query()->milik($gtk, (int) $tahunAjaranId)->select('kelas_id');
 
-                            return Kelas::query()
-                                ->aktif()
-                                ->when($assigned->exists(), fn (Builder $q) => $q->whereIn('id', $assigned))
-                                ->orderBy('tingkat')
-                                ->orderBy('nama')
-                                ->pluck('nama', 'id')
-                                ->all();
-                        })
-                        ->required()
-                        ->live()
-                        ->afterStateUpdated(function (Set $set, ?string $state): void {
-                            $set('mata_pelajaran_id', null);
-                            if ($state) {
-                                $tingkat = (int) Kelas::query()->whereKey((int) $state)->value('tingkat');
-                                $set('fase', PenyusunProtaKurikulumMerdeka::tebakFase($tingkat));
-                            }
-                        }),
+                                    return Kelas::query()
+                                        ->aktif()
+                                        ->when($assigned->exists(), fn (Builder $q) => $q->whereIn('id', $assigned))
+                                        ->orderBy('tingkat')
+                                        ->orderBy('nama')
+                                        ->pluck('nama', 'id')
+                                        ->all();
+                                })
+                                ->required()
+                                ->live()
+                                ->afterStateUpdated(function (Set $set, ?string $state): void {
+                                    $set('mata_pelajaran_id', null);
+                                    if ($state) {
+                                        $tingkat = (int) Kelas::query()->whereKey((int) $state)->value('tingkat');
+                                        $set('fase', PenyusunProtaKurikulumMerdeka::tebakFase($tingkat));
+                                    }
+                                }),
 
-                    Select::make('mata_pelajaran_id')
-                        ->label('Mata Pelajaran')
-                        ->options(function (Get $get) use ($gtk): array {
-                            $tahunAjaranId = $get('tahun_ajaran_id');
-                            $kelasId = $get('kelas_id');
-                            if (! $tahunAjaranId || ! $kelasId) {
-                                return [];
-                            }
+                            Select::make('mata_pelajaran_id')
+                                ->label('Mata Pelajaran')
+                                ->options(function (Get $get) use ($gtk): array {
+                                    $tahunAjaranId = $get('tahun_ajaran_id');
+                                    $kelasId = $get('kelas_id');
+                                    if (! $tahunAjaranId || ! $kelasId) {
+                                        return [];
+                                    }
 
-                            $assigned = PembagianMengajar::query()->milik($gtk, (int) $tahunAjaranId)->where('kelas_id', (int) $kelasId)->select('mata_pelajaran_id');
+                                    $assigned = PembagianMengajar::query()->milik($gtk, (int) $tahunAjaranId)->where('kelas_id', (int) $kelasId)->select('mata_pelajaran_id');
 
-                            return MataPelajaran::query()
-                                ->where('is_aktif', true)
-                                ->when($assigned->exists(), fn (Builder $q) => $q->whereIn('id', $assigned))
-                                ->orderBy('kelompok')
-                                ->orderBy('urutan')
-                                ->orderBy('nama')
-                                ->pluck('nama', 'id')
-                                ->all();
-                        })
-                        ->required()
-                        ->searchable(),
+                                    return MataPelajaran::query()
+                                        ->where('is_aktif', true)
+                                        ->when($assigned->exists(), fn (Builder $q) => $q->whereIn('id', $assigned))
+                                        ->orderBy('kelompok')
+                                        ->orderBy('urutan')
+                                        ->orderBy('nama')
+                                        ->pluck('nama', 'id')
+                                        ->all();
+                                })
+                                ->required()
+                                ->searchable(),
 
-                    Select::make('fase')
-                        ->label('Fase Capaian Pembelajaran')
-                        ->options([
-                            'A' => 'Fase A (Kelas 1–2 SD/MI)',
-                            'B' => 'Fase B (Kelas 3–4 SD/MI)',
-                            'C' => 'Fase C (Kelas 5–6 SD/MI)',
-                            'D' => 'Fase D (Kelas 7–9 SMP/MTs)',
-                            'E' => 'Fase E (Kelas 10 SMA/MA/SMK)',
-                            'F' => 'Fase F (Kelas 11–12 SMA/MA/SMK)',
-                        ])
-                        ->default('D')
-                        ->required(),
+                            Select::make('fase')
+                                ->label('Fase')
+                                ->options([
+                                    'A' => 'Fase A',
+                                    'B' => 'Fase B',
+                                    'C' => 'Fase C',
+                                    'D' => 'Fase D',
+                                    'E' => 'Fase E',
+                                    'F' => 'Fase F',
+                                ])
+                                ->default('D')
+                                ->required(),
+                        ]),
 
                     Textarea::make('catatan')
                         ->label('Catatan / Keterangan Perencanaan')
                         ->rows(2)
-                        ->maxLength(2000)
-                        ->placeholder('Catatan khusus kalender pendidikan, asesmen, atau proyek P5...')
-                        ->columnSpanFull(),
+                        ->maxLength(2000),
                 ]),
 
-            Section::make('Rincian Program Tahunan (PROTA)')
+            Section::make('Rincian Program Tahunan')
                 ->icon(Heroicon::OutlinedTableCells)
-                ->description('Rincian Capaian Pembelajaran (CP), materi pokok, tujuan pembelajaran, dan alokasi waktu semester 1 & 2.')
+                ->compact()
                 ->schema([
                     Repeater::make('items')
                         ->relationship('items')
                         ->orderColumn('urutan')
                         ->defaultItems(0)
                         ->reorderableWithDragAndDrop()
-                        ->collapsible()
                         ->cloneable()
-                        ->addActionLabel('Tambah Baris Materi Pembelajaran')
-                        ->itemLabel(function (array $state): string {
-                            $sem = ($state['semester'] ?? 1) == 2 ? 'Semester 2' : 'Semester 1';
-                            $elemen = $state['elemen_cp'] ?? 'Materi Baru';
-                            $jp = ($state['alokasi_waktu_jp'] ?? 0).' JP';
-                            $materi = ! empty($state['materi_pokok']) ? ' · '.mb_strimwidth($state['materi_pokok'], 0, 40, '...') : '';
-
-                            return "{$sem} · [{$elemen}]{$materi} ({$jp})";
-                        })
+                        ->compact()
+                        ->addActionLabel('Tambah Baris')
+                        ->table([
+                            TableColumn::make('Semester')->width('110px')->markAsRequired(),
+                            TableColumn::make('Elemen CP')->markAsRequired(),
+                            TableColumn::make('Materi Pokok')->markAsRequired(),
+                            TableColumn::make('Tujuan Pembelajaran')->markAsRequired(),
+                            TableColumn::make('Alokasi JP')->width('90px')->markAsRequired(),
+                            TableColumn::make('Minggu Efektif')->width('90px')->markAsRequired(),
+                            TableColumn::make('Keterangan'),
+                        ])
                         ->schema([
                             Select::make('semester')
-                                ->label('Semester')
+                                ->hiddenLabel()
                                 ->options([
-                                    Semester::Ganjil->value => 'Semester 1 (Ganjil)',
-                                    Semester::Genap->value => 'Semester 2 (Genap)',
+                                    Semester::Ganjil->value => 'Semester 1',
+                                    Semester::Genap->value => 'Semester 2',
                                 ])
                                 ->default(Semester::Ganjil->value)
                                 ->required(),
 
                             TextInput::make('elemen_cp')
-                                ->label('Elemen Capaian Pembelajaran (CP)')
+                                ->hiddenLabel()
                                 ->required()
-                                ->maxLength(500)
-                                ->placeholder('Contoh: Bilangan / Menyimak / Pemahaman IPA'),
+                                ->maxLength(500),
 
                             Textarea::make('materi_pokok')
-                                ->label('Materi Pokok / Ruang Lingkup Materi')
+                                ->hiddenLabel()
                                 ->required()
                                 ->rows(2)
-                                ->maxLength(2000)
-                                ->placeholder('Topik pembelajaran yang diajarkan')
-                                ->columnSpanFull(),
+                                ->maxLength(2000),
 
                             Textarea::make('tujuan_pembelajaran')
-                                ->label('Tujuan Pembelajaran (TP)')
+                                ->hiddenLabel()
                                 ->required()
                                 ->rows(2)
-                                ->maxLength(2000)
-                                ->placeholder('Peserta didik mampu...')
-                                ->columnSpanFull(),
+                                ->maxLength(2000),
 
                             TextInput::make('alokasi_waktu_jp')
-                                ->label('Alokasi Waktu')
+                                ->hiddenLabel()
                                 ->numeric()
                                 ->required()
                                 ->default(4)
@@ -247,21 +249,17 @@ class ProgramTahunanResource extends Resource
                                 ->suffix('JP'),
 
                             TextInput::make('minggu_efektif')
-                                ->label('Minggu Efektif')
+                                ->hiddenLabel()
                                 ->numeric()
                                 ->required()
                                 ->default(2)
                                 ->minValue(1)
-                                ->maxValue(52)
-                                ->suffix('minggu'),
+                                ->maxValue(52),
 
                             TextInput::make('keterangan')
-                                ->label('Keterangan')
-                                ->maxLength(1000)
-                                ->placeholder('Contoh: Sumatif Lingkup Materi 1 / Asesmen Akhir / P5')
-                                ->columnSpanFull(),
-                        ])
-                        ->columns(2),
+                                ->hiddenLabel()
+                                ->maxLength(1000),
+                        ]),
                 ]),
         ]);
     }

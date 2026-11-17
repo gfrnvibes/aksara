@@ -61,13 +61,21 @@ html.fi {
         @apply shadow-none ring-gray-950/10 dark:ring-white/10;
     }
 
-    /* Judul halaman lebih kecil. */
+    /* Judul halaman lebih kecil dan sejajar dengan tombol aksi */
+    .fi-header {
+        @apply sm:items-center;
+    }
+
     .fi-header-heading {
         @apply text-xl sm:text-2xl;
     }
 
     .fi-header-subheading {
         @apply text-base;
+    }
+
+    .fi-header-actions-ctn {
+        @apply sm:self-center;
     }
 
     /* Navigasi samping: garis kanan sepanjang layar dan garis di bawah nama aplikasi. */

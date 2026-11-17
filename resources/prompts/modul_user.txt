@@ -1,0 +1,62 @@
+Buatkan Modul Ajar Kurikulum Merdeka yang lengkap dan siap cetak untuk satu Tujuan Pembelajaran berikut agar sinkron dengan ATP, PROTA, dan PROSEM:
+
+IDENTITAS MADRASAH:
+{{json_identitas_sekolah}}
+
+DATA TP TERPILIH (DARI MASTER_TP):
+{{json_satu_item_master_tp}}
+
+PARAMETER WAKTU:
+- JP per Minggu: {{jp_per_minggu}} JP
+- Durasi per 1 JP: 40 menit
+
+STRUKTUR JSON OUTPUT MODUL AJAR:
+{
+  "identitas": {
+    "satuan_pendidikan": "...",
+    "mata_pelajaran": "...",
+    "kelas_fase": "...",
+    "semester_tahun": "...",
+    "kode_tp": "...",
+    "materi_pokok": "...",
+    "alokasi_waktu_teks": "X Pertemuan (Y JP × 40 menit)",
+    "penyusun": "..."
+  },
+  "capaian_pembelajaran": "...",
+  "tujuan_pembelajaran": ["..."],
+  "kompetensi_awal": ["..."],
+  "profil_p5ra": [
+    { "dimensi": "...", "deskripsi": "..." }
+  ],
+  "sarana_prasarana": { "media": "...", "alat": "...", "sumber_belajar": "..." },
+  "model_metode": { "model": "...", "pendekatan": "...", "metode": "..." },
+  "pemahaman_bermakna": "...",
+  "pertanyaan_pemantik": ["..."],
+  "kegiatan_pembelajaran": [
+    {
+      "pertemuan_ke": 1,
+      "jp_pertemuan": 5,
+      "pendahuluan": ["..."],
+      "inti": ["..."],
+      "penutup": ["..."]
+    }
+  ],
+  "asesmen": {
+    "diagnostik": ["..."],
+    "formatif_rubrik": [
+      { "aspek": "...", "sangat_baik": "...", "baik": "...", "cukup": "...", "perlu_bimbingan": "..." }
+    ],
+    "sumatif": ["..."]
+  },
+  "pengayaan_remedial": { "pengayaan": "...", "remedial": "..." },
+  "refleksi": { "guru": ["..."], "peserta_didik": ["..."] },
+  "lampiran": {
+    "bahan_bacaan": "...",
+    "lkpd": {
+      "judul": "...",
+      "petunjuk": "...",
+      "teks_stimulus": "...",
+      "daftar_tugas": ["..."]
+    }
+  }
+}

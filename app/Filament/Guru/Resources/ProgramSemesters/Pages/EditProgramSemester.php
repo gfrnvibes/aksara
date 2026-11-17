@@ -21,36 +21,39 @@ class EditProgramSemester extends EditRecord
 {
     protected static string $resource = ProgramSemesterResource::class;
 
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
     public function getSubheading(): ?string
     {
-        /** @var ProgramSemester $prosem */
-        $prosem = $this->record;
-
-        $totalJp = $prosem->totalJp();
-        $semLabel = $prosem->labelSemester();
-
-        return config('sekolah.nama', 'Madrasah')
-            ." · {$prosem->mataPelajaran->nama} Kelas {$prosem->kelas->nama} ({$semLabel})"
-            ." · Total: {$totalJp} JP ({$prosem->total_minggu_efektif} mgg efektif · {$prosem->jp_per_minggu} JP/mgg)";
+        return null;
     }
 
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('saveHeader')
+                ->label('Simpan')
+                ->color('primary')
+                ->action('save')
+                ->keyBindings(['mod+s']),
+
             Action::make('cetak')
-                ->label('Cetak / Pratinjau')
+                ->label('Cetak')
                 ->icon(Heroicon::OutlinedPrinter)
                 ->color('gray')
                 ->url(fn (): string => route('prosem.cetak', $this->record))
                 ->openUrlInNewTab(),
 
             Action::make('tarikDariProta')
-                ->label('Tarik dari PROTA')
+                ->label('Tarik PROTA')
                 ->icon(Heroicon::OutlinedArrowDownTray)
                 ->color('info')
                 ->modalHeading('Tarik Data dari Program Tahunan (PROTA)')
                 ->modalDescription('Pilih PROTA untuk menjabarkan ulang Tujuan Pembelajaran dan Materi Pokok ke jadwal Program Semester ini.')
-                ->modalSubmitActionLabel('Terapkan dari PROTA')
+                ->modalSubmitActionLabel('Terapkan')
                 ->schema(function (): array {
                     /** @var ProgramSemester $prosem */
                     $prosem = $this->record;
@@ -100,7 +103,7 @@ class EditProgramSemester extends EditRecord
                 }),
 
             Action::make('muatDrafStandar')
-                ->label('Muat Draf Kurikulum Merdeka')
+                ->label('Draf Standar')
                 ->icon(Heroicon::OutlinedDocumentCheck)
                 ->color('gray')
                 ->requiresConfirmation()
@@ -133,7 +136,7 @@ class EditProgramSemester extends EditRecord
                 }),
 
             Action::make('susunDenganAi')
-                ->label('Re-generate dengan AI (Gemini)')
+                ->label('AI Gemini')
                 ->icon(Heroicon::OutlinedSparkles)
                 ->color('success')
                 ->modalHeading('Generate Ulang PROSEM dengan AI Gemini')
@@ -157,8 +160,7 @@ class EditProgramSemester extends EditRecord
                         Textarea::make('instruksi_khusus')
                             ->label('Instruksi / Catatan Khusus untuk AI (Opsional)')
                             ->rows(3)
-                            ->maxLength(1000)
-                            ->placeholder('Contoh: Beri alokasi untuk STS di bulan ketiga, sertakan proyek P5, dan cadangan waktu remedial...'),
+                            ->maxLength(1000),
                     ];
                 })
                 ->action(function (array $data): void {

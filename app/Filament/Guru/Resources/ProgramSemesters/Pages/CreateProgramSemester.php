@@ -14,18 +14,29 @@ class CreateProgramSemester extends CreateRecord
 {
     protected static string $resource = ProgramSemesterResource::class;
 
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
     protected function getHeaderActions(): array
     {
         $gtk = ProgramSemesterResource::gtk();
 
         return [
+            Action::make('createHeader')
+                ->label('Buat')
+                ->color('primary')
+                ->action('create')
+                ->keyBindings(['mod+s']),
+
             Action::make('generateDenganAi')
-                ->label('Generate Langsung dengan AI (Gemini)')
+                ->label('Generate AI')
                 ->icon(Heroicon::OutlinedSparkles)
                 ->color('success')
                 ->modalHeading('Generate PROSEM Lengkap dengan AI Gemini')
-                ->modalDescription('AI Gemini akan bertindak sebagai ahli kurikulum untuk menyusun Program Semester secara terperinci (identitas, Tujuan Pembelajaran, materi pokok, alokasi JP, dan jadwal bulan serta minggu).')
-                ->modalSubmitActionLabel('Mulai Generate PROSEM')
+                ->modalDescription('AI Gemini akan bertindak sebagai ahli kurikulum untuk menyusun Program Semester secara terperinci.')
+                ->modalSubmitActionLabel('Mulai Generate')
                 ->modalWidth('2xl')
                 ->schema(fn (): array => ListProgramSemesters::skemaModalGenerateAi($gtk))
                 ->action(function (array $data) use ($gtk): void {
@@ -49,7 +60,7 @@ class CreateProgramSemester extends CreateRecord
                     Notification::make()
                         ->success()
                         ->title('PROSEM Berhasil Disusun oleh AI Gemini')
-                        ->body("Program Semester {$prosem->mataPelajaran->nama} {$prosem->kelas->nama} telah dibuat lengkap dengan {$prosem->items()->count()} materi pembelajaran.")
+                        ->body("Program Semester {$prosem->mataPelajaran->nama} {$prosem->kelas->nama} telah dibuat.")
                         ->send();
 
                     $this->redirect(ProgramSemesterResource::getUrl('edit', ['record' => $prosem]));

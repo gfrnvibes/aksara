@@ -20,33 +20,34 @@ class EditProgramTahunan extends EditRecord
 {
     protected static string $resource = ProgramTahunanResource::class;
 
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
     public function getSubheading(): ?string
     {
-        /** @var ProgramTahunan $prota */
-        $prota = $this->record;
-
-        $totalJp = $prota->totalJp();
-        $totalMinggu = $prota->totalMingguEfektif();
-        $jpGanjil = $prota->totalJpSemester(1);
-        $jpGenap = $prota->totalJpSemester(2);
-
-        return config('sekolah.nama', 'Madrasah')
-            ." · {$prota->mataPelajaran->nama} Kelas {$prota->kelas->nama} (Fase {$prota->fase})"
-            ." · Total: {$totalJp} JP ({$totalMinggu} mgg) [Sem 1: {$jpGanjil} JP · Sem 2: {$jpGenap} JP]";
+        return null;
     }
 
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('saveHeader')
+                ->label('Simpan')
+                ->color('primary')
+                ->action('save')
+                ->keyBindings(['mod+s']),
+
             Action::make('cetak')
-                ->label('Cetak / Pratinjau')
+                ->label('Cetak')
                 ->icon(Heroicon::OutlinedPrinter)
                 ->color('gray')
                 ->url(fn (): string => route('prota.cetak', $this->record))
                 ->openUrlInNewTab(),
 
             Action::make('muatDrafStandar')
-                ->label('Muat Draf Kurikulum Merdeka')
+                ->label('Draf Standar')
                 ->icon(Heroicon::OutlinedDocumentCheck)
                 ->color('info')
                 ->requiresConfirmation()
@@ -79,7 +80,7 @@ class EditProgramTahunan extends EditRecord
                 }),
 
             Action::make('susunDenganAi')
-                ->label('Re-generate dengan AI (Gemini)')
+                ->label('AI Gemini')
                 ->icon(Heroicon::OutlinedSparkles)
                 ->color('success')
                 ->modalHeading('Generate Ulang PROTA dengan AI Gemini')
@@ -109,8 +110,7 @@ class EditProgramTahunan extends EditRecord
                         Textarea::make('instruksi_khusus')
                             ->label('Instruksi / Catatan Khusus untuk AI (Opsional)')
                             ->rows(3)
-                            ->maxLength(1000)
-                            ->placeholder('Contoh: Beri penekanan pada literasi dan numerasi kontekstual, tambahkan integrasi P5...'),
+                            ->maxLength(1000),
                     ];
                 })
                 ->action(function (array $data): void {

@@ -14,18 +14,29 @@ class CreateProgramTahunan extends CreateRecord
 {
     protected static string $resource = ProgramTahunanResource::class;
 
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
     protected function getHeaderActions(): array
     {
         $gtk = ProgramTahunanResource::gtk();
 
         return [
+            Action::make('createHeader')
+                ->label('Buat')
+                ->color('primary')
+                ->action('create')
+                ->keyBindings(['mod+s']),
+
             Action::make('generateDenganAi')
-                ->label('Generate Langsung dengan AI (Gemini)')
+                ->label('Generate AI')
                 ->icon(Heroicon::OutlinedSparkles)
                 ->color('success')
                 ->modalHeading('Generate PROTA Lengkap dengan AI Gemini')
-                ->modalDescription('AI Gemini akan bertindak sebagai ahli kurikulum untuk menyusun Program Tahunan lengkap dari awal sampai akhir (identitas, Capaian Pembelajaran, materi pokok, Tujuan Pembelajaran, alokasi waktu JP, dan minggu efektif).')
-                ->modalSubmitActionLabel('Mulai Generate PROTA')
+                ->modalDescription('AI Gemini akan bertindak sebagai ahli kurikulum untuk menyusun Program Tahunan lengkap dari awal sampai akhir.')
+                ->modalSubmitActionLabel('Mulai Generate')
                 ->modalWidth('2xl')
                 ->schema(fn (): array => ListProgramTahunans::skemaModalGenerateAi($gtk))
                 ->action(function (array $data) use ($gtk): void {
@@ -47,7 +58,7 @@ class CreateProgramTahunan extends CreateRecord
                     Notification::make()
                         ->success()
                         ->title('PROTA Berhasil Disusun oleh AI Gemini')
-                        ->body("Program Tahunan {$prota->mataPelajaran->nama} Kelas {$prota->kelas->nama} telah dibuat lengkap dengan {$prota->items()->count()} materi pembelajaran.")
+                        ->body("Program Tahunan {$prota->mataPelajaran->nama} Kelas {$prota->kelas->nama} telah dibuat.")
                         ->send();
 
                     $this->redirect(ProgramTahunanResource::getUrl('edit', ['record' => $prota]));

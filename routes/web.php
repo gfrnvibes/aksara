@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\CetakAtpController;
 use App\Http\Controllers\CetakBukuIndukController;
 use App\Http\Controllers\CetakHarianController;
 use App\Http\Controllers\CetakJadwalController;
+use App\Http\Controllers\CetakPerangkatAjarController;
 use App\Http\Controllers\CetakProsemController;
 use App\Http\Controllers\CetakProtaController;
 use App\Http\Controllers\CetakRaporController;
@@ -38,6 +40,9 @@ Route::middleware('auth')->group(function () {
     Route::get('jadwal/{jadwal}/cetak', CetakJadwalController::class)->name('jadwal.cetak');
     Route::get('program-tahunan/{prota}/cetak', CetakProtaController::class)->name('prota.cetak');
     Route::get('program-semester/{prosem}/cetak', CetakProsemController::class)->name('prosem.cetak');
+    Route::get('alur-tujuan-pembelajaran/{atp}/cetak', CetakAtpController::class)->name('atp.cetak');
+    Route::get('perangkat-ajar/{perangkatAjar}/cetak/{tab}/{kodeTp?}', [CetakPerangkatAjarController::class, 'cetakSatuan'])->name('perangkat-ajar.cetak-satuan');
+    Route::get('perangkat-ajar/{perangkatAjar}/cetak-bundel', [CetakPerangkatAjarController::class, 'cetakBundel'])->name('perangkat-ajar.cetak-bundel');
     Route::get('cetak-ujian/{ujian}/{dokumen}/{paket?}', CetakUjianController::class)
         ->whereIn('dokumen', ['naskah', 'kunci', 'kisi-kisi'])
         ->name('ujian.cetak');

@@ -1,0 +1,56 @@
+Susun dan sinkronkan Analisis Minggu Efektif (AME), ATP, PROTA, dan PROSEM berdasarkan data berikut:
+
+PARAMETER INPUT:
+{
+  "satuan_pendidikan": "{{nama_madrasah}}",
+  "kepala_madrasah": "{{nama_kepala}}",
+  "nip_kepala": "{{nip_kepala}}",
+  "guru_pengampu": "{{nama_guru}}",
+  "nip_guru": "{{nip_guru}}",
+  "kota_titimangsa": "{{kota}}",
+  "tanggal_titimangsa": "{{tanggal}}",
+  "mata_pelajaran": "{{mapel}}",
+  "kelas": "{{kelas}}",
+  "fase": "{{fase}}",
+  "tahun_pelajaran": "{{tahun_pelajaran}}",
+  "jp_per_minggu": {{jp_per_minggu}},
+  "kalender_pendidikan": {{json_kalender_atau_kosong_untuk_otomatis}}
+}
+
+STRUKTUR JSON OUTPUT WAJIB:
+{
+  "analisis_minggu_efektif": {
+    "semester_1": [
+      { "bulan": "Juli", "jml_minggu": 5, "mgg_tidak_efektif": 3, "mgg_efektif": 2, "indeks_minggu_efektif": [3, 4], "keterangan": "M1-M2 Libur Akhir TP, M3 MATSAMA" }
+    ],
+    "semester_2": [],
+    "ringkasan": {
+      "total_mgg_efektif_sem_1": 18,
+      "total_mgg_efektif_sem_2": 16,
+      "total_jp_sem_1": 90,
+      "total_jp_sem_2": 80,
+      "total_jp_setahun": 170
+    }
+  },
+  "master_tp": [
+    {
+      "semester": 1,
+      "kode_tp": "7.1",
+      "elemen_cp": "Menyimak dan Membaca",
+      "capaian_pembelajaran": "Bunyi CP sesuai fase...",
+      "materi_pokok": "Teks Deskripsi: Mengenal Objek di Sekitar Kita",
+      "tujuan_pembelajaran": "Peserta didik mampu...",
+      "alokasi_jp": 20,
+      "jumlah_minggu": 4,
+      "jenis_asesmen": "Formatif & Sumatif LM 1",
+      "jadwal_prosem": {
+        "juli": [0, 0, 0, 5, 5],
+        "agustus": [5, 5, 0, 0],
+        "september": [0, 0, 0, 0, 0],
+        "oktober": [0, 0, 0, 0],
+        "november": [0, 0, 0, 0],
+        "desember": [0, 0, 0, 0]
+      }
+    }
+  ]
+}
