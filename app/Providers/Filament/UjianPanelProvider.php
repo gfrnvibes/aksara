@@ -15,6 +15,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -68,6 +69,10 @@ class UjianPanelProvider extends PanelProvider
             ])
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->discoverResources(in: app_path('Filament/Ujian/Resources'), for: 'App\Filament\Ujian\Resources')
+            ->pages([
+                Dashboard::class,
+            ])
+            ->discoverWidgets(in: app_path('Filament/Ujian/Widgets'), for: 'App\Filament\Ujian\Widgets')
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
