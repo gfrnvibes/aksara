@@ -42,4 +42,32 @@ enum LevelKognitif: string implements HasLabel
             self::C4, self::C5, self::C6 => 'L3',
         };
     }
+
+    /**
+     * Suggests a cognitive level from Indonesian Bloom operational verbs in a learning objective (TP).
+     */
+    public static function dariTeks(?string $teks): ?self
+    {
+        $teks = mb_strtolower(trim((string) $teks));
+        if ($teks === '') {
+            return null;
+        }
+
+        $pola = [
+            self::C6->value => 'mencipta(?:kan)?|merancang|mendesain|menyusun|mengarang|mengembangkan|merumuskan|membangun|memproduksi|mengkreasi|mengkonstruksi|memodifikasi',
+            self::C5->value => 'mengevaluasi|menilai|mengkritik|membuktikan|memvalidasi|memutuskan|menyimpulkan|merekomendasikan|mempertahankan',
+            self::C4->value => 'menganalisis|menelaah|memecahkan|membandingkan|membedakan|mengaitkan|menghubungkan|mendiagnosis|mendeteksi|menguraikan|menguji',
+            self::C3->value => 'menerapkan|menggunakan|menghitung|mempraktikkan|melaksanakan|mendemonstrasikan|menyelesaikan|mengoperasikan|menentukan|mengimplementasikan|mempresentasikan|membuat|menulis',
+            self::C2->value => 'memahami|menjelaskan|merangkum|meringkas|mencontohkan|mengartikan|menerjemahkan|mengklasifikasikan|mengelompokkan|menafsirkan|memperkirakan',
+            self::C1->value => 'mengingat|menyebutkan|mengidentifikasi|menghafal|mengenali|mendaftar|menunjukkan|menyatakan|menamai|mengulang',
+        ];
+
+        foreach ($pola as $kode => $kataKerja) {
+            if (preg_match('/\b(?:'.$kataKerja.')\b/u', $teks) === 1) {
+                return self::from($kode);
+            }
+        }
+
+        return null;
+    }
 }

@@ -17,6 +17,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -45,6 +46,11 @@ class BuatSoalAi implements ShouldQueue
     public static function kunciGagal(string $batchId): string
     {
         return "soal-ai:{$batchId}:gagal";
+    }
+
+    public static function kunciError(string $batchId): string
+    {
+        return "soal-ai:{$batchId}:error";
     }
 
     public function handle(PenyusunSoalAi $penyusun): void
@@ -76,7 +82,7 @@ class BuatSoalAi implements ShouldQueue
             }
 
             // Before fail(): failing the last job runs the batch's finally callback, which reads this list.
-            $this->catatGagal();
+            $this->catatGagal($exception);
             $this->fail($exception);
 
             return;
@@ -106,12 +112,18 @@ class BuatSoalAi implements ShouldQueue
         report($exception);
     }
 
-    protected function catatGagal(): void
+    protected function catatGagal(?Throwable $exception = null): void
     {
         if ($this->batch() !== null) {
             // shortcut: read-modify-write without a lock, fine with one queue worker; add Cache::lock if workers multiply.
             $kunci = static::kunciGagal($this->batch()->id);
             Cache::put($kunci, [...Cache::get($kunci, []), $this->baris['materi']], now()->addDay());
+
+            if ($exception !== null) {
+                $kunciError = static::kunciError($this->batch()->id);
+                $pesan = $this->baris['materi'].': '.Str::limit($exception->getMessage(), 160);
+                Cache::put($kunciError, [...Cache::get($kunciError, []), $pesan], now()->addDay());
+            }
         }
     }
 
