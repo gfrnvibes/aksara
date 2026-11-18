@@ -28,7 +28,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\EmbeddedTable;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
@@ -132,6 +131,9 @@ class RaporKelasSaya extends Page implements HasTable
                     ->query(fn (Builder $query): Builder => $query),
             ])
             ->filtersLayout(FiltersLayout::AboveContent)
+            ->filtersFormColumns(['default' => 1, 'sm' => 2, 'lg' => 4])
+            ->deferFilters(false)
+            ->hiddenFilterIndicators()
             ->emptyStateHeading('Belum ada siswa di kelas ini')
             ->columns([
                 TextColumn::make('nis')
@@ -198,23 +200,21 @@ class RaporKelasSaya extends Page implements HasTable
             Hidden::make('tahun_ajaran_id'),
             Hidden::make('kelas_id'),
             Hidden::make('semester'),
-            Grid::make(['default' => 1, 'lg' => 2])->schema([
-                Section::make('Ketidakhadiran')
-                    ->description('S/I/A otomatis mengikuti presensi harian jika tersedia. Kunci presensi untuk membekukan rekap rapor.')
-                    ->columns(3)
-                    ->schema([
-                        TextInput::make('sakit')->readOnly(fn (Get $get): bool => $this->presensiOtomatis($get))->numeric()->integer()->minValue(0)->suffix('hari')->required(),
-                        TextInput::make('izin')->readOnly(fn (Get $get): bool => $this->presensiOtomatis($get))->numeric()->integer()->minValue(0)->suffix('hari')->required(),
-                        TextInput::make('tanpa_keterangan')->readOnly(fn (Get $get): bool => $this->presensiOtomatis($get))->label('Alpa')->numeric()->integer()->minValue(0)->suffix('hari')->required(),
-                    ]),
-                Section::make('Akhlak & Kepribadian')
-                    ->visible($skema->pakaiAkhlakKepribadian())
-                    ->columns(2)
-                    ->schema([
-                        Select::make('nilai_akhlak')->label('Akhlak')->options(RaporForm::PREDIKAT_HURUF),
-                        Select::make('nilai_kepribadian')->label('Kepribadian')->options(RaporForm::PREDIKAT_HURUF),
-                    ]),
-            ]),
+            Section::make('Ketidakhadiran')
+                ->description('S/I/A otomatis mengikuti presensi harian jika tersedia. Kunci presensi untuk membekukan rekap rapor.')
+                ->columns(3)
+                ->schema([
+                    TextInput::make('sakit')->readOnly(fn (Get $get): bool => $this->presensiOtomatis($get))->numeric()->integer()->minValue(0)->suffix('hari')->required(),
+                    TextInput::make('izin')->readOnly(fn (Get $get): bool => $this->presensiOtomatis($get))->numeric()->integer()->minValue(0)->suffix('hari')->required(),
+                    TextInput::make('tanpa_keterangan')->readOnly(fn (Get $get): bool => $this->presensiOtomatis($get))->label('Alpa')->numeric()->integer()->minValue(0)->suffix('hari')->required(),
+                ]),
+            Section::make('Akhlak & Kepribadian')
+                ->visible($skema->pakaiAkhlakKepribadian())
+                ->columns(2)
+                ->schema([
+                    Select::make('nilai_akhlak')->label('Akhlak')->options(RaporForm::PREDIKAT_HURUF),
+                    Select::make('nilai_kepribadian')->label('Kepribadian')->options(RaporForm::PREDIKAT_HURUF),
+                ]),
             Section::make('Ekstrakurikuler')
                 ->schema([
                     Repeater::make('nilaiEkstrakurikuler')
