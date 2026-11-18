@@ -30,7 +30,7 @@ class RingkasanDetailTagihan extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        PencatatanKeuangan::izinkan();
+        PencatatanKeuangan::izinkanLihat();
         $rupiah = fn (string $key): string => 'Rp '.number_format($this->ringkasan[$key] ?? 0, 0, ',', '.');
 
         return [

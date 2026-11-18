@@ -58,7 +58,7 @@ class BukuKas extends HalamanKeuangan implements HasTable
 
     protected function getHeaderActions(): array
     {
-        return [Action::make('catat')->label('Catat Transaksi')->icon(Heroicon::OutlinedPlus)->schema([
+        return [Action::make('catat')->label('Catat Transaksi')->icon(Heroicon::OutlinedPlus)->visible(fn (): bool => static::bolehKelola())->schema([
             Select::make('jenis')->options(['pemasukan' => 'Pemasukan', 'pengeluaran' => 'Pengeluaran'])->required(),
             TextInput::make('kategori')->placeholder('BOS / Donasi / Operasional / Gaji')->maxLength(255)->required(),
             TextInput::make('uraian')->maxLength(255)->required(),
@@ -159,7 +159,7 @@ class BukuKas extends HalamanKeuangan implements HasTable
             ])->recordActions([ActionGroup::make([
                 $this->detailAction(),
                 Action::make('kuitansi')->label('Cetak Bukti')->icon(Heroicon::OutlinedPrinter)->url(fn (TransaksiKeuangan $record) => route('keuangan.kuitansi', $record))->openUrlInNewTab(),
-                Action::make('batalkan')->color('danger')->visible(fn (TransaksiKeuangan $record) => $record->dibatalkan_at === null)->requiresConfirmation()
+                Action::make('batalkan')->color('danger')->visible(fn (TransaksiKeuangan $record): bool => static::bolehKelola() && $record->dibatalkan_at === null)->requiresConfirmation()
                     ->modalDescription('Pembatalan mengeluarkan transaksi dari saldo, membuka kembali sisa tagihan atau status gaji. Catatan tetap tersimpan.')
                     ->schema([Textarea::make('alasan')->required()->minLength(5)->maxLength(1000)])
                     ->action(fn (TransaksiKeuangan $record, array $data) => app(PencatatanKeuangan::class)->batalkanTransaksi($record->id, $data['alasan'])),

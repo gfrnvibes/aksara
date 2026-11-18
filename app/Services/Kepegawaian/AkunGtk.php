@@ -4,6 +4,7 @@ namespace App\Services\Kepegawaian;
 
 use App\Models\Gtk;
 use App\Models\User;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -57,8 +58,8 @@ class AkunGtk
     }
 
     /**
-     * Operators may reset only teacher accounts; an account that also holds an admin panel role is reset by a
-     * super admin, so an operator cannot take it over.
+     * Operators may reset teacher accounts (including wali_kelas); an account that holds a structural/admin role
+     * is reset only by a super admin, so an operator cannot take it over.
      */
     public static function bolehDireset(Gtk $gtk, mixed $oleh): bool
     {
@@ -66,6 +67,10 @@ class AkunGtk
             return false;
         }
 
-        return ! $gtk->user->roles()->exists() || $oleh->hasRole(config('filament-shield.super_admin.name'));
+        $punyaPeranStruktural = $gtk->user->roles()
+            ->whereNotIn('name', [RoleSeeder::WALI_KELAS, config('filament-shield.panel_user.name', 'panel_user')])
+            ->exists();
+
+        return ! $punyaPeranStruktural || $oleh->hasRole(config('filament-shield.super_admin.name'));
     }
 }

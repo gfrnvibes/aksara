@@ -52,7 +52,7 @@ class PenggajianGuru extends HalamanKeuangan implements HasTable
 
     protected function getHeaderActions(): array
     {
-        return [Action::make('buatGaji')->label('Buat Gaji Guru')->schema([
+        return [Action::make('buatGaji')->label('Buat Gaji Guru')->visible(fn (): bool => static::bolehKelola())->schema([
             Select::make('gtk_id')->label('Guru dari GTK')->options(fn () => Gtk::query()->aktif()->where('jenis_gtk', JenisGtk::Guru)->orderBy('nama')->get()->mapWithKeys(fn (Gtk $guru): array => [$guru->id => $guru->nama.' | NIP: '.($guru->nip ?: '-')]))->searchable()->required()
                 ->helperText('Hanya guru aktif. Nama dan NIP disalin otomatis, tanpa perlu akun login guru.'),
             TextInput::make('periode')->label('Periode Gaji')->type('month')->default(today()->format('Y-m'))->required()->rules(['date_format:Y-m'])->helperText('Satu catatan gaji per guru per bulan.'),
@@ -82,13 +82,13 @@ class PenggajianGuru extends HalamanKeuangan implements HasTable
                     'dibayar' => $query->whereHas('pembayaran'), 'belum' => $query->whereDoesntHave('pembayaran'), default => $query,
                 }),
             ])->recordActions([
-                Action::make('ubah')->label('Ubah Komponen')->visible(fn (GajiGuru $record): bool => ! $record->sudahDibayar())
+                Action::make('ubah')->label('Ubah Komponen')->visible(fn (GajiGuru $record): bool => static::bolehKelola() && ! $record->sudahDibayar())
                     ->fillForm(fn (GajiGuru $record): array => $record->only(['gaji_pokok', 'tunjangan', 'potongan', 'catatan']))
                     ->schema($this->fieldNominal())->action(function (GajiGuru $record, array $data): void {
                         app(LayananGaji::class)->simpan([...$data, 'gtk_id' => $record->gtk_id, 'periode' => $record->periode], $record->id);
                         Notification::make()->success()->title('Komponen gaji diperbarui')->send();
                     }),
-                Action::make('bayar')->label('Catat Pembayaran')->visible(fn (GajiGuru $record): bool => ! $record->sudahDibayar())
+                Action::make('bayar')->label('Catat Pembayaran')->visible(fn (GajiGuru $record): bool => static::bolehKelola() && ! $record->sudahDibayar())
                     ->modalHeading(fn (GajiGuru $record): string => 'Pembayaran Gaji '.$record->nama_guru)
                     ->modalDescription(fn (GajiGuru $record): string => 'Periode '.$record->periode.' - Rp '.number_format($record->bersih(), 0, ',', '.').'. Catat setelah pembayaran dilakukan. Tindakan ini tidak mengirim transfer bank.')
                     ->schema(BukuKas::fieldPembayaran())->action(function (GajiGuru $record, array $data): void {

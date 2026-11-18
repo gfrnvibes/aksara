@@ -56,19 +56,36 @@ class User extends Authenticatable implements FilamentUser, ProvidesActivityTitl
         ];
     }
 
-    /** Financial access is an additional role, independent of a teacher's GTK account. */
+    /** Financial write access is an additional role, independent of a teacher's GTK account. */
     public function bolehKelolaKeuangan(): bool
     {
         return $this->hasAnyRole(['bendahara', config('filament-shield.super_admin.name')]);
     }
 
+    /** Principal may inspect financial pages and reports in read-only mode. */
+    public function bolehLihatKeuangan(): bool
+    {
+        return $this->bolehKelolaKeuangan() || $this->hasRole('kepala_madrasah');
+    }
+
+    /** Curriculum staff and principal may print other teachers' lesson plans. */
+    public function bolehLihatPerangkatAjarLain(): bool
+    {
+        return $this->hasAnyRole([
+            config('filament-shield.super_admin.name'),
+            'kepala_madrasah',
+            'wk_kurikulum',
+        ]);
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         return match ($panel->getId()) {
-            'bendahara' => $this->bolehKelolaKeuangan(),
+            'bendahara' => $this->bolehLihatKeuangan(),
             'guru' => $this->gtk()->aktif()->exists(),
             'ujian' => $this->gtk()->aktif()->exists() || $this->can('ViewAny:Soal'),
-            default => $this->roles()->exists(),
+            default => $this->hasRole(config('filament-shield.super_admin.name'))
+                || $this->getAllPermissions()->isNotEmpty(),
         };
     }
 

@@ -13,6 +13,13 @@ abstract class HalamanKeuangan extends Page
     {
         $user = auth()->user();
 
+        return $user instanceof User && $user->bolehLihatKeuangan();
+    }
+
+    protected static function bolehKelola(): bool
+    {
+        $user = auth()->user();
+
         return $user instanceof User && $user->bolehKelolaKeuangan();
     }
 

@@ -124,7 +124,7 @@ class DetailTagihanSiswa extends HalamanKeuangan implements HasTable
                     return $status === 'menunggak' ? $query->whereDate('jatuh_tempo', '<', today()) : $query;
                 }),
             ])->recordActions([
-                Action::make('bayar')->label('Catat Pembayaran')->visible(fn (Tagihan $record) => $record->dibatalkan_at === null && $record->sisa() > 0)
+                Action::make('bayar')->label('Catat Pembayaran')->visible(fn (Tagihan $record): bool => static::bolehKelola() && $record->dibatalkan_at === null && $record->sisa() > 0)
                     ->schema(fn (Tagihan $record) => [
                         TextInput::make('nominal')->numeric()->integer()->minValue(1)->maxValue($record->sisa())->default($record->sisa())->prefix('Rp')->required(),
                         ...BukuKas::fieldPembayaran(),
@@ -132,7 +132,7 @@ class DetailTagihanSiswa extends HalamanKeuangan implements HasTable
                         app(PencatatanKeuangan::class)->catat($data, $record->id);
                         Notification::make()->success()->title('Pembayaran tercatat di buku kas')->send();
                     }),
-                Action::make('batalkan')->color('danger')->requiresConfirmation()->visible(fn (Tagihan $record) => $record->dibatalkan_at === null && $record->terbayar() === 0)
+                Action::make('batalkan')->color('danger')->requiresConfirmation()->visible(fn (Tagihan $record): bool => static::bolehKelola() && $record->dibatalkan_at === null && $record->terbayar() === 0)
                     ->schema([Textarea::make('alasan')->required()->minLength(5)->maxLength(1000)])
                     ->action(fn (Tagihan $record, array $data) => app(PencatatanKeuangan::class)->batalkanTagihan($record->id, $data['alasan'])),
             ])->emptyStateHeading('Belum ada tagihan siswa');

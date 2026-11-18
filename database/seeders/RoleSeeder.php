@@ -3,6 +3,9 @@
 namespace Database\Seeders;
 
 use App\Filament\Pages\BackupData;
+use App\Filament\Pages\InputNilaiKelas;
+use App\Filament\Pages\KenaikanKelas;
+use App\Filament\Pages\LegerNilai;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
@@ -18,18 +21,33 @@ class RoleSeeder extends Seeder
      */
     public const string WK_KURIKULUM = 'wk_kurikulum';
 
+    public const string KEPALA_MADRASAH = 'kepala_madrasah';
+
+    public const string TATA_USAHA = 'tata_usaha';
+
+    public const string WALI_KELAS = 'wali_kelas';
+
     /**
      * @var list<string>
      */
     protected const array DIKELOLA_KURIKULUM = ['Jadwal', 'JamPelajaran', 'KalenderAkademik', 'PembagianMengajar', 'PermintaanJadwal', 'MataPelajaran', 'Soal', 'Ujian'];
 
     /**
+     * @var list<string>
+     */
+    protected const array DIKELOLA_TATA_USAHA = ['SuratMasuk', 'SuratKeluar', 'KopSurat', 'PenandaTangan', 'MutasiSiswa', 'Ijazah', 'Ppdb', 'GaleriKegiatan'];
+
+    /**
      * Seed the Shield permissions plus the default roles.
      *
      * - super_admin: full access (handled by Shield).
+     * - kepala_madrasah: read-only oversight across admin, finance and exam panels.
      * - operator: manages Buku Induk and master data and may restore from the trash, but cannot empty the
      *   trash or manage users, roles, backups or the activity log.
+     * - tata_usaha: manages correspondence, archives, transfers, diplomas, PPDB and gallery, with read-only
+     *   access to student, teacher, class and report card data.
      * - wk_kurikulum: see {@see self::WK_KURIKULUM}.
+     * - bendahara: manages finance in the bendahara panel (no admin panel permissions).
      */
     public function run(): void
     {
@@ -50,6 +68,7 @@ class RoleSeeder extends Seeder
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         Role::findOrCreate('bendahara', 'web');
+        Role::findOrCreate(static::WALI_KELAS, 'web');
 
         $superAdmin = Role::findOrCreate(config('filament-shield.super_admin.name'), 'web');
         $superAdmin->syncPermissions(Permission::all());
@@ -71,7 +90,43 @@ class RoleSeeder extends Seeder
                         $query->orWhere('name', 'like', "%:{$model}");
                     }
 
-                    $query->orWhereIn('name', ['ViewAny:Gtk', 'View:Gtk', 'ViewAny:Kelas', 'View:Kelas']);
+                    $query->orWhereIn('name', [
+                        'ViewAny:Gtk', 'View:Gtk',
+                        'ViewAny:Kelas', 'View:Kelas',
+                        'ViewAny:Rapor', 'View:Rapor',
+                        InputNilaiKelas::IZIN,
+                        KenaikanKelas::IZIN,
+                        LegerNilai::IZIN,
+                    ]);
+                })
+                ->where('name', 'not like', 'ForceDelete%')
+                ->get(),
+        );
+
+        Role::findOrCreate(static::KEPALA_MADRASAH, 'web')->syncPermissions(
+            Permission::query()
+                ->where(function (Builder $query): void {
+                    $query->where('name', 'like', 'ViewAny:%')
+                        ->orWhere('name', 'like', 'View:%');
+                })
+                ->where('name', '!=', BackupData::IZIN)
+                ->get(),
+        );
+
+        Role::findOrCreate(static::TATA_USAHA, 'web')->syncPermissions(
+            Permission::query()
+                ->where(function (Builder $query): void {
+                    foreach (static::DIKELOLA_TATA_USAHA as $model) {
+                        $query->orWhere('name', 'like', "%:{$model}");
+                    }
+
+                    $query->orWhereIn('name', [
+                        'ViewAny:Siswa', 'View:Siswa',
+                        'ViewAny:Gtk', 'View:Gtk',
+                        'ViewAny:Kelas', 'View:Kelas',
+                        'ViewAny:Rapor', 'View:Rapor',
+                        'ViewAny:TahunAjaran', 'View:TahunAjaran',
+                    ]);
                 })
                 ->where('name', 'not like', 'ForceDelete%')
                 ->get(),

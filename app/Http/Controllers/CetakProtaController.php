@@ -19,8 +19,7 @@ class CetakProtaController extends Controller
 
         // Teacher can view their own PROTA, or admin/curriculum managers can view any
         $isOwner = $user->gtk !== null && $user->gtk->id === $prota->gtk_id;
-        $isAdmin = $user->hasRole(config('filament-shield.super_admin.name', 'super_admin')) || $user->roles()->exists();
-        abort_unless($isOwner || $isAdmin, 403);
+        abort_unless($isOwner || $user->bolehLihatPerangkatAjarLain(), 403);
 
         $prota->load(['tahunAjaran', 'kelas', 'mataPelajaran', 'gtk', 'items']);
 

@@ -30,7 +30,7 @@ class RingkasanBukuKas extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        PencatatanKeuangan::izinkan();
+        PencatatanKeuangan::izinkanLihat();
         $masuk = $this->ringkasan['masuk'] ?? 0;
         $keluar = $this->ringkasan['keluar'] ?? 0;
 

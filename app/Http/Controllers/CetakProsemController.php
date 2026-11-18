@@ -19,8 +19,7 @@ class CetakProsemController extends Controller
         abort_unless($user instanceof User, 403);
 
         $isOwner = $user->gtk !== null && $user->gtk->id === $prosem->gtk_id;
-        $isAdmin = $user->hasRole(config('filament-shield.super_admin.name', 'super_admin')) || $user->roles()->exists();
-        abort_unless($isOwner || $isAdmin, 403);
+        abort_unless($isOwner || $user->bolehLihatPerangkatAjarLain(), 403);
 
         $prosem->load(['tahunAjaran', 'kelas', 'mataPelajaran', 'gtk', 'items']);
 

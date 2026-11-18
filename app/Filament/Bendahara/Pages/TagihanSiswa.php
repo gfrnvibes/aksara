@@ -39,7 +39,7 @@ class TagihanSiswa extends HalamanKeuangan implements HasTable
 
     protected function getHeaderActions(): array
     {
-        return [Action::make('buatTagihan')->label('Buat Tagihan')->schema([
+        return [Action::make('buatTagihan')->label('Buat Tagihan')->visible(fn (): bool => static::bolehKelola())->schema([
             Select::make('tahun_ajaran_id')->label('Tahun Ajaran')->options(fn () => TahunAjaran::query()->orderByDesc('nama')->pluck('nama', 'id'))->default(fn () => TahunAjaran::query()->where('is_aktif', true)->value('id'))->required()->rules(['exists:tahun_ajarans,id']),
             Select::make('siswa_id')->label('Siswa (kosongkan untuk satu kelas)')->options(fn () => Siswa::query()->orderBy('nama_lengkap')->get()->mapWithKeys(fn (Siswa $s): array => [$s->id => $s->nis.' - '.$s->nama_lengkap]))->searchable(),
             Select::make('kelas_id')->label('Kelas untuk tagihan massal')->options(fn () => Kelas::query()->pluck('nama', 'id'))->helperText('Digunakan jika siswa tidak dipilih. Mengikuti riwayat kelas pada tahun ajaran terpilih.'),

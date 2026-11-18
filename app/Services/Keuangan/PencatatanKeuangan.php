@@ -21,6 +21,14 @@ class PencatatanKeuangan
         return $user;
     }
 
+    public static function izinkanLihat(): User
+    {
+        $user = auth()->user();
+        abort_unless($user instanceof User && $user->bolehLihatKeuangan(), 403);
+
+        return $user;
+    }
+
     /** @param array<string, mixed> $data */
     public function catat(array $data, ?int $tagihanId = null): TransaksiKeuangan
     {

@@ -14,14 +14,14 @@ class KeuanganController extends Controller
 {
     public function kuitansi(TransaksiKeuangan $transaksi): View
     {
-        PencatatanKeuangan::izinkan();
+        PencatatanKeuangan::izinkanLihat();
 
         return view('cetak.kuitansi', ['transaksi' => $transaksi->load(['tagihanSiswa.siswa', 'pencatat', 'pembatal'])]);
     }
 
     public function slipGaji(GajiGuru $gaji): View
     {
-        PencatatanKeuangan::izinkan();
+        PencatatanKeuangan::izinkanLihat();
         $gaji->load(['pencatat', 'transaksi.pencatat', 'transaksi.pembatal']);
 
         return view('cetak.slip-gaji', ['gaji' => $gaji, 'pembayaran' => $gaji->transaksi->firstWhere('dibatalkan_at', null)]);
@@ -29,7 +29,7 @@ class KeuanganController extends Controller
 
     public function laporan(Request $request): StreamedResponse
     {
-        PencatatanKeuangan::izinkan();
+        PencatatanKeuangan::izinkanLihat();
         $data = $request->validate(['mulai' => ['required', 'date_format:Y-m-d'], 'selesai' => ['required', 'date_format:Y-m-d', 'after_or_equal:mulai']]);
         $laporan = app(LaporanKeuangan::class)->susun($data['mulai'], $data['selesai']);
 

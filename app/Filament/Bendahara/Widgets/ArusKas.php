@@ -32,7 +32,7 @@ class ArusKas extends ChartWidget
     {
         $user = auth()->user();
 
-        return $user instanceof User && $user->bolehKelolaKeuangan();
+        return $user instanceof User && $user->bolehLihatKeuangan();
     }
 
     protected function getType(): string
@@ -42,7 +42,7 @@ class ArusKas extends ChartWidget
 
     protected function getData(): array
     {
-        PencatatanKeuangan::izinkan();
+        PencatatanKeuangan::izinkanLihat();
         $baris = TransaksiKeuangan::query()->whereNull('dibatalkan_at')
             ->whereDate('tanggal', '>=', $this->mulai)->whereDate('tanggal', '<=', $this->selesai)
             ->selectRaw("date(tanggal) as hari, sum(case when jenis = 'pemasukan' then nominal else 0 end) as masuk, sum(case when jenis = 'pengeluaran' then nominal else 0 end) as keluar")

@@ -28,12 +28,12 @@ class StatistikKeuangan extends StatsOverviewWidget
     {
         $user = auth()->user();
 
-        return $user instanceof User && $user->bolehKelolaKeuangan();
+        return $user instanceof User && $user->bolehLihatKeuangan();
     }
 
     protected function getStats(): array
     {
-        PencatatanKeuangan::izinkan();
+        PencatatanKeuangan::izinkanLihat();
         $laporan = app(LaporanKeuangan::class)->susun($this->mulai, $this->selesai);
         $rupiah = fn (string $key): string => 'Rp '.number_format($laporan[$key], 0, ',', '.');
         $kas = fn (?string $jenis = null): string => BukuKas::getUrl(['filters' => [

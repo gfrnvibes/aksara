@@ -3,10 +3,6 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Auth\Login;
-use App\Filament\Guru\Pages\BukuPiket;
-use App\Filament\Guru\Pages\JurnalMengajar;
-use App\Filament\Guru\Pages\KehadiranGtk;
-use App\Filament\Guru\Pages\PresensiKelas;
 use App\Filament\Guru\Pages\RekapHarian;
 use App\Filament\Resources\Activities\ActivityResource;
 use App\Models\User;
@@ -103,10 +99,6 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,
-                PresensiKelas::class,
-                JurnalMengajar::class,
-                KehadiranGtk::class,
-                BukuPiket::class,
                 RekapHarian::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')

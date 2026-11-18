@@ -39,7 +39,7 @@ class RingkasanKeuangan extends Dashboard implements HasTable
     {
         $user = auth()->user();
 
-        return $user instanceof User && $user->bolehKelolaKeuangan();
+        return $user instanceof User && $user->bolehLihatKeuangan();
     }
 
     public function mount(): void
