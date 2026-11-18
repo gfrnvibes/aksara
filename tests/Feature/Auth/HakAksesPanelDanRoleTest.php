@@ -12,6 +12,8 @@ use App\Filament\Guru\Pages\RaporKelasSaya;
 use App\Filament\Guru\Pages\RekapHarian;
 use App\Filament\Pages\BackupData;
 use App\Filament\Pages\LegerNilai;
+use App\Filament\Resources\Ekstrakurikulers\EkstrakurikulerResource;
+use App\Filament\Resources\GaleriKegiatans\GaleriKegiatanResource;
 use App\Filament\Resources\Ijazahs\IjazahResource;
 use App\Filament\Resources\Jadwals\JadwalResource;
 use App\Filament\Resources\MutasiSiswas\MutasiSiswaResource;
@@ -198,4 +200,35 @@ it('restricts LegerKelasSaya to homeroom classes only', function () {
 
     $component->set('data.kelas_id', $kelasLain->id);
     expect($component->instance()->leger())->toBeNull();
+});
+
+it('scopes wk kesiswaan and pembina organisasi roles properly', function () {
+    $kesiswaan = Gtk::factory()->denganAkun()->create();
+    $kesiswaan->user->assignRole(RoleSeeder::WK_KESISWAAN);
+
+    actingAs($kesiswaan->user);
+
+    expect($kesiswaan->user->canAccessPanel(Filament::getPanel('admin')))->toBeTrue()
+        ->and($kesiswaan->user->canAccessPanel(Filament::getPanel('guru')))->toBeTrue()
+        ->and($kesiswaan->user->canAccessPanel(Filament::getPanel('bendahara')))->toBeFalse();
+
+    $this->get(PpdbResource::getUrl())->assertOk();
+    $this->get(MutasiSiswaResource::getUrl())->assertOk();
+    $this->get(EkstrakurikulerResource::getUrl())->assertOk();
+    $this->get(GaleriKegiatanResource::getUrl())->assertOk();
+    $this->get(SiswaResource::getUrl())->assertOk();
+    $this->get(SiswaResource::getUrl('create'))->assertForbidden();
+    $this->get(UserResource::getUrl())->assertForbidden();
+
+    $pembina = Gtk::factory()->denganAkun()->create();
+    $pembina->user->assignRole(RoleSeeder::PEMBINA_ORGANISASI);
+    $operator = User::factory()->create()->assignRole('operator');
+
+    actingAs($pembina->user);
+
+    expect($pembina->user->canAccessPanel(Filament::getPanel('admin')))->toBeFalse()
+        ->and($pembina->user->canAccessPanel(Filament::getPanel('bendahara')))->toBeFalse()
+        ->and($pembina->user->canAccessPanel(Filament::getPanel('guru')))->toBeTrue()
+        ->and($pembina->user->canAccessPanel(Filament::getPanel('ujian')))->toBeTrue()
+        ->and(AkunGtk::bolehDireset($pembina, $operator))->toBeTrue();
 });

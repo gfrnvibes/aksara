@@ -2,10 +2,12 @@
 
 namespace Database\Seeders;
 
+use App\Filament\Guru\Pages\RekapHarian;
 use App\Filament\Pages\BackupData;
 use App\Filament\Pages\InputNilaiKelas;
 use App\Filament\Pages\KenaikanKelas;
 use App\Filament\Pages\LegerNilai;
+use App\Filament\Pages\PenugasanPiket;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
@@ -27,6 +29,10 @@ class RoleSeeder extends Seeder
 
     public const string WALI_KELAS = 'wali_kelas';
 
+    public const string WK_KESISWAAN = 'wk_kesiswaan';
+
+    public const string PEMBINA_ORGANISASI = 'pembina_organisasi';
+
     /**
      * @var list<string>
      */
@@ -36,6 +42,11 @@ class RoleSeeder extends Seeder
      * @var list<string>
      */
     protected const array DIKELOLA_TATA_USAHA = ['SuratMasuk', 'SuratKeluar', 'KopSurat', 'PenandaTangan', 'MutasiSiswa', 'Ijazah', 'Ppdb', 'GaleriKegiatan'];
+
+    /**
+     * @var list<string>
+     */
+    protected const array DIKELOLA_KESISWAAN = ['Ppdb', 'MutasiSiswa', 'Ekstrakurikuler', 'GaleriKegiatan', 'PelanggaranSiswa', 'PrestasiSiswa'];
 
     /**
      * Seed the Shield permissions plus the default roles.
@@ -69,6 +80,7 @@ class RoleSeeder extends Seeder
 
         Role::findOrCreate('bendahara', 'web');
         Role::findOrCreate(static::WALI_KELAS, 'web');
+        Role::findOrCreate(static::PEMBINA_ORGANISASI, 'web');
 
         $superAdmin = Role::findOrCreate(config('filament-shield.super_admin.name'), 'web');
         $superAdmin->syncPermissions(Permission::all());
@@ -126,6 +138,27 @@ class RoleSeeder extends Seeder
                         'ViewAny:Kelas', 'View:Kelas',
                         'ViewAny:Rapor', 'View:Rapor',
                         'ViewAny:TahunAjaran', 'View:TahunAjaran',
+                    ]);
+                })
+                ->where('name', 'not like', 'ForceDelete%')
+                ->get(),
+        );
+
+        Role::findOrCreate(static::WK_KESISWAAN, 'web')->syncPermissions(
+            Permission::query()
+                ->where(function (Builder $query): void {
+                    foreach (static::DIKELOLA_KESISWAAN as $model) {
+                        $query->orWhere('name', 'like', "%:{$model}");
+                    }
+
+                    $query->orWhereIn('name', [
+                        'ViewAny:Siswa', 'View:Siswa',
+                        'ViewAny:Gtk', 'View:Gtk',
+                        'ViewAny:Kelas', 'View:Kelas',
+                        'ViewAny:Rapor', 'View:Rapor',
+                        'ViewAny:TahunAjaran', 'View:TahunAjaran',
+                        'View:'.class_basename(PenugasanPiket::class),
+                        'View:'.class_basename(RekapHarian::class),
                     ]);
                 })
                 ->where('name', 'not like', 'ForceDelete%')

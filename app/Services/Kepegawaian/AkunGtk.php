@@ -68,7 +68,11 @@ class AkunGtk
         }
 
         $punyaPeranStruktural = $gtk->user->roles()
-            ->whereNotIn('name', [RoleSeeder::WALI_KELAS, config('filament-shield.panel_user.name', 'panel_user')])
+            ->whereNotIn('name', [
+                RoleSeeder::WALI_KELAS,
+                RoleSeeder::PEMBINA_ORGANISASI,
+                config('filament-shield.panel_user.name', 'panel_user'),
+            ])
             ->exists();
 
         return ! $punyaPeranStruktural || $oleh->hasRole(config('filament-shield.super_admin.name'));
