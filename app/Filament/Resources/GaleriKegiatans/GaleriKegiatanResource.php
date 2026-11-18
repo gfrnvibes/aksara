@@ -42,9 +42,9 @@ class GaleriKegiatanResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPhoto;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Publikasi';
+    protected static string|UnitEnum|null $navigationGroup = 'Tata Usaha';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 5;
 
     protected static ?string $modelLabel = 'Galeri Kegiatan';
 

@@ -36,13 +36,13 @@ class KopSuratResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Pengaturan';
+    protected static string|UnitEnum|null $navigationGroup = 'Tata Usaha';
 
     protected static ?string $modelLabel = 'Kop Surat';
 
     protected static ?string $pluralModelLabel = 'Kop Surat';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $recordTitleAttribute = 'nama';
 

@@ -40,7 +40,7 @@ class LegerNilai extends Page
 
     protected static string|UnitEnum|null $navigationGroup = 'Buku Induk';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 6;
 
     protected static ?string $navigationLabel = 'Leger Nilai';
 
@@ -91,7 +91,8 @@ class LegerNilai extends Page
                             ->live(),
                         Select::make('kelas_id')
                             ->label('Kelas')
-                            ->options(fn (): array => Kelas::query()->orderBy('tingkat')->orderBy('nama')->pluck('nama', 'id')->all())
+                            ->options(fn (): array => static::opsiKelas())
+                            ->default(fn (): ?int => static::defaultKelasId())
                             ->live(),
                     ]),
             ]);
@@ -137,11 +138,27 @@ class LegerNilai extends Page
     }
 
     /**
+     * @return array<int, string>
+     */
+    protected static function opsiKelas(): array
+    {
+        return Kelas::query()->orderBy('tingkat')->orderBy('nama')->pluck('nama', 'id')->all();
+    }
+
+    protected static function defaultKelasId(): ?int
+    {
+        return null;
+    }
+
+    /**
      * The recap for the chosen class, year and semester, or null while one of them is not chosen.
      */
     public function leger(): ?Leger
     {
-        $kelas = filled($this->data['kelas_id'] ?? null) ? Kelas::query()->find((int) $this->data['kelas_id']) : null;
+        $kelasId = filled($this->data['kelas_id'] ?? null) ? (int) $this->data['kelas_id'] : null;
+        $kelas = $kelasId !== null && array_key_exists($kelasId, static::opsiKelas())
+            ? Kelas::query()->find($kelasId)
+            : null;
         $tahunAjaran = filled($this->data['tahun_ajaran_id'] ?? null) ? TahunAjaran::query()->find((int) $this->data['tahun_ajaran_id']) : null;
         $semester = $this->data['semester'] ?? null;
         $semester = $semester instanceof Semester ? $semester : Semester::tryFrom((int) $semester);

@@ -33,6 +33,8 @@ class PenugasanPiket extends Page implements HasTable
 
     protected static string|UnitEnum|null $navigationGroup = 'Kepegawaian';
 
+    protected static ?int $navigationSort = 2;
+
     protected static ?string $title = 'Penugasan Piket';
 
     public static function canAccess(): bool

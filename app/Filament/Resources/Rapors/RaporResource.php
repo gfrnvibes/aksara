@@ -27,7 +27,7 @@ class RaporResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Buku Induk';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $modelLabel = 'Nilai Rapor';
 

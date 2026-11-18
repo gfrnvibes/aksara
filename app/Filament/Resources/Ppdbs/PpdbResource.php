@@ -23,11 +23,11 @@ class PpdbResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserCircle;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Tata Usaha';
+    protected static string|UnitEnum|null $navigationGroup = 'Buku Induk';
 
     protected static ?string $navigationLabel = 'SPMB';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $modelLabel = 'Pendaftar SPMB';
 

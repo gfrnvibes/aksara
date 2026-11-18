@@ -40,9 +40,9 @@ class IjazahResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Tata Usaha';
+    protected static string|UnitEnum|null $navigationGroup = 'Buku Induk';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 8;
 
     protected static ?string $navigationLabel = 'Arsip Ijazah';
 
