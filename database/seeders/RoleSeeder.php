@@ -41,7 +41,7 @@ class RoleSeeder extends Seeder
     /**
      * @var list<string>
      */
-    protected const array DIKELOLA_TATA_USAHA = ['SuratMasuk', 'SuratKeluar', 'KopSurat', 'PenandaTangan', 'MutasiSiswa', 'Ijazah', 'Ppdb', 'GaleriKegiatan'];
+    protected const array DIKELOLA_TATA_USAHA = ['SuratMasuk', 'SuratKeluar', 'KopSurat', 'PenandaTangan', 'MutasiSiswa', 'Ijazah', 'Ppdb', 'GaleriKegiatan', 'KegiatanUjian'];
 
     /**
      * @var list<string>
@@ -70,7 +70,7 @@ class RoleSeeder extends Seeder
         ]);
 
         // The exam panel's models, which Shield does not scan.
-        foreach (['Soal', 'Ujian'] as $model) {
+        foreach (['Soal', 'Ujian', 'KegiatanUjian'] as $model) {
             foreach (['ViewAny', 'View', 'Create', 'Update', 'Delete', 'DeleteAny'] as $aksi) {
                 Permission::findOrCreate("{$aksi}:{$model}", 'web');
             }

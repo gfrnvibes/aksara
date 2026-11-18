@@ -83,7 +83,7 @@ class User extends Authenticatable implements FilamentUser, ProvidesActivityTitl
         return match ($panel->getId()) {
             'bendahara' => $this->bolehLihatKeuangan(),
             'guru' => $this->gtk()->aktif()->exists(),
-            'ujian' => $this->gtk()->aktif()->exists() || $this->can('ViewAny:Soal'),
+            'ujian' => $this->gtk()->aktif()->exists() || $this->can('ViewAny:Soal') || $this->can('ViewAny:KegiatanUjian'),
             default => $this->hasRole(config('filament-shield.super_admin.name'))
                 || $this->getAllPermissions()->isNotEmpty(),
         };

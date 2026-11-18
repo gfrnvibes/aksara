@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CetakAtpController;
 use App\Http\Controllers\CetakBukuIndukController;
+use App\Http\Controllers\CetakDenahDanKartuController;
 use App\Http\Controllers\CetakHarianController;
 use App\Http\Controllers\CetakJadwalController;
 use App\Http\Controllers\CetakPerangkatAjarController;
@@ -50,6 +51,8 @@ Route::middleware('auth')->group(function () {
     Route::get('cetak-ujian/{ujian}/{dokumen}/{paket?}', CetakUjianController::class)
         ->whereIn('dokumen', ['naskah', 'kunci', 'kisi-kisi'])
         ->name('ujian.cetak');
+    Route::get('cetak-kartu-ujian/{kegiatan}', [CetakDenahDanKartuController::class, 'kartu'])->name('ujian.kartu');
+    Route::get('cetak-denah-ujian/{kegiatan}', [CetakDenahDanKartuController::class, 'denah'])->name('ujian.denah');
     Route::get('cetak-buku-induk/{token}', [CetakBukuIndukController::class, 'massal'])->whereUuid('token')->name('buku-induk.cetak-massal');
     Route::get('backup/unduh', UnduhBackupController::class)->middleware('signed')->name('backup.unduh');
 });
