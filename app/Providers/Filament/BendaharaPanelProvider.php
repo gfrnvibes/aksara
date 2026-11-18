@@ -45,7 +45,7 @@ class BendaharaPanelProvider extends PanelProvider
             ])
             ->font('Geist')
             ->monoFont('Geist Mono')
-            ->sidebarWidth('15rem')
+            ->sidebarWidth('14rem')
             ->sidebarCollapsibleOnDesktop()
             ->topbar(false)
             ->globalSearch(PencarianPanel::class, position: GlobalSearchPosition::Sidebar)

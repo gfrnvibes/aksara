@@ -25,12 +25,15 @@ class AksiHarian extends StatsOverviewWidget
             return [];
         }
         $status = PresensiGtk::query()->where('gtk_id', $user->gtk->id)->where('tanggal', AksesHarian::hariIni())->value('status');
-        $stats = [Stat::make('Kehadiran saya', PresensiGtk::STATUS[$status] ?? 'Belum tercatat')->description('Buka kehadiran GTK')->icon('heroicon-o-identification')->color($status === 'hadir' ? 'success' : 'warning')->url(KehadiranGtk::getUrl())];
+        $stats = [Stat::make('Kehadiran saya', PresensiGtk::STATUS[$status] ?? 'Belum')->description('Catat kehadiran GTK')->icon('heroicon-o-identification')->color($status === 'hadir' ? 'success' : 'warning')->url(KehadiranGtk::getUrl())];
         if ($user->gtk->kelasPerwalian()->exists() || AksesHarian::piket($user, AksesHarian::hariIni())) {
-            $stats[] = Stat::make('Presensi kelas', 'Isi kehadiran siswa')->description('Rekap S/I/A mengikuti rapor')->icon('heroicon-o-user-group')->color('info')->url(PresensiKelas::getUrl());
+            $stats[] = Stat::make('Presensi kelas', 'Isi Presensi')->description('Kehadiran siswa harian')->icon('heroicon-o-user-group')->color('info')->url(PresensiKelas::getUrl());
         }
         if (AksesHarian::piket($user, AksesHarian::hariIni())) {
-            $stats[] = Stat::make('Piket hari ini', 'Catat kejadian')->description('Kelas kosong, izin, atau terlambat')->icon('heroicon-o-clipboard-document-list')->color('warning')->url(BukuPiket::getUrl());
+            $stats[] = Stat::make('Piket hari ini', 'Catat Piket')->description('Kelas kosong & izin')->icon('heroicon-o-clipboard-document-list')->color('warning')->url(BukuPiket::getUrl());
+        }
+        if ($user->canAccessPanel(Filament::getPanel('ujian'))) {
+            $stats[] = Stat::make('Panel Ujian', 'Bank Soal')->description('Kelola soal & ujian')->icon('heroicon-o-clipboard-document-check')->color('primary')->url(Filament::getPanel('ujian')->getUrl());
         }
 
         return $stats;
