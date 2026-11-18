@@ -161,6 +161,14 @@ class Gtk extends Model implements ProvidesActivityTitle, TerlindungDariHapus
     }
 
     /**
+     * @return HasMany<Ekstrakurikuler, $this>
+     */
+    public function ekskulBinaan(): HasMany
+    {
+        return $this->hasMany(Ekstrakurikuler::class, 'pembina_id');
+    }
+
+    /**
      * @param  Builder<Gtk>  $query
      */
     #[Scope]

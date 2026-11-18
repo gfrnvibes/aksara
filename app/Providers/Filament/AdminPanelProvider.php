@@ -69,6 +69,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationGroups([
                 'Buku Induk',
+                'Kesiswaan',
                 'Administrasi Harian',
                 'Kepegawaian',
                 'Kurikulum',

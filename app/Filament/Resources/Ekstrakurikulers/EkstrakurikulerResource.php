@@ -8,6 +8,7 @@ use App\Models\Ekstrakurikuler;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
@@ -18,6 +19,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class EkstrakurikulerResource extends Resource
@@ -45,6 +47,14 @@ class EkstrakurikulerResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
+                Select::make('pembina_id')
+                    ->label('Pembina')
+                    ->relationship('pembina', 'nama', fn (Builder $query, ?Ekstrakurikuler $record): Builder => $query
+                        ->where(fn (Builder $gtk) => $gtk->where('is_aktif', true)->when($record?->pembina_id, fn (Builder $gtk, int $id) => $gtk->orWhereKey($id)))
+                        ->orderBy('nama'))
+                    ->searchable()
+                    ->preload()
+                    ->helperText('GTK yang ditunjuk otomatis dapat mengelola anggota, kegiatan, dan nilai ekstrakurikuler ini di Panel Guru.'),
                 Toggle::make('is_wajib')
                     ->label('Ekstrakurikuler wajib')
                     ->helperText('Ekstrakurikuler wajib otomatis ditambahkan ke rapor baru.'),
@@ -65,6 +75,10 @@ class EkstrakurikulerResource extends Resource
                     ->label('Ekstrakurikuler')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('pembina.nama')
+                    ->label('Pembina')
+                    ->placeholder('Belum ditunjuk')
+                    ->searchable(),
                 IconColumn::make('is_wajib')
                     ->label('Wajib')
                     ->boolean(),

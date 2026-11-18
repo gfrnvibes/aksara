@@ -12,18 +12,21 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
  * @property string $nama
+ * @property int|null $pembina_id
  * @property bool $is_wajib
  * @property bool $is_aktif
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read Gtk|null $pembina
  */
-#[Fillable(['nama', 'is_wajib', 'is_aktif'])]
+#[Fillable(['nama', 'pembina_id', 'is_wajib', 'is_aktif'])]
 class Ekstrakurikuler extends Model implements ProvidesActivityTitle, TerlindungDariHapus
 {
     use CatatAktivitas;
@@ -44,6 +47,14 @@ class Ekstrakurikuler extends Model implements ProvidesActivityTitle, Terlindung
             'is_wajib' => 'boolean',
             'is_aktif' => 'boolean',
         ];
+    }
+
+    /**
+     * @return BelongsTo<Gtk, $this>
+     */
+    public function pembina(): BelongsTo
+    {
+        return $this->belongsTo(Gtk::class, 'pembina_id');
     }
 
     /**
