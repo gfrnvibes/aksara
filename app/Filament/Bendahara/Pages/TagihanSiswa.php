@@ -41,7 +41,7 @@ class TagihanSiswa extends HalamanKeuangan implements HasTable
     {
         return [Action::make('buatTagihan')->label('Buat Tagihan')->visible(fn (): bool => static::bolehKelola())->schema([
             Select::make('tahun_ajaran_id')->label('Tahun Ajaran')->options(fn () => TahunAjaran::query()->orderByDesc('nama')->pluck('nama', 'id'))->default(fn () => TahunAjaran::query()->where('is_aktif', true)->value('id'))->required()->rules(['exists:tahun_ajarans,id']),
-            Select::make('siswa_id')->label('Siswa (kosongkan untuk satu kelas)')->options(fn () => Siswa::query()->orderBy('nama_lengkap')->get()->mapWithKeys(fn (Siswa $s): array => [$s->id => $s->nis.' - '.$s->nama_lengkap]))->searchable(),
+            Select::make('siswa_id')->label('Siswa (kosongkan untuk satu kelas)')->options(fn () => Siswa::query()->aktif()->orderBy('nama_lengkap')->get()->mapWithKeys(fn (Siswa $s): array => [$s->id => $s->nis.' - '.$s->nama_lengkap]))->searchable(),
             Select::make('kelas_id')->label('Kelas untuk tagihan massal')->options(fn () => Kelas::query()->pluck('nama', 'id'))->helperText('Digunakan jika siswa tidak dipilih. Mengikuti riwayat kelas pada tahun ajaran terpilih.'),
             TextInput::make('nama')->label('Jenis Tagihan')->placeholder('SPP / Daftar ulang / Kegiatan')->required()->maxLength(100),
             TextInput::make('periode')->placeholder('November 2026')->helperText('Nama dan periode yang sama tidak akan ditagihkan dua kali.')->required()->maxLength(50),
@@ -50,7 +50,7 @@ class TagihanSiswa extends HalamanKeuangan implements HasTable
         ])->action(function (array $data): void {
             $user = PencatatanKeuangan::izinkan();
             $tahun = TahunAjaran::query()->whereKey($data['tahun_ajaran_id'])->firstOrFail();
-            $siswa = Siswa::query();
+            $siswa = Siswa::query()->aktif();
             if (filled($data['siswa_id'] ?? null)) {
                 $siswa->whereKey($data['siswa_id']);
             } elseif (filled($data['kelas_id'] ?? null)) {

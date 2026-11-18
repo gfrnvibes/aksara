@@ -50,7 +50,7 @@ class PrestasiSiswaResource extends Resource
                     ->required(),
                 Select::make('siswa_id')
                     ->label('Siswa')
-                    ->options(fn (): array => Siswa::query()->orderBy('nama_lengkap')->get()->mapWithKeys(fn (Siswa $s): array => [$s->id => $s->nis.' - '.$s->nama_lengkap])->all())
+                    ->options(fn (): array => Siswa::query()->aktif()->orderBy('nama_lengkap')->get()->mapWithKeys(fn (Siswa $s): array => [$s->id => $s->nis.' - '.$s->nama_lengkap])->all())
                     ->searchable()
                     ->required(),
                 DatePicker::make('tanggal')

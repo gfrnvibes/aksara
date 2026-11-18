@@ -56,7 +56,7 @@ class BukuPiket extends HalamanHarian implements HasTable
             DatePicker::make('tanggal')->default(AksesHarian::hariIni())->maxDate(AksesHarian::hariIni())->required(),
             Select::make('jenis')->options(CatatanPiket::JENIS)->required(),
             Select::make('kelas_id')->label('Kelas')->options(fn (): array => Kelas::query()->aktif()->pluck('nama', 'id')->all())->live(),
-            Select::make('siswa_id')->label('Siswa')->options(fn (Get $get): array => Siswa::query()->where('kelas_id', $get('kelas_id') ?? 0)->orderBy('nama_lengkap')->pluck('nama_lengkap', 'id')->all())->searchable(),
+            Select::make('siswa_id')->label('Siswa')->options(fn (Get $get): array => Siswa::query()->aktif()->where('kelas_id', $get('kelas_id') ?? 0)->orderBy('nama_lengkap')->pluck('nama_lengkap', 'id')->all())->searchable(),
             Select::make('gtk_id')->label('GTK terkait')->options(fn (): array => Gtk::query()->aktif()->pluck('nama', 'id')->all())->searchable(),
             TextInput::make('terlambat_menit')->label('Keterlambatan (menit)')->numeric()->integer()->default(0)->minValue(0)->maxValue(600)->required(),
             TextInput::make('jam_pelajaran')->label('Jam pelajaran terkait')->maxLength(100),

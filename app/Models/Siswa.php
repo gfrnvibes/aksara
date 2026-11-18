@@ -168,8 +168,17 @@ class Siswa extends Model implements ProvidesActivityTitle
     }
 
     /**
+     * @param  Builder<Siswa>  $query
+     */
+    #[Scope]
+    protected function aktif(Builder $query): void
+    {
+        $query->where('status', StatusSiswa::Aktif);
+    }
+
+    /**
      * Students who sat in the class during the academic year: from the class history, plus — for the active
-     * year — students currently in the class whose history has no row for that year yet.
+     * year — active students currently in the class whose history has no row for that year yet.
      *
      * @param  Builder<Siswa>  $query
      */
@@ -181,6 +190,7 @@ class Siswa extends Model implements ProvidesActivityTitle
         $query->where(fn (Builder $anggota) => $anggota
             ->whereHas('riwayatKelas', fn (Builder $riwayat) => $riwayat->where('kelas_id', $kelasId)->where('tahun_ajaran_id', $tahunAjaranId))
             ->when($tahunAktif, fn (Builder $anggota) => $anggota->orWhere(fn (Builder $sekarang) => $sekarang
+                ->where('status', StatusSiswa::Aktif)
                 ->where('kelas_id', $kelasId)
                 ->whereDoesntHave('riwayatKelas', fn (Builder $riwayat) => $riwayat->where('tahun_ajaran_id', $tahunAjaranId)))));
     }

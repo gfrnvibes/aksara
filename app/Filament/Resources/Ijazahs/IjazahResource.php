@@ -80,7 +80,7 @@ class IjazahResource extends Resource
                     ->required(),
                 Select::make('siswa_id')
                     ->label('Siswa di Buku Induk')
-                    ->relationship('siswa', 'nama_lengkap', fn (Builder $query): Builder => $query->orderBy('nama_lengkap'))
+                    ->relationship('siswa', 'nama_lengkap', fn (Builder $query): Builder => $query->whereIn('status', [\App\Enums\StatusSiswa::Aktif, \App\Enums\StatusSiswa::Lulus])->orderBy('nama_lengkap'))
                     ->getOptionLabelFromRecordUsing(fn (Siswa $record): string => "{$record->nis} - {$record->nama_lengkap}")
                     ->searchable(['nama_lengkap', 'nis', 'nisn'])
                     ->preload()

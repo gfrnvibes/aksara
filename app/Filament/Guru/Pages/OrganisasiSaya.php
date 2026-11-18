@@ -133,6 +133,7 @@ class OrganisasiSaya extends Page implements HasSchemas, HasTable
                     Select::make('siswa_id')
                         ->label('Siswa')
                         ->options(fn (): array => Siswa::query()
+                            ->aktif()
                             ->whereNotIn('id', AnggotaOrganisasi::query()
                                 ->where('ekstrakurikuler_id', $this->ekskulId())
                                 ->where('tahun_ajaran_id', $this->tahunAjaranId())

@@ -103,7 +103,10 @@ class RaporForm
                     ->schema([
                         Select::make('siswa_id')
                             ->label('Siswa')
-                            ->relationship('siswa', 'nama_lengkap', fn (Builder $query): Builder => $query->with('kelas')->orderBy('nis'))
+                            ->relationship('siswa', 'nama_lengkap', fn (Builder $query, ?Rapor $record): Builder => $query
+                                ->where(fn (Builder $q) => $q->where('status', \App\Enums\StatusSiswa::Aktif)->when($record?->siswa_id, fn (Builder $q, int $id) => $q->orWhereKey($id)))
+                                ->with('kelas')
+                                ->orderBy('nis'))
                             ->getOptionLabelFromRecordUsing(fn (Siswa $record): string => "{$record->nis} - {$record->nama_lengkap}".($record->kelas ? " ({$record->kelas->nama})" : ''))
                             ->searchable(['nama_lengkap', 'nis', 'nisn'])
                             ->preload()
