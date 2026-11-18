@@ -2,9 +2,10 @@
 
 namespace App\Enums;
 
+use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 
-enum JenisSoal: string implements HasLabel
+enum JenisSoal: string implements HasColor, HasLabel
 {
     case PilihanGanda = 'pg';
     case PgKompleks = 'pg_kompleks';
@@ -20,6 +21,17 @@ enum JenisSoal: string implements HasLabel
             self::BenarSalah => 'Benar/Salah',
             self::Menjodohkan => 'Menjodohkan',
             self::Esai => 'Esai',
+        };
+    }
+
+    public function getColor(): string
+    {
+        return match ($this) {
+            self::PilihanGanda => 'primary',
+            self::PgKompleks => 'info',
+            self::BenarSalah => 'warning',
+            self::Menjodohkan => 'success',
+            self::Esai => 'gray',
         };
     }
 
