@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Pages;
 
 use App\Filament\Resources\Users\UserResource;
+use App\Models\User;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
 
@@ -13,7 +14,8 @@ class ManageUsers extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->after(fn (User $record, CreateAction $action) => UserResource::hubungkanGtk($record, $action->getRawData()['gtk_id'] ?? null)),
         ];
     }
 }

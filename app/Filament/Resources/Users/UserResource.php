@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users;
 
 use App\Filament\Resources\Users\Pages\ManageUsers;
+use App\Models\Gtk;
 use App\Models\User;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -12,6 +13,8 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -38,13 +41,45 @@ class UserResource extends Resource
     {
         return $schema
             ->components([
+                Select::make('gtk_id')
+                    ->label('Ambil dari GTK')
+                    ->placeholder('Pilih GTK (opsional)...')
+                    ->helperText('Memilih GTK akan mengisi nama otomatis dan menghubungkan akun ke data GTK tersebut.')
+                    ->options(fn (?User $record): array => Gtk::query()
+                        ->where(fn ($query) => $query
+                            ->whereNull('user_id')
+                            ->when($record?->gtk !== null, fn ($q) => $q->orWhere('id', $record->gtk->id)))
+                        ->orderBy('nama')
+                        ->get()
+                        ->mapWithKeys(fn (Gtk $gtk): array => [$gtk->id => $gtk->nama.($gtk->nip ? ' (NIP: '.$gtk->nip.')' : '')])
+                        ->all())
+                    ->searchable()
+                    ->live()
+                    ->dehydrated(false)
+                    ->afterStateHydrated(fn (Select $component, ?User $record) => $component->state($record?->gtk?->id))
+                    ->afterStateUpdated(function (?int $state, Set $set, Get $get): void {
+                        if ($state === null) {
+                            return;
+                        }
+
+                        $gtk = Gtk::query()->find($state);
+                        if ($gtk === null) {
+                            return;
+                        }
+
+                        $set('name', $gtk->nama);
+
+                        if (filled($gtk->email) && blank($get('email')) && ! User::query()->where('email', $gtk->email)->exists()) {
+                            $set('email', $gtk->email);
+                        }
+                    }),
                 TextInput::make('name')
                     ->label('Nama')
                     ->required()
                     ->maxLength(255),
                 TextInput::make('email')
                     ->email()
-                    ->required(fn (?User $record): bool => $record?->gtk === null)
+                    ->required(fn (?User $record, Get $get): bool => $record?->gtk === null && blank($get('gtk_id')))
                     ->helperText('Boleh kosong untuk akun guru, yang masuk dengan NIP, NUPTK, atau No. HP.')
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
@@ -92,7 +127,8 @@ class UserResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->after(fn (User $record, EditAction $action) => static::hubungkanGtk($record, $action->getRawData()['gtk_id'] ?? null)),
                 DeleteAction::make()
                     ->hidden(fn (User $record): bool => $record->is(auth()->user())),
             ])
@@ -101,6 +137,24 @@ class UserResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function hubungkanGtk(User $record, mixed $gtkId): void
+    {
+        $gtkId = filled($gtkId) ? (int) $gtkId : null;
+
+        if ($record->gtk !== null && $record->gtk->id !== $gtkId) {
+            $record->gtk->forceFill(['user_id' => null])->save();
+        }
+
+        if ($gtkId !== null) {
+            $gtk = Gtk::query()
+                ->whereKey($gtkId)
+                ->where(fn ($query) => $query->whereNull('user_id')->orWhere('user_id', $record->id))
+                ->first();
+
+            $gtk?->user()->associate($record)->save();
+        }
     }
 
     public static function getPages(): array
