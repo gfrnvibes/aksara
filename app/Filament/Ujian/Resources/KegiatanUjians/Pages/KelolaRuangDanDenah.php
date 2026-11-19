@@ -7,8 +7,10 @@ use App\Models\Kelas;
 use App\Models\KegiatanUjian;
 use App\Models\PenempatanUjian;
 use App\Models\RuangUjian;
+use App\Models\User;
 use App\Services\Cbt\PemetaanDenahUjian;
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -59,7 +61,10 @@ class KelolaRuangDanDenah extends Page
 
     public function bolehKelola(): bool
     {
-        return KegiatanUjianResource::can('update', $this->kegiatan());
+        $user = Filament::auth()->user();
+
+        return ($user instanceof User && $user->hasRole(config('filament-shield.super_admin.name')))
+            || KegiatanUjianResource::can('update', $this->kegiatan());
     }
 
     public function getSubheading(): ?string
@@ -109,6 +114,106 @@ class KelolaRuangDanDenah extends Page
         Notification::make()->success()->title('Ruang ujian dihapus')->send();
     }
 
+    public function editRuangAction(): Action
+    {
+        return Action::make('editRuang')
+            ->label('Edit Ruang')
+            ->icon(Heroicon::OutlinedPencilSquare)
+            ->color('warning')
+            ->size('xs')
+            ->visible(fn (): bool => $this->bolehKelola())
+            ->fillForm(function (array $arguments): array {
+                $ruangId = (int) ($arguments['ruang'] ?? $this->ruangAktifId ?? 0);
+                $ruang = $this->kegiatan()->ruang()->whereKey($ruangId)->firstOrFail();
+
+                return $ruang->only(['kode', 'nama', 'urutan', 'jumlah_kolom', 'kursi_per_meja', 'kapasitas']);
+            })
+            ->schema($this->skemaFormRuang(isEdit: true))
+            ->action(function (array $data, array $arguments): void {
+                abort_unless($this->bolehKelola(), 403);
+
+                $ruangId = (int) ($arguments['ruang'] ?? $this->ruangAktifId ?? 0);
+                $ruang = $this->kegiatan()->ruang()->whereKey($ruangId)->firstOrFail();
+                $ruang->update($data);
+
+                $this->ruangAktifId = $ruang->id;
+                Notification::make()->success()->title("Ruang {$ruang->nama} diperbarui")->send();
+            });
+    }
+
+    public function hapusRuangAction(): Action
+    {
+        return Action::make('hapusRuang')
+            ->label('Hapus Ruang')
+            ->icon(Heroicon::OutlinedTrash)
+            ->color('danger')
+            ->size('xs')
+            ->requiresConfirmation()
+            ->modalHeading('Hapus Ruang Ujian')
+            ->modalDescription('Peserta yang sudah duduk di ruang ini akan dilepas penempatannya. Anda bisa menjalankan Generate & Petakan Denah lagi setelahnya.')
+            ->visible(fn (): bool => $this->bolehKelola())
+            ->action(function (array $arguments): void {
+                $ruangId = (int) ($arguments['ruang'] ?? $this->ruangAktifId ?? 0);
+                $this->hapusRuang($ruangId);
+            });
+    }
+
+    /**
+     * @return list<\Filament\Schemas\Components\Component>
+     */
+    protected function skemaFormRuang(bool $isEdit = false): array
+    {
+        $fields = [
+            TextInput::make('kode')
+                ->label('Kode Ruang')
+                ->placeholder('R-01')
+                ->default(fn (): string => 'R-'.str_pad((string) ($this->kegiatan()->ruang()->count() + 1), 2, '0', STR_PAD_LEFT))
+                ->required()
+                ->maxLength(20),
+            TextInput::make('nama')
+                ->label('Nama Ruang')
+                ->placeholder('Ruang 01 - Kelas VII A')
+                ->default(fn (): string => 'Ruang '.str_pad((string) ($this->kegiatan()->ruang()->count() + 1), 2, '0', STR_PAD_LEFT))
+                ->required()
+                ->maxLength(100),
+            TextInput::make('jumlah_kolom')
+                ->label('Jumlah Kolom Meja')
+                ->numeric()
+                ->integer()
+                ->minValue(1)
+                ->maxValue(8)
+                ->default(4)
+                ->required(),
+            Select::make('kursi_per_meja')
+                ->label('Kursi per Meja')
+                ->options([
+                    1 => '1 Kursi per Meja',
+                    2 => '2 Kursi per Meja (Kiri - Kanan)',
+                ])
+                ->default(2)
+                ->required(),
+            TextInput::make('kapasitas')
+                ->label('Kapasitas Kursi')
+                ->numeric()
+                ->integer()
+                ->minValue(1)
+                ->maxValue(100)
+                ->default(32)
+                ->required(),
+        ];
+
+        if ($isEdit) {
+            $fields[] = TextInput::make('urutan')
+                ->label('Urutan Ruang')
+                ->numeric()
+                ->integer()
+                ->minValue(1)
+                ->required();
+        }
+
+        return $fields;
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -117,44 +222,7 @@ class KelolaRuangDanDenah extends Page
                 ->icon(Heroicon::OutlinedPlus)
                 ->color(Color::Sky)
                 ->visible(fn (): bool => $this->bolehKelola())
-                ->schema([
-                    TextInput::make('kode')
-                        ->label('Kode Ruang')
-                        ->placeholder('R-01')
-                        ->default(fn (): string => 'R-'.str_pad((string) ($this->kegiatan()->ruang()->count() + 1), 2, '0', STR_PAD_LEFT))
-                        ->required()
-                        ->maxLength(20),
-                    TextInput::make('nama')
-                        ->label('Nama Ruang')
-                        ->placeholder('Ruang 01 - Kelas VII A')
-                        ->default(fn (): string => 'Ruang '.str_pad((string) ($this->kegiatan()->ruang()->count() + 1), 2, '0', STR_PAD_LEFT))
-                        ->required()
-                        ->maxLength(100),
-                    TextInput::make('jumlah_kolom')
-                        ->label('Jumlah Kolom Meja')
-                        ->numeric()
-                        ->integer()
-                        ->minValue(1)
-                        ->maxValue(8)
-                        ->default(4)
-                        ->required(),
-                    Select::make('kursi_per_meja')
-                        ->label('Kursi per Meja')
-                        ->options([
-                            1 => '1 Kursi per Meja',
-                            2 => '2 Kursi per Meja (Kiri - Kanan)',
-                        ])
-                        ->default(2)
-                        ->required(),
-                    TextInput::make('kapasitas')
-                        ->label('Kapasitas Kursi')
-                        ->numeric()
-                        ->integer()
-                        ->minValue(1)
-                        ->maxValue(100)
-                        ->default(32)
-                        ->required(),
-                ])
+                ->schema($this->skemaFormRuang())
                 ->action(function (array $data): void {
                     $kegiatan = $this->kegiatan();
                     $ruang = $kegiatan->ruang()->create([

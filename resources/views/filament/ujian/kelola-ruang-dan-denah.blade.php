@@ -75,14 +75,8 @@
                             Cetak Kartu Ruang Ini
                         </x-filament::button>
                         @if ($this->bolehKelola())
-                            <x-filament::button
-                                size="xs"
-                                color="danger"
-                                wire:click="hapusRuang({{ $ruangAktif->id }})"
-                                wire:confirm="Hapus ruang {{ $ruangAktif->nama }}?"
-                            >
-                                Hapus Ruang
-                            </x-filament::button>
+                            {{ ($this->editRuangAction)(['ruang' => $ruangAktif->id]) }}
+                            {{ ($this->hapusRuangAction)(['ruang' => $ruangAktif->id]) }}
                         @endif
                     </div>
                 </x-slot>

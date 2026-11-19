@@ -5,12 +5,22 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\KegiatanUjian;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Foundation\Auth\User as AuthUser;
 
 class KegiatanUjianPolicy
 {
     use HandlesAuthorization;
+
+    public function before(AuthUser $authUser, string $ability): ?bool
+    {
+        if ($authUser instanceof User && $authUser->hasRole(config('filament-shield.super_admin.name'))) {
+            return true;
+        }
+
+        return null;
+    }
 
     public function viewAny(AuthUser $authUser): bool
     {

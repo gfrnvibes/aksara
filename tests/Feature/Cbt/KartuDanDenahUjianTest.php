@@ -175,3 +175,51 @@ it('excludes transferred-out, graduated, and expelled students from exam seating
         ->and($kegiatan->penempatan()->pluck('siswa_id')->all())->toBe([$aktif->id])
         ->and(Siswa::query()->aktif()->pluck('id')->all())->toBe([$aktif->id]);
 });
+
+it('edits and deletes an exam room from the room and seating page for super admin and operator', function (string $role) {
+    $user = User::factory()->create()->assignRole($role);
+    actingAs($user);
+    Filament::setCurrentPanel('ujian');
+
+    $kegiatan = KegiatanUjian::query()->create([
+        'nama' => 'PAS Ganjil',
+        'tahun_ajaran_id' => $this->tahun->id,
+        'semester' => Semester::Ganjil,
+    ]);
+
+    $ruang = $kegiatan->ruang()->create([
+        'kode' => 'R-01',
+        'nama' => 'Ruang 01',
+        'urutan' => 1,
+        'jumlah_kolom' => 4,
+        'kursi_per_meja' => 2,
+        'kapasitas' => 32,
+    ]);
+
+    Livewire::test(KelolaRuangDanDenah::class, ['record' => $kegiatan->id])
+        ->callAction('editRuang', [
+            'kode' => 'R-01A',
+            'nama' => 'Ruang Lab IPA',
+            'urutan' => 2,
+            'jumlah_kolom' => 5,
+            'kursi_per_meja' => 2,
+            'kapasitas' => 40,
+        ], ['ruang' => $ruang->id])
+        ->assertHasNoActionErrors();
+
+    expect($ruang->fresh())
+        ->kode->toBe('R-01A')
+        ->nama->toBe('Ruang Lab IPA')
+        ->urutan->toBe(2)
+        ->jumlah_kolom->toBe(5)
+        ->kapasitas->toBe(40);
+
+    Livewire::test(KelolaRuangDanDenah::class, ['record' => $kegiatan->id])
+        ->callAction('hapusRuang', arguments: ['ruang' => $ruang->id])
+        ->assertHasNoActionErrors();
+
+    expect($kegiatan->ruang()->count())->toBe(0);
+})->with([
+    'super_admin' => ['super_admin'],
+    'operator' => ['operator'],
+]);
