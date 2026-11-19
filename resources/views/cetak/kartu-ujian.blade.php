@@ -4,7 +4,8 @@
     /** @var array<string, mixed> $kop */
     $namaMadrasah = strtoupper((string) ($kop['nama'] ?? config('sekolah.nama', 'Madrasah')));
     $semester = $kegiatan->semester === \App\Enums\Semester::Ganjil ? 'Ganjil' : 'Genap';
-    $kepala = $kegiatan->penandaTangan;
+    $namaKepala = $kegiatan->tahunAjaran?->kepala_madrasah ?: ($kegiatan->penandaTangan?->nama ?? '________________');
+    $nipKepala = $kegiatan->tahunAjaran?->nip_kepala_madrasah ?: $kegiatan->penandaTangan?->nip;
     $ketua = $kegiatan->ketuaPanitia;
 @endphp
 <!DOCTYPE html>
@@ -15,7 +16,7 @@
     <style>
         @page {
             size: A4 portrait;
-            margin: 6mm;
+            margin: 5mm;
         }
         * {
             box-sizing: border-box;
@@ -50,28 +51,29 @@
             cursor: pointer;
         }
         .sheet {
-            width: 198mm;
+            width: 200mm;
             margin: 12px auto;
             background: #fff;
-            padding: 2mm;
+            padding: 0;
         }
         .grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 3mm;
+            gap: 2mm;
         }
-        /* Cut guide border around each card */
+        /* Cut guide border around each card (2x4 = 8 cards per A4 sheet) */
         .kartu-wrap {
             border: 1px dashed #6b7280;
-            padding: 1.5mm;
+            padding: 1mm;
             break-inside: avoid;
             page-break-inside: avoid;
             position: relative;
         }
         .kartu {
             border: 1.2px solid #111;
-            padding: 2mm 2.5mm;
-            height: 66mm;
+            padding: 1.8mm 2.2mm;
+            height: 65mm;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -79,40 +81,40 @@
         .kartu-header {
             text-align: center;
             border-bottom: 1.5px double #111;
-            padding-bottom: 1.5mm;
-            margin-bottom: 1.5mm;
+            padding-bottom: 1mm;
+            margin-bottom: 1mm;
         }
         .kartu-header .instansi {
-            font-size: 7.5pt;
+            font-size: 7pt;
             font-weight: 700;
             letter-spacing: 0.2px;
         }
         .kartu-header .judul {
-            font-size: 8.5pt;
+            font-size: 8pt;
             font-weight: 700;
-            margin-top: 0.5mm;
+            margin-top: 0.3mm;
             text-transform: uppercase;
         }
         .kartu-header .sub {
-            font-size: 7pt;
+            font-size: 6.5pt;
             color: #374151;
         }
         .kartu-body {
             display: flex;
-            gap: 2.5mm;
+            gap: 2mm;
             align-items: flex-start;
             flex: 1;
         }
         .foto {
-            width: 21mm;
-            height: 27mm;
+            width: 17mm;
+            height: 22mm;
             border: 1px solid #4b5563;
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
-            font-size: 6.5pt;
+            font-size: 6pt;
             color: #6b7280;
             overflow: hidden;
             background: #f9fafb;
@@ -125,23 +127,23 @@
         .identitas {
             width: 100%;
             border-collapse: collapse;
-            font-size: 7.6pt;
-            line-height: 1.25;
+            font-size: 7.2pt;
+            line-height: 1.18;
         }
         .identitas td {
-            padding: 0.4mm 0.5mm;
+            padding: 0.25mm 0.4mm;
             vertical-align: top;
         }
         .identitas td.lbl {
-            width: 22mm;
+            width: 20mm;
             color: #374151;
         }
         .identitas td.sep {
-            width: 2.5mm;
+            width: 2mm;
         }
         .no-peserta {
             font-weight: 700;
-            font-size: 8.5pt;
+            font-size: 8pt;
             letter-spacing: 0.3px;
         }
         .kartu-footer {
@@ -149,22 +151,22 @@
             justify-content: space-between;
             align-items: flex-end;
             gap: 2mm;
-            font-size: 6.5pt;
-            margin-top: 1mm;
+            font-size: 6.2pt;
+            margin-top: 0.5mm;
         }
         .catatan {
-            font-size: 6.2pt;
+            font-size: 5.8pt;
             color: #4b5563;
-            line-height: 1.15;
-            margin-top: 0.8mm;
+            line-height: 1.1;
+            margin-top: 0.5mm;
         }
         .ttd {
             text-align: left;
-            min-width: 34mm;
-            line-height: 1.15;
+            min-width: 32mm;
+            line-height: 1.12;
         }
         .ttd .nama {
-            margin-top: 6mm;
+            margin-top: 4.5mm;
             font-weight: 700;
             text-decoration: underline;
         }
@@ -250,22 +252,24 @@
                                 </table>
                             </div>
 
-                            <div class="catatan">
-                                {{ $kegiatan->catatan_kartu ?: 'Harap membawa kartu ini selama ujian berlangsung.' }}
-                            </div>
+                            @if (filled($kegiatan->catatan_kartu))
+                                <div class="catatan">
+                                    {{ $kegiatan->catatan_kartu }}
+                                </div>
+                            @endif
 
                             <div class="kartu-footer">
                                 <div class="ttd">
                                     <div>Mengetahui,</div>
-                                    <div>{{ $kepala?->jabatan ?? 'Kepala Madrasah' }},</div>
-                                    <div class="nama">{{ $kepala?->nama ?? '________________' }}</div>
-                                    @if (filled($kepala?->nip))
-                                        <div>NIP. {{ $kepala->nip }}</div>
+                                    <div>Kepala Madrasah,</div>
+                                    <div class="nama">{{ $namaKepala }}</div>
+                                    @if (filled($nipKepala))
+                                        <div>NIP. {{ $nipKepala }}</div>
                                     @endif
                                 </div>
                                 <div class="ttd">
                                     <div>&nbsp;</div>
-                                    <div>{{ $ketua?->jabatan ?? 'Ketua Panitia Ujian' }},</div>
+                                    <div>Ketua Panitia Ujian,</div>
                                     <div class="nama">{{ $ketua?->nama ?? '________________' }}</div>
                                     @if (filled($ketua?->nip))
                                         <div>NIP. {{ $ketua->nip }}</div>

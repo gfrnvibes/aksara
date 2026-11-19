@@ -108,10 +108,15 @@ it('renders bulk A4 exam cards with cut guides and room seating plan for authori
     $kelas = Kelas::factory()->create(['tingkat' => 7, 'nama' => 'VII-A']);
     $siswa = Siswa::factory()->for($kelas)->create(['nama_lengkap' => 'Budi Santoso']);
 
+    $ketua = Gtk::factory()->create(['nama' => 'H. Ketua Panitia, S.Pd', 'nip' => '198001012005011001']);
+
     $kegiatan = KegiatanUjian::query()->create([
         'nama' => 'PTS Genap',
         'tahun_ajaran_id' => $this->tahun->id,
         'semester' => Semester::Genap,
+        'tanggal_mulai' => '2026-06-05', // Jumat
+        'tanggal_selesai' => '2026-06-08', // Senin (Minggu 07/06/2026 harus dilewati)
+        'ketua_panitia_id' => $ketua->id,
     ]);
 
     $ruang = $kegiatan->ruang()->create([
@@ -133,18 +138,43 @@ it('renders bulk A4 exam cards with cut guides and room seating plan for authori
         'urutan_posisi' => 1,
     ]);
 
+    $this->tahun->update([
+        'kepala_madrasah' => 'Drs. H. Ahmad Kepala',
+        'nip_kepala_madrasah' => '197001012000011001',
+    ]);
+
     $this->get(route('ujian.kartu', $kegiatan))
         ->assertOk()
         ->assertSee('Budi Santoso')
         ->assertSee('26-07-001')
         ->assertSee('R-01')
+        ->assertSee('Drs. H. Ahmad Kepala')
+        ->assertSee('H. Ketua Panitia, S.Pd')
+        ->assertSee('Ketua Panitia Ujian,')
+        ->assertDontSee('Harap membawa kartu ini selama ujian berlangsung.')
         ->assertSee('border: 1px dashed');
 
     $this->get(route('ujian.denah', $kegiatan))
         ->assertOk()
         ->assertSee('MEJA PENGAWAS')
         ->assertSee('Ruang 01')
+        ->assertSee('Drs. H. Ahmad Kepala')
+        ->assertSee('Ketua Panitia Ujian,')
         ->assertSee('Budi Santoso');
+
+    $this->get(route('ujian.daftar-hadir', $kegiatan))
+        ->assertOk()
+        ->assertSee('DAFTAR HADIR PESERTA')
+        ->assertSee('RUANG 01')
+        ->assertSee('05/06/2026')
+        ->assertSee('06/06/2026')
+        ->assertDontSee('07/06/2026')
+        ->assertSee('08/06/2026')
+        ->assertSee('Budi Santoso');
+
+    $this->get(route('ujian.semuanya', $kegiatan))
+        ->assertOk()
+        ->assertSee('Paket Cetak Lengkap');
 });
 
 it('excludes transferred-out, graduated, and expelled students from exam seating and active student scopes', function () {
@@ -197,6 +227,9 @@ it('edits and deletes an exam room from the room and seating page for super admi
     ]);
 
     Livewire::test(KelolaRuangDanDenah::class, ['record' => $kegiatan->id])
+        ->assertSee('Cetak Ruang Ini')
+        ->assertSee('Edit Ruang')
+        ->assertSee('Hapus Ruang')
         ->callAction('editRuang', [
             'kode' => 'R-01A',
             'nama' => 'Ruang Lab IPA',

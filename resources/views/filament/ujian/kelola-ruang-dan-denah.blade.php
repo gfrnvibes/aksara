@@ -1,10 +1,21 @@
 <x-filament-panels::page>
     <style>
-        .fi-header-actions-ctn {
-            margin-left: auto;
-        }
-        .fi-header-actions-ctn .fi-ac {
-            justify-content: flex-end;
+        @media (min-width: 1024px) {
+            .fi-header {
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 1rem;
+            }
+            .fi-header-actions-ctn {
+                margin-left: auto;
+                flex-shrink: 0;
+            }
+            .fi-header-actions-ctn .fi-ac {
+                justify-content: flex-end;
+                flex-wrap: nowrap;
+            }
         }
     </style>
     @php
@@ -54,26 +65,58 @@
                 <x-slot name="description">
                     {{ $ruangAktif->jumlah_kolom }} kolom meja · {{ $kursiPerMeja }} kursi per meja · {{ $ruangAktif->penempatan->count() }} dari {{ $ruangAktif->kapasitas }} kursi terisi
                 </x-slot>
-                <x-slot name="headerEnd">
-                    <div class="flex items-center gap-2">
-                        <x-filament::button
-                            size="xs"
-                            color="gray"
-                            tag="a"
-                            target="_blank"
-                            :href="route('ujian.denah', ['kegiatan' => $this->record, 'ruang_id' => $ruangAktif->id])"
-                        >
-                            Cetak Denah Ruang Ini
-                        </x-filament::button>
-                        <x-filament::button
-                            size="xs"
-                            color="success"
-                            tag="a"
-                            target="_blank"
-                            :href="route('ujian.kartu', ['kegiatan' => $this->record, 'ruang_id' => $ruangAktif->id])"
-                        >
-                            Cetak Kartu Ruang Ini
-                        </x-filament::button>
+                <x-slot name="afterHeader">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <x-filament::dropdown placement="bottom-end">
+                            <x-slot name="trigger">
+                                <x-filament::button
+                                    size="xs"
+                                    color="gray"
+                                    icon="heroicon-o-printer"
+                                    icon-position="before"
+                                >
+                                    Cetak Ruang Ini
+                                </x-filament::button>
+                            </x-slot>
+
+                            <x-filament::dropdown.list>
+                                <x-filament::dropdown.list.item
+                                    tag="a"
+                                    target="_blank"
+                                    icon="heroicon-o-identification"
+                                    :href="route('ujian.kartu', ['kegiatan' => $this->record, 'ruang_id' => $ruangAktif->id])"
+                                >
+                                    Kartu Peserta
+                                </x-filament::dropdown.list.item>
+
+                                <x-filament::dropdown.list.item
+                                    tag="a"
+                                    target="_blank"
+                                    icon="heroicon-o-table-cells"
+                                    :href="route('ujian.denah', ['kegiatan' => $this->record, 'ruang_id' => $ruangAktif->id])"
+                                >
+                                    Denah Ruang
+                                </x-filament::dropdown.list.item>
+
+                                <x-filament::dropdown.list.item
+                                    tag="a"
+                                    target="_blank"
+                                    icon="heroicon-o-clipboard-document-check"
+                                    :href="route('ujian.daftar-hadir', ['kegiatan' => $this->record, 'ruang_id' => $ruangAktif->id])"
+                                >
+                                    Daftar Hadir Peserta
+                                </x-filament::dropdown.list.item>
+
+                                <x-filament::dropdown.list.item
+                                    tag="a"
+                                    target="_blank"
+                                    icon="heroicon-o-document-duplicate"
+                                    :href="route('ujian.semuanya', ['kegiatan' => $this->record, 'ruang_id' => $ruangAktif->id])"
+                                >
+                                    Semuanya
+                                </x-filament::dropdown.list.item>
+                            </x-filament::dropdown.list>
+                        </x-filament::dropdown>
                         @if ($this->bolehKelola())
                             {{ ($this->editRuangAction)(['ruang' => $ruangAktif->id]) }}
                             {{ ($this->hapusRuangAction)(['ruang' => $ruangAktif->id]) }}

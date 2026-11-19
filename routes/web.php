@@ -54,6 +54,8 @@ Route::middleware('auth')->group(function () {
         ->name('ujian.cetak');
     Route::get('cetak-kartu-ujian/{kegiatan}', [CetakDenahDanKartuController::class, 'kartu'])->name('ujian.kartu');
     Route::get('cetak-denah-ujian/{kegiatan}', [CetakDenahDanKartuController::class, 'denah'])->name('ujian.denah');
+    Route::get('cetak-daftar-hadir-ujian/{kegiatan}', [CetakDenahDanKartuController::class, 'daftarHadir'])->name('ujian.daftar-hadir');
+    Route::get('cetak-paket-ujian/{kegiatan}', [CetakDenahDanKartuController::class, 'semuanya'])->name('ujian.semuanya');
     Route::get('akreditasi/dokumen/{dokumen}/cetak', [CetakAkreditasiController::class, 'dokumen'])->name('akreditasi.dokumen.cetak');
     Route::get('akreditasi/bundel/{tahunAjaran}', [CetakAkreditasiController::class, 'bundel'])->name('akreditasi.bundel');
     Route::get('cetak-buku-induk/{token}', [CetakBukuIndukController::class, 'massal'])->whereUuid('token')->name('buku-induk.cetak-massal');

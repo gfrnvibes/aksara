@@ -3,7 +3,8 @@
     /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\RuangUjian> $ruangList */
     /** @var array<string, mixed> $kop */
     $semester = $kegiatan->semester === \App\Enums\Semester::Ganjil ? 'Ganjil' : 'Genap';
-    $kepala = $kegiatan->penandaTangan;
+    $namaKepala = $kegiatan->tahunAjaran?->kepala_madrasah ?: ($kegiatan->penandaTangan?->nama ?? '________________');
+    $nipKepala = $kegiatan->tahunAjaran?->nip_kepala_madrasah ?: $kegiatan->penandaTangan?->nip;
     $ketua = $kegiatan->ketuaPanitia;
 @endphp
 <!DOCTYPE html>
@@ -242,15 +243,15 @@
                 <div style="display: flex; gap: 10mm;">
                     <div class="ttd">
                         <div>Mengetahui,</div>
-                        <div>{{ $kepala?->jabatan ?? 'Kepala Madrasah' }},</div>
-                        <div class="nama">{{ $kepala?->nama ?? '________________' }}</div>
-                        @if (filled($kepala?->nip))
-                            <div>NIP. {{ $kepala->nip }}</div>
+                        <div>Kepala Madrasah,</div>
+                        <div class="nama">{{ $namaKepala }}</div>
+                        @if (filled($nipKepala))
+                            <div>NIP. {{ $nipKepala }}</div>
                         @endif
                     </div>
                     <div class="ttd">
                         <div>&nbsp;</div>
-                        <div>{{ $ketua?->jabatan ?? 'Ketua Panitia Ujian' }},</div>
+                        <div>Ketua Panitia Ujian,</div>
                         <div class="nama">{{ $ketua?->nama ?? '________________' }}</div>
                         @if (filled($ketua?->nip))
                             <div>NIP. {{ $ketua->nip }}</div>

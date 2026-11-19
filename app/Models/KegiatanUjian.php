@@ -31,7 +31,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read TahunAjaran $tahunAjaran
  * @property-read PenandaTangan|null $penandaTangan
- * @property-read PenandaTangan|null $ketuaPanitia
+ * @property-read Gtk|null $ketuaPanitia
  * @property-read KopSurat|null $kopSurat
  * @property-read Collection<int, RuangUjian> $ruang
  * @property-read Collection<int, PenempatanUjian> $penempatan
@@ -79,11 +79,11 @@ class KegiatanUjian extends Model implements ProvidesActivityTitle
     }
 
     /**
-     * @return BelongsTo<PenandaTangan, $this>
+     * @return BelongsTo<Gtk, $this>
      */
     public function ketuaPanitia(): BelongsTo
     {
-        return $this->belongsTo(PenandaTangan::class, 'ketua_panitia_id');
+        return $this->belongsTo(Gtk::class, 'ketua_panitia_id');
     }
 
     /**

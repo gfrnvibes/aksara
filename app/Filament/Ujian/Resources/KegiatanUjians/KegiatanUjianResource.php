@@ -7,9 +7,9 @@ use App\Filament\Ujian\Resources\KegiatanUjians\Pages\CreateKegiatanUjian;
 use App\Filament\Ujian\Resources\KegiatanUjians\Pages\EditKegiatanUjian;
 use App\Filament\Ujian\Resources\KegiatanUjians\Pages\KelolaRuangDanDenah;
 use App\Filament\Ujian\Resources\KegiatanUjians\Pages\ListKegiatanUjians;
+use App\Models\Gtk;
 use App\Models\KegiatanUjian;
 use App\Models\KopSurat;
-use App\Models\PenandaTangan;
 use App\Models\TahunAjaran;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -80,13 +80,10 @@ class KegiatanUjianResource extends Resource
                             ->placeholder('26-')
                             ->helperText('Contoh hasil: 26-07-001. Kosongkan untuk otomatis dari tahun ajaran.')
                             ->maxLength(30),
-                        Select::make('penanda_tangan_id')
-                            ->label('Kepala Madrasah')
-                            ->options(fn (): array => PenandaTangan::query()->where('is_aktif', true)->orderBy('urutan')->pluck('nama', 'id')->all())
-                            ->searchable(),
                         Select::make('ketua_panitia_id')
                             ->label('Ketua Panitia Ujian')
-                            ->options(fn (): array => PenandaTangan::query()->where('is_aktif', true)->orderBy('urutan')->pluck('nama', 'id')->all())
+                            ->options(fn (): array => Gtk::query()->aktif()->orderBy('nama')->get()->mapWithKeys(fn (Gtk $gtk): array => [$gtk->id => $gtk->nama.($gtk->nip ? ' (NIP: '.$gtk->nip.')' : '')])->all())
+                            ->helperText('Kepala Madrasah otomatis diambil dari Tahun Ajaran.')
                             ->searchable(),
                         Select::make('kop_surat_id')
                             ->label('Kop Madrasah (Denah)')
@@ -94,7 +91,7 @@ class KegiatanUjianResource extends Resource
                             ->searchable(),
                         Textarea::make('catatan_kartu')
                             ->label('Catatan Singkat di Kartu')
-                            ->placeholder('Harap membawa kartu ini selama ujian berlangsung.')
+                            ->placeholder('Kosongkan jika tidak ingin menampilkan catatan di kartu.')
                             ->rows(2)
                             ->columnSpanFull(),
                     ]),
@@ -111,15 +108,33 @@ class KegiatanUjianResource extends Resource
                     ->searchable()
                     ->weight('bold'),
                 TextColumn::make('tahunAjaran.nama')
-                    ->label('Tahun Ajaran'),
+                    ->label('Tahun Ajaran')
+                    ->toggleable(),
                 TextColumn::make('semester')
-                    ->badge(),
+                    ->badge()
+                    ->toggleable(),
+                TextColumn::make('tanggal_mulai')
+                    ->label('Tanggal Mulai')
+                    ->date('d M Y')
+                    ->placeholder('-')
+                    ->toggleable(),
+                TextColumn::make('tanggal_selesai')
+                    ->label('Tanggal Berakhir')
+                    ->date('d M Y')
+                    ->placeholder('-')
+                    ->toggleable(),
+                TextColumn::make('ketuaPanitia.nama')
+                    ->label('Ketua Panitia')
+                    ->placeholder('-')
+                    ->toggleable(),
                 TextColumn::make('ruang_count')
                     ->label('Ruang')
-                    ->counts('ruang'),
+                    ->counts('ruang')
+                    ->toggleable(),
                 TextColumn::make('penempatan_count')
                     ->label('Peserta')
-                    ->counts('penempatan'),
+                    ->counts('penempatan')
+                    ->toggleable(),
             ])
             ->recordActions([
                 Action::make('kelolaDenah')
@@ -138,6 +153,18 @@ class KegiatanUjianResource extends Resource
                         ->label('Cetak Denah Ruang (A4)')
                         ->icon(Heroicon::OutlinedPrinter)
                         ->url(fn (KegiatanUjian $record): string => route('ujian.denah', $record))
+                        ->openUrlInNewTab()
+                        ->visible(fn (KegiatanUjian $record): bool => $record->ruang()->exists()),
+                    Action::make('cetakDaftarHadir')
+                        ->label('Cetak Daftar Hadir Peserta')
+                        ->icon(Heroicon::OutlinedClipboardDocumentList)
+                        ->url(fn (KegiatanUjian $record): string => route('ujian.daftar-hadir', $record))
+                        ->openUrlInNewTab()
+                        ->visible(fn (KegiatanUjian $record): bool => $record->ruang()->exists()),
+                    Action::make('cetakSemuanya')
+                        ->label('Cetak Semuanya')
+                        ->icon(Heroicon::OutlinedDocumentDuplicate)
+                        ->url(fn (KegiatanUjian $record): string => route('ujian.semuanya', $record))
                         ->openUrlInNewTab()
                         ->visible(fn (KegiatanUjian $record): bool => $record->ruang()->exists()),
                     EditAction::make(),

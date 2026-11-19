@@ -10,6 +10,7 @@ use App\Models\RuangUjian;
 use App\Models\User;
 use App\Services\Cbt\PemetaanDenahUjian;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -217,22 +218,6 @@ class KelolaRuangDanDenah extends Page
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('tambahRuang')
-                ->label('Tambah Ruang')
-                ->icon(Heroicon::OutlinedPlus)
-                ->color(Color::Sky)
-                ->visible(fn (): bool => $this->bolehKelola())
-                ->schema($this->skemaFormRuang())
-                ->action(function (array $data): void {
-                    $kegiatan = $this->kegiatan();
-                    $ruang = $kegiatan->ruang()->create([
-                        ...$data,
-                        'urutan' => $kegiatan->ruang()->count() + 1,
-                    ]);
-
-                    $this->ruangAktifId = $ruang->id;
-                    Notification::make()->success()->title("Ruang {$ruang->nama} ditambahkan")->send();
-                }),
 
             Action::make('petakanPeserta')
                 ->label('Generate & Petakan Denah')
@@ -274,6 +259,23 @@ class KelolaRuangDanDenah extends Page
                     }
                 }),
 
+            Action::make('tambahRuang')
+                ->label('Tambah Ruang')
+                ->icon(Heroicon::OutlinedPlus)
+                ->color(Color::Sky)
+                ->visible(fn (): bool => $this->bolehKelola())
+                ->schema($this->skemaFormRuang())
+                ->action(function (array $data): void {
+                    $kegiatan = $this->kegiatan();
+                    $ruang = $kegiatan->ruang()->create([
+                        ...$data,
+                        'urutan' => $kegiatan->ruang()->count() + 1,
+                    ]);
+
+                    $this->ruangAktifId = $ruang->id;
+                    Notification::make()->success()->title("Ruang {$ruang->nama} ditambahkan")->send();
+                }),
+
             Action::make('tukarKursi')
                 ->label('Tukar Kursi')
                 ->icon(Heroicon::OutlinedArrowsRightLeft)
@@ -302,37 +304,53 @@ class KelolaRuangDanDenah extends Page
                     Notification::make()->success()->title('Posisi kursi berhasil ditukar')->send();
                 }),
 
-            Action::make('cetakKartu')
-                ->label('Cetak Kartu Ujian')
-                ->icon(Heroicon::OutlinedIdentification)
-                ->color(Color::Indigo)
-                ->visible(fn (): bool => $this->kegiatan()->penempatan()->exists())
-                ->schema([
-                    Select::make('ruang_id')
-                        ->label('Filter Ruang (opsional)')
-                        ->options(fn (): array => $this->kegiatan()->ruang()->pluck('nama', 'id')->all())
-                        ->placeholder('Semua Ruang'),
-                    Select::make('kelas_id')
-                        ->label('Filter Kelas (opsional)')
-                        ->options(fn (): array => Kelas::query()->aktif()->orderBy('tingkat')->orderBy('nama')->pluck('nama', 'id')->all())
-                        ->placeholder('Semua Kelas'),
-                ])
-                ->action(function (array $data): void {
-                    $params = array_filter([
-                        'ruang_id' => $data['ruang_id'] ?? null,
-                        'kelas_id' => $data['kelas_id'] ?? null,
-                    ]);
+            ActionGroup::make([
+                Action::make('cetakKartu')
+                    ->label('Kartu Peserta')
+                    ->icon(Heroicon::OutlinedIdentification)
+                    ->visible(fn (): bool => $this->kegiatan()->penempatan()->exists())
+                    ->schema([
+                        Select::make('ruang_id')
+                            ->label('Filter Ruang (opsional)')
+                            ->options(fn (): array => $this->kegiatan()->ruang()->pluck('nama', 'id')->all())
+                            ->placeholder('Semua Ruang'),
+                        Select::make('kelas_id')
+                            ->label('Filter Kelas (opsional)')
+                            ->options(fn (): array => Kelas::query()->aktif()->orderBy('tingkat')->orderBy('nama')->pluck('nama', 'id')->all())
+                            ->placeholder('Semua Kelas'),
+                    ])
+                    ->action(function (array $data): void {
+                        $params = array_filter([
+                            'ruang_id' => $data['ruang_id'] ?? null,
+                            'kelas_id' => $data['kelas_id'] ?? null,
+                        ]);
 
-                    $this->redirect(route('ujian.kartu', ['kegiatan' => $this->kegiatan(), ...$params]));
-                }),
-
-            Action::make('cetakDenah')
-                ->label('Cetak Denah Ruang')
+                        $this->redirect(route('ujian.kartu', ['kegiatan' => $this->kegiatan(), ...$params]));
+                    }),
+                Action::make('cetakDenah')
+                    ->label('Denah Ruang')
+                    ->icon(Heroicon::OutlinedSquares2x2)
+                    ->visible(fn (): bool => $this->kegiatan()->ruang()->exists())
+                    ->url(fn (): string => route('ujian.denah', $this->kegiatan()))
+                    ->openUrlInNewTab(),
+                Action::make('cetakDaftarHadir')
+                    ->label('Daftar Hadir Peserta')
+                    ->icon(Heroicon::OutlinedClipboardDocumentList)
+                    ->visible(fn (): bool => $this->kegiatan()->ruang()->exists())
+                    ->url(fn (): string => route('ujian.daftar-hadir', $this->kegiatan()))
+                    ->openUrlInNewTab(),
+                Action::make('cetakSemuanya')
+                    ->label('Semuanya (Kartu + Denah + Daftar Hadir)')
+                    ->icon(Heroicon::OutlinedPrinter)
+                    ->visible(fn (): bool => $this->kegiatan()->ruang()->exists())
+                    ->url(fn (): string => route('ujian.semuanya', $this->kegiatan()))
+                    ->openUrlInNewTab(),
+            ])
+                ->label('Cetak')
                 ->icon(Heroicon::OutlinedPrinter)
-                ->color('gray')
-                ->visible(fn (): bool => $this->kegiatan()->ruang()->exists())
-                ->url(fn (): string => route('ujian.denah', $this->kegiatan()))
-                ->openUrlInNewTab(),
+                ->color(Color::Indigo)
+                ->button()
+                ->visible(fn (): bool => $this->kegiatan()->ruang()->exists() || $this->kegiatan()->penempatan()->exists()),
         ];
     }
 
