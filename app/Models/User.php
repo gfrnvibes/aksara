@@ -84,8 +84,12 @@ class User extends Authenticatable implements FilamentUser, ProvidesActivityTitl
             'bendahara' => $this->bolehLihatKeuangan(),
             'guru' => $this->gtk()->aktif()->exists(),
             'ujian' => $this->gtk()->aktif()->exists() || $this->can('ViewAny:Soal') || $this->can('ViewAny:KegiatanUjian'),
+            'akreditasi' => $this->hasRole(config('filament-shield.super_admin.name')) || $this->can('ViewAny:AkreditasiDokumen'),
             default => $this->hasRole(config('filament-shield.super_admin.name'))
-                || $this->getAllPermissions()->isNotEmpty(),
+                || $this->getAllPermissions()->contains(
+                    fn ($permission): bool => ! str_ends_with($permission->name, ':AkreditasiDokumen')
+                        && ! str_ends_with($permission->name, ':AkreditasiBukti'),
+                ),
         };
     }
 

@@ -29,6 +29,8 @@ class RoleSeeder extends Seeder
 
     public const string WALI_KELAS = 'wali_kelas';
 
+    public const string TIM_AKREDITASI = 'tim_akreditasi';
+
     public const string WK_KESISWAAN = 'wk_kesiswaan';
 
     public const string PEMBINA_ORGANISASI = 'pembina_organisasi';
@@ -36,12 +38,12 @@ class RoleSeeder extends Seeder
     /**
      * @var list<string>
      */
-    protected const array DIKELOLA_KURIKULUM = ['Jadwal', 'JamPelajaran', 'KalenderAkademik', 'PembagianMengajar', 'PermintaanJadwal', 'MataPelajaran', 'Soal', 'Ujian'];
+    protected const array DIKELOLA_KURIKULUM = ['Jadwal', 'JamPelajaran', 'KalenderAkademik', 'PembagianMengajar', 'PermintaanJadwal', 'MataPelajaran', 'Soal', 'Ujian', 'AkreditasiDokumen', 'AkreditasiBukti'];
 
     /**
      * @var list<string>
      */
-    protected const array DIKELOLA_TATA_USAHA = ['SuratMasuk', 'SuratKeluar', 'KopSurat', 'PenandaTangan', 'MutasiSiswa', 'Ijazah', 'Ppdb', 'GaleriKegiatan', 'KegiatanUjian'];
+    protected const array DIKELOLA_TATA_USAHA = ['SuratMasuk', 'SuratKeluar', 'KopSurat', 'PenandaTangan', 'MutasiSiswa', 'Ijazah', 'Ppdb', 'GaleriKegiatan', 'KegiatanUjian', 'AkreditasiDokumen', 'AkreditasiBukti'];
 
     /**
      * @var list<string>
@@ -69,8 +71,8 @@ class RoleSeeder extends Seeder
             '--no-interaction' => true,
         ]);
 
-        // The exam panel's models, which Shield does not scan.
-        foreach (['Soal', 'Ujian', 'KegiatanUjian'] as $model) {
+        // The exam & accreditation panels' models, which Shield does not scan.
+        foreach (['Soal', 'Ujian', 'KegiatanUjian', 'AkreditasiDokumen', 'AkreditasiBukti'] as $model) {
             foreach (['ViewAny', 'View', 'Create', 'Update', 'Delete', 'DeleteAny'] as $aksi) {
                 Permission::findOrCreate("{$aksi}:{$model}", 'web');
             }
@@ -160,6 +162,15 @@ class RoleSeeder extends Seeder
                         'View:'.class_basename(PenugasanPiket::class),
                         'View:'.class_basename(RekapHarian::class),
                     ]);
+                })
+                ->where('name', 'not like', 'ForceDelete%')
+                ->get(),
+        );
+        Role::findOrCreate(static::TIM_AKREDITASI, 'web')->syncPermissions(
+            Permission::query()
+                ->where(function (Builder $query): void {
+                    $query->where('name', 'like', '%:AkreditasiDokumen')
+                        ->orWhere('name', 'like', '%:AkreditasiBukti');
                 })
                 ->where('name', 'not like', 'ForceDelete%')
                 ->get(),

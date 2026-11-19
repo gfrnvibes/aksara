@@ -71,6 +71,7 @@ class AkunGtk
             ->whereNotIn('name', [
                 RoleSeeder::WALI_KELAS,
                 RoleSeeder::PEMBINA_ORGANISASI,
+                RoleSeeder::TIM_AKREDITASI,
                 config('filament-shield.panel_user.name', 'panel_user'),
             ])
             ->exists();
