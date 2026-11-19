@@ -32,6 +32,7 @@ class ListAlurTujuanPembelajarans extends ListRecords
             Action::make('generateDenganAi')
                 ->label('Generate AI')
                 ->icon(Heroicon::OutlinedSparkles)
+                ->extraAttributes(['class' => 'btn-ai-generate'])
                 ->color('success')
                 ->modalHeading('Generate ATP Lengkap dengan AI Gemini')
                 ->modalDescription('AI Gemini akan menyusun Alur Tujuan Pembelajaran (ATP) lengkap dari kompetensi sederhana ke kompleks.')

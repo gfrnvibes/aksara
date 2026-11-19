@@ -27,7 +27,7 @@ class PpdbResource extends Resource
 
     protected static ?string $navigationLabel = 'SPMB';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 7;
 
     protected static ?string $modelLabel = 'Pendaftar SPMB';
 

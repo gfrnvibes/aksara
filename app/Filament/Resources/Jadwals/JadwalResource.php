@@ -98,7 +98,8 @@ class JadwalResource extends Resource
                 EditAction::make(),
                 DeleteAction::make()
                     ->modalDescription('Jadwal beserta seluruh isinya akan dihapus permanen.'),
-            ]);
+            ])
+            ->extraAttributes(['class' => 'ta-normal']);
     }
 
     public static function getPages(): array

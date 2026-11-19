@@ -5,6 +5,9 @@ namespace App\Providers;
 use App\Policies\ActivityPolicy;
 use App\Policies\RolePolicy;
 use Carbon\CarbonImmutable;
+use Filament\Support\Facades\FilamentView;
+use Filament\Tables\Columns\TextColumn;
+use Filament\View\PanelsRenderHook;
 use Google\Client as GoogleClient;
 use Google\Service\Drive;
 use Illuminate\Contracts\Foundation\Application;
@@ -39,6 +42,25 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(Role::class, RolePolicy::class);
         Gate::policy(Activity::class, ActivityPolicy::class);
+
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_END,
+            fn () => view('filament.components.sidebar-resize'),
+        );
+
+        TextColumn::configureUsing(function (TextColumn $column): void {
+            $name = $column->getName();
+            if (
+                str_ends_with($name, '_count')
+                || in_array($name, [
+                    'nis', 'nik', 'nisn', 'nip', 'nuptk', 'nomor_hp', 'no_hp',
+                    'nomor_peserta', 'nomor_ijazah', 'no_kk', 'nomor', 'kode',
+                    'tahun', 'nilai_terisi', 'kehadiran', 'periode',
+                ], true)
+            ) {
+                $column->fontFamily('mono');
+            }
+        });
 
         $this->registerGoogleDriveDisk();
     }
