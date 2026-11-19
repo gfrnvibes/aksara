@@ -61,6 +61,9 @@ class UjianPanelProvider extends PanelProvider
                 Action::make('panelGuru')->label('Buka Panel Guru')->icon(Heroicon::OutlinedAcademicCap)
                     ->url(fn (): string => Filament::getPanel('guru')->getUrl())
                     ->visible(fn (): bool => Filament::auth()->user()?->canAccessPanel(Filament::getPanel('guru')) ?? false),
+                Action::make('panelAkreditasi')->label('Buka Panel Akreditasi')->icon(Heroicon::OutlinedShieldCheck)
+                    ->url(fn (): string => Filament::getPanel('akreditasi')->getUrl())
+                    ->visible(fn (): bool => Filament::auth()->user()?->canAccessPanel(Filament::getPanel('akreditasi')) ?? false),
                 Action::make('panelAdmin')
                     ->label('Buka Panel Admin')
                     ->icon(Heroicon::OutlinedBuildingOffice2)

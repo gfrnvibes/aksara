@@ -37,6 +37,7 @@ class ListProgramSemesters extends ListRecords
             Action::make('generateDenganAi')
                 ->label('Generate PROSEM dengan AI (Gemini)')
                 ->icon(Heroicon::OutlinedSparkles)
+                ->extraAttributes(['class' => 'btn-ai-generate'])
                 ->color('success')
                 ->modalHeading('Generate PROSEM Lengkap dengan AI Gemini')
                 ->modalDescription('AI Gemini akan bertindak sebagai konsultan perencanaan kurikulum untuk menyusun Program Semester secara menyeluruh (identitas, Tujuan Pembelajaran, materi pokok, alokasi JP, pemetaan bulan dan minggu efektif).')

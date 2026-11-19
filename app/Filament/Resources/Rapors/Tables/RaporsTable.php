@@ -57,6 +57,7 @@ class RaporsTable
                     ->searchable(),
                 TextColumn::make('siswa.nama_lengkap')
                     ->label('Nama Siswa')
+                    ->weight('medium')
                     ->searchable(),
                 TextColumn::make('tahunAjaran.nama')
                     ->label('Tahun Ajaran'),

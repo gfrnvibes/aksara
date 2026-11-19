@@ -33,6 +33,7 @@ class ListProgramTahunans extends ListRecords
             Action::make('generateDenganAi')
                 ->label('Generate PROTA dengan AI (Gemini)')
                 ->icon(Heroicon::OutlinedSparkles)
+                ->extraAttributes(['class' => 'btn-ai-generate'])
                 ->color('success')
                 ->modalHeading('Generate PROTA Lengkap dengan AI Gemini')
                 ->modalDescription('AI Gemini akan bertindak sebagai ahli kurikulum untuk menyusun Program Tahunan lengkap dari awal sampai akhir (identitas, Capaian Pembelajaran, materi pokok, Tujuan Pembelajaran, alokasi waktu JP, dan minggu efektif).')

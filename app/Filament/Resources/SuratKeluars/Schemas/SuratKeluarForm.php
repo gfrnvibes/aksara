@@ -203,6 +203,7 @@ class SuratKeluarForm
         return Action::make('buatDenganAi')
             ->label(fn (Get $get): string => filled(strip_tags((string) $get('isi'))) ? 'Revisi dengan AI' : 'Buat dengan AI')
             ->icon(Heroicon::Sparkles)
+            ->extraAttributes(['class' => 'btn-ai-generate'])
             ->action(function (Get $get, Set $set, ?SuratKeluar $record): void {
                 $perintah = trim((string) $get('perintah'));
 

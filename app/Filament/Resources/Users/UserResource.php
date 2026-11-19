@@ -105,6 +105,7 @@ class UserResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->extraAttributes(['class' => 'ta-normal'])
             ->columns([
                 TextColumn::make('name')
                     ->label('Nama')

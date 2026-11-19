@@ -15,6 +15,7 @@ use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
@@ -52,7 +53,8 @@ class SiswasTable
                 ImageColumn::make('foto')
                     ->disk(fn (): string => Siswa::diskFoto())
                     ->visibility('private')
-                    ->circular(),
+                    ->circular()
+                    ->toggleable(),
                 TextColumn::make('nis')
                     ->label('NIS')
                     ->searchable()
@@ -68,6 +70,7 @@ class SiswasTable
                     ->toggleable(),
                 TextColumn::make('nama_lengkap')
                     ->label('Nama')
+                    ->weight('medium')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('jenis_kelamin')

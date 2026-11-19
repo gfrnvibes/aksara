@@ -41,6 +41,13 @@ class KegiatanUjianResource extends Resource
 
     protected static ?string $slug = 'kartu-denah';
 
+    public static function getNavigationBadge(): ?string
+    {
+        $count = static::getModel()::query()->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema

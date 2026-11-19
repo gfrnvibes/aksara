@@ -122,8 +122,7 @@ class ListSoals extends ListRecords
                 ->label('Buat dengan AI')
                 ->icon(Heroicon::Sparkles)
                 ->extraAttributes([
-                    'style' => 'background: linear-gradient(135deg, #2563eb 0%, #6366f1 50%, #a855f7 100%); color: #ffffff; border: 0;',
-                    'class' => 'shadow-sm hover:opacity-90 transition-opacity',
+                    'class' => 'btn-ai-generate',
                 ])
                 ->url(fn (): string => SoalResource::getUrl('ai', array_filter(['mapel' => $this->mapel, 'tingkat' => $this->tingkatAktif()])))
                 ->visible(fn (): bool => KlienGemini::aktif() && $this->bolehMenulis()),

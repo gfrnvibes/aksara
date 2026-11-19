@@ -32,6 +32,7 @@ class BuatCapaianKompetensiAction
         return Action::make('buatCapaian')
             ->label('Buat capaian otomatis')
             ->icon(Heroicon::Sparkles)
+            ->extraAttributes(['class' => 'btn-ai-generate'])
             ->link()
             ->visible(fn (Get $get): bool => RaporForm::skemaDari($get)->pakaiCapaianKompetensi())
             ->modalHeading('Buat capaian kompetensi')
