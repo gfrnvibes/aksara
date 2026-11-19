@@ -80,8 +80,16 @@ html.fi {
 
     /* Navigasi samping: garis kanan sepanjang layar dan garis di bawah nama aplikasi. */
     .fi-main-sidebar {
-        position: relative;
-        @apply lg:border-e lg:border-gray-950/10 dark:lg:border-white/10;
+        @apply lg:relative lg:border-e lg:border-gray-950/10 dark:lg:border-white/10;
+    }
+
+    .fi-main {
+        @apply min-w-0 max-w-full;
+    }
+
+    .fi-ta-ctn,
+    .fi-ta-content-ctn {
+        @apply max-w-full overflow-x-auto;
     }
 
     .fi-sidebar-resize-handle {

@@ -13,6 +13,11 @@
         }
 
         function applySavedState() {
+            if (window.innerWidth < 1024) {
+                document.documentElement.style.removeProperty('--sidebar-width');
+                return;
+            }
+
             const store = sidebarStore();
             const isCollapsed = localStorage.getItem(COLLAPSED_KEY) === '1';
 
@@ -46,6 +51,7 @@
                 if (btn.dataset.aksaraBound) return;
                 btn.dataset.aksaraBound = '1';
                 btn.addEventListener('click', () => {
+                    if (window.innerWidth < 1024) return;
                     document.documentElement.style.removeProperty('--sidebar-width');
                     localStorage.setItem(COLLAPSED_KEY, '1');
                 });
@@ -55,6 +61,7 @@
                 if (btn.dataset.aksaraBound) return;
                 btn.dataset.aksaraBound = '1';
                 btn.addEventListener('click', () => {
+                    if (window.innerWidth < 1024) return;
                     localStorage.setItem(COLLAPSED_KEY, '0');
                     const saved = localStorage.getItem(WIDTH_KEY);
                     if (saved) {
