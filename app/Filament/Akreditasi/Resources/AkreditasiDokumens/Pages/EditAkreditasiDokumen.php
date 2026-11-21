@@ -9,6 +9,7 @@ use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Js;
 
 class EditAkreditasiDokumen extends EditRecord
 {
@@ -20,7 +21,15 @@ class EditAkreditasiDokumen extends EditRecord
             Action::make('generateAi')
                 ->label('Generate Ulang dengan AI')
                 ->icon(Heroicon::Sparkles)
-                ->extraAttributes(['class' => 'btn-ai-generate'])
+                ->extraAttributes(function (): array {
+                    /** @var AkreditasiDokumen $record */
+                    $record = $this->getRecord();
+
+                    return [
+                        'class' => 'btn-ai-generate',
+                        'x-on:click' => "\$dispatch('akreditasi-ai-mulai', { judul: ".Js::from($record->judul).' })',
+                    ];
+                })
                 ->action(function (): void {
                     /** @var AkreditasiDokumen $record */
                     $record = $this->getRecord();

@@ -4,28 +4,90 @@
         $kesiapan = $this->kesiapan();
         $dokMap = $this->dokumenMap();
         $buktiMap = $this->buktiCountMap();
+        $progresAi = $this->statusProgresAi();
     @endphp
+
+    <div
+        wire:loading.flex
+        wire:target="callMountedAction"
+        class="flex-col gap-2 rounded-xl border border-primary-200 bg-primary-50/70 p-4 shadow-xs dark:border-primary-800/60 dark:bg-primary-950/30"
+    >
+        <div class="flex items-center gap-2">
+            <x-filament::loading-indicator class="h-5 w-5 text-primary-600" />
+            <span class="text-sm font-semibold text-gray-950 dark:text-white">
+                Menyiapkan antrean generate draf AI...
+            </span>
+        </div>
+        <div class="h-2.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
+            <div class="h-full w-1/3 animate-pulse rounded-full bg-primary-600"></div>
+        </div>
+    </div>
+
+    @if ($progresAi !== null)
+        <div wire:poll.2s="cekProgresAi" class="rounded-xl border border-gray-200 bg-white p-4 shadow-xs dark:border-white/10 dark:bg-gray-900">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <x-filament::loading-indicator class="h-5 w-5 text-primary-600" />
+                    <span class="text-sm font-semibold text-gray-950 dark:text-white">
+                        Menyusun Draf Dokumen Akreditasi AI
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-3 text-xs">
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
+                        {{ $progresAi['selesai'] }} / {{ $progresAi['total'] }} dokumen ({{ $progresAi['persen'] }}%)
+                    </span>
+                    @if ($progresAi['gagal'] > 0)
+                        <span class="rounded-md bg-danger-50 px-2 py-0.5 font-medium text-danger-700 dark:bg-danger-400/10 dark:text-danger-400">
+                            {{ $progresAi['gagal'] }} gagal
+                        </span>
+                    @endif
+                    <button
+                        type="button"
+                        wire:click="sembunyikanProgresAi"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                        title="Sembunyikan indikator"
+                    >
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
+                <div
+                    class="h-full rounded-full transition-all duration-500 {{ $progresAi['gagal'] > 0 ? 'bg-warning-500' : 'bg-primary-600' }}"
+                    style="width: {{ max(4, $progresAi['persen']) }}%"
+                ></div>
+            </div>
+
+            <p class="mt-2 text-xs {{ $progresAi['antrean_macet'] ? 'font-medium text-warning-600 dark:text-warning-400' : 'text-gray-500 dark:text-gray-400' }}">
+                {{ $progresAi['estimasi'] }}
+            </p>
+        </div>
+    @endif
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <x-filament::section>
             <div class="text-xs text-gray-500 uppercase font-semibold">Kesiapan Keseluruhan</div>
             <div class="text-2xl font-bold text-emerald-600 mt-1">{{ $kesiapan['persen_keseluruhan'] }}%</div>
-            <div class="text-xs text-gray-500 mt-1">Tahun Ajaran {{ $tahun?->nama ?? '-' }}</div>
+            <div class="text-xs text-gray-500 mt-1">
+                TA {{ $tahun?->nama ?? '-' }} · Admin Guru {{ $kesiapan['persen_admin_guru'] }}%
+            </div>
         </x-filament::section>
         <x-filament::section>
             <div class="text-xs text-gray-500 uppercase font-semibold">6 Dokumen Wajib Sispena</div>
             <div class="text-2xl font-bold mt-1">{{ $kesiapan['dw_selesai'] }} / {{ $kesiapan['dw_total'] }}</div>
-            <div class="text-xs text-gray-500 mt-1">KSP, RKT, RKAS, Kalender, Modul, Foto</div>
+            <div class="text-xs text-gray-500 mt-1">{{ $kesiapan['dw_final'] }} berstatus final</div>
         </x-filament::section>
         <x-filament::section>
             <div class="text-xs text-gray-500 uppercase font-semibold">Narasi DKA 14 Butir</div>
             <div class="text-2xl font-bold mt-1">{{ $kesiapan['dka_selesai'] }} / {{ $kesiapan['dka_total'] }}</div>
-            <div class="text-xs text-gray-500 mt-1">Komponen 1, 2, dan 3 IASP</div>
+            <div class="text-xs text-gray-500 mt-1">{{ $kesiapan['dka_final'] }} berstatus final</div>
         </x-filament::section>
         <x-filament::section>
             <div class="text-xs text-gray-500 uppercase font-semibold">Bukti Dukung Ter-tag</div>
             <div class="text-2xl font-bold mt-1">{{ $kesiapan['bukti_total'] }}</div>
-            <div class="text-xs text-gray-500 mt-1">Otomatis &amp; unggahan manual</div>
+            <div class="text-xs text-gray-500 mt-1">{{ $kesiapan['butir_terpenuhi'] }} / 14 butir terisi bukti</div>
         </x-filament::section>
     </div>
 

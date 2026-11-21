@@ -102,3 +102,70 @@ it('builds the complete visitasi ZIP bundle with 6 PDFs, DOCX DKA, XLSX mapping,
         ->toContain('04_Deck_Presentasi_Kepala_Madrasah.pdf')
         ->toContain('05_Lembar_Ceklis_Kesiapan_Lapangan.pdf');
 });
+
+it('shows AI loading and progress bar on accreditation dashboard and document pages', function () {
+    $tim = User::factory()->create()->assignRole(RoleSeeder::TIM_AKREDITASI);
+    actingAs($tim);
+
+    app(PetaBanPdm::class)->inisialisasiDokumen($this->tahun, $tim->id);
+    $dok = AkreditasiDokumen::query()->where('tahun_ajaran_id', $this->tahun->id)->firstOrFail();
+
+    \Illuminate\Support\Facades\Bus::fake();
+    $batch = \Illuminate\Support\Facades\Bus::batch([
+        new \App\Jobs\SusunDokumenAkreditasiAi($dok->id),
+    ])->name('akreditasi-ai-'.$this->tahun->id)->dispatch();
+
+    \Illuminate\Support\Facades\Cache::put(DasborAkreditasi::kunciBatchAktif($this->tahun->id), [
+        'batch_id' => $batch->id,
+        'dibuat_pada' => now()->timestamp,
+    ], now()->addHours(2));
+
+    Filament::setCurrentPanel('akreditasi');
+    Livewire::test(DasborAkreditasi::class)
+        ->assertSee('Menyusun Draf Dokumen Akreditasi AI')
+        ->assertSee('wire:poll.2s="cekProgresAi"', false);
+
+    $this->get(AkreditasiDokumenResource::getUrl(panel: 'akreditasi'))
+        ->assertOk()
+        ->assertSee('akreditasi-ai-mulai')
+        ->assertSee('Menyusun draf AI:');
+
+    $this->get(AkreditasiDokumenResource::getUrl('edit', ['record' => $dok], panel: 'akreditasi'))
+        ->assertOk()
+        ->assertSee('akreditasi-ai-mulai')
+        ->assertSee('Menyusun draf AI:');
+});
+
+it('calculates weighted accreditation readiness instead of reporting 100 percent for drafts alone', function () {
+    $peta = app(PetaBanPdm::class);
+    $peta->inisialisasiDokumen($this->tahun);
+
+    AkreditasiDokumen::query()
+        ->where('tahun_ajaran_id', $this->tahun->id)
+        ->update(['status' => 'draf']);
+
+    $kesiapanDraf = $peta->analisisKesiapan($this->tahun);
+    expect($kesiapanDraf['persen_keseluruhan'])->toBe(20)
+        ->and($kesiapanDraf['dw_final'])->toBe(0)
+        ->and($kesiapanDraf['dka_final'])->toBe(0)
+        ->and($kesiapanDraf['butir_terpenuhi'])->toBe(0)
+        ->and($kesiapanDraf['persen_admin_guru'])->toBe(0);
+
+    AkreditasiDokumen::query()
+        ->where('tahun_ajaran_id', $this->tahun->id)
+        ->update(['status' => 'final']);
+
+    \App\Models\AkreditasiBukti::query()->create([
+        'tahun_ajaran_id' => $this->tahun->id,
+        'kode_butir' => 'butir_01',
+        'judul' => 'Catatan Wali Kelas',
+        'sumber_tipe' => 'manual',
+        'berkas_path' => 'bukti/butir-01.pdf',
+    ]);
+
+    $kesiapanFinal = $peta->analisisKesiapan($this->tahun);
+    expect($kesiapanFinal['dw_final'])->toBe(6)
+        ->and($kesiapanFinal['dka_final'])->toBe(14)
+        ->and($kesiapanFinal['butir_terpenuhi'])->toBe(1)
+        ->and($kesiapanFinal['persen_keseluruhan'])->toBe(43);
+});

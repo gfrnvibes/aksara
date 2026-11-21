@@ -5,6 +5,7 @@ namespace App\Services\Akreditasi;
 use App\Enums\StatusSiswa;
 use App\Models\AkreditasiBukti;
 use App\Models\AkreditasiDokumen;
+use App\Models\AlurTujuanPembelajaran;
 use App\Models\Ekstrakurikuler;
 use App\Models\GaleriKegiatan;
 use App\Models\Gtk;
@@ -16,6 +17,8 @@ use App\Models\PelanggaranSiswa;
 use App\Models\PembagianMengajar;
 use App\Models\PerangkatAjar;
 use App\Models\PrestasiSiswa;
+use App\Models\ProgramSemester;
+use App\Models\ProgramTahunan;
 use App\Models\Rapor;
 use App\Models\Siswa;
 use App\Models\Soal;
@@ -262,27 +265,142 @@ class PetaBanPdm
     }
 
     /**
-     * Compute overall readiness scores across 6 DW and 14 Butir.
+     * Compute overall readiness scores across 6 DW, 14 Butir, evidence coverage, and teacher administration.
      *
-     * @return array{dw_selesai: int, dw_total: int, dka_selesai: int, dka_total: int, bukti_total: int, persen_keseluruhan: int}
+     * @return array{
+     *     dw_selesai: int,
+     *     dw_final: int,
+     *     dw_total: int,
+     *     dka_selesai: int,
+     *     dka_final: int,
+     *     dka_total: int,
+     *     bukti_total: int,
+     *     butir_terpenuhi: int,
+     *     persen_admin_guru: int,
+     *     persen_keseluruhan: int
+     * }
      */
     public function analisisKesiapan(TahunAjaran $tahun): array
     {
         $dokumens = AkreditasiDokumen::query()->where('tahun_ajaran_id', $tahun->id)->get();
         $dwSelesai = $dokumens->where('kategori', 'dokumen_wajib')->whereIn('status', ['draf', 'final'])->count();
+        $dwFinal = $dokumens->where('kategori', 'dokumen_wajib')->where('status', 'final')->count();
         $dkaSelesai = $dokumens->where('kategori', 'dka_butir')->whereIn('status', ['draf', 'final'])->count();
-        $buktiTotal = AkreditasiBukti::query()->where('tahun_ajaran_id', $tahun->id)->count();
+        $dkaFinal = $dokumens->where('kategori', 'dka_butir')->where('status', 'final')->count();
 
-        $totalItem = 20; // 6 DW + 14 Butir
-        $selesai = $dwSelesai + $dkaSelesai;
+        $totalFinal = $dwFinal + $dkaFinal;
+        $totalDraf = $dokumens->where('status', 'draf')->count();
+        $skorDokumen = min(1.0, (($totalFinal * 1.0) + ($totalDraf * 0.5)) / 20);
+
+        $buktiPerButir = AkreditasiBukti::query()
+            ->where('tahun_ajaran_id', $tahun->id)
+            ->get(['kode_butir', 'berkas_path'])
+            ->groupBy('kode_butir');
+
+        $buktiTotal = $buktiPerButir->sum(fn ($items): int => $items->count());
+        $butirTerpenuhi = 0;
+        $jumlahSkorButir = 0.0;
+
+        foreach (static::butir14() as $butir) {
+            $items = $buktiPerButir->get($butir['kode']);
+            if ($items === null || $items->isEmpty()) {
+                continue;
+            }
+
+            $butirTerpenuhi++;
+            $punyaBerkas = $items->contains(fn (AkreditasiBukti $b): bool => filled($b->berkas_path));
+            $jumlahSkorButir += ($items->count() >= 2 || $punyaBerkas) ? 1.0 : 0.5;
+        }
+
+        $skorBukti = $jumlahSkorButir / 14;
+        $skorAdminGuru = $this->hitungSkorAdminGuru($tahun);
+
+        $persenKeseluruhan = (int) round(
+            ($skorDokumen * 40) + ($skorBukti * 35) + ($skorAdminGuru * 25)
+        );
 
         return [
             'dw_selesai' => $dwSelesai,
+            'dw_final' => $dwFinal,
             'dw_total' => 6,
             'dka_selesai' => $dkaSelesai,
+            'dka_final' => $dkaFinal,
             'dka_total' => 14,
             'bukti_total' => $buktiTotal,
-            'persen_keseluruhan' => (int) round(($selesai / $totalItem) * 100),
+            'butir_terpenuhi' => $butirTerpenuhi,
+            'persen_admin_guru' => (int) round($skorAdminGuru * 100),
+            'persen_keseluruhan' => min(100, max(0, $persenKeseluruhan)),
         ];
+    }
+
+    protected function hitungSkorAdminGuru(TahunAjaran $tahun): float
+    {
+        $penugasan = PembagianMengajar::query()
+            ->where('tahun_ajaran_id', $tahun->id)
+            ->get(['gtk_id', 'mata_pelajaran_id', 'kelas_id']);
+
+        if ($penugasan->isEmpty()) {
+            return 0.0;
+        }
+
+        $atpKeys = AlurTujuanPembelajaran::query()
+            ->where('tahun_ajaran_id', $tahun->id)
+            ->get(['gtk_id', 'mata_pelajaran_id', 'kelas_id'])
+            ->map(fn ($r): string => "{$r->gtk_id}:{$r->mata_pelajaran_id}:{$r->kelas_id}")
+            ->flip();
+
+        $protaKeys = ProgramTahunan::query()
+            ->where('tahun_ajaran_id', $tahun->id)
+            ->get(['gtk_id', 'mata_pelajaran_id', 'kelas_id'])
+            ->map(fn ($r): string => "{$r->gtk_id}:{$r->mata_pelajaran_id}:{$r->kelas_id}")
+            ->flip();
+
+        $prosemKeys = ProgramSemester::query()
+            ->where('tahun_ajaran_id', $tahun->id)
+            ->get(['gtk_id', 'mata_pelajaran_id', 'kelas_id'])
+            ->map(fn ($r): string => "{$r->gtk_id}:{$r->mata_pelajaran_id}:{$r->kelas_id}")
+            ->flip();
+
+        $perangkatKeys = PerangkatAjar::query()
+            ->where('tahun_ajaran_id', $tahun->id)
+            ->get(['gtk_id', 'mata_pelajaran_id'])
+            ->map(fn ($r): string => "{$r->gtk_id}:{$r->mata_pelajaran_id}")
+            ->flip();
+
+        $jurnalKeys = JurnalMengajar::query()
+            ->where('tahun_ajaran_id', $tahun->id)
+            ->whereIn('status', ['hadir', 'terlaksana'])
+            ->whereNotNull('pelaksana_id')
+            ->get(['pelaksana_id', 'kelas_id'])
+            ->map(fn ($r): string => "{$r->pelaksana_id}:{$r->kelas_id}")
+            ->flip();
+
+        $totalSkor = 0.0;
+        foreach ($penugasan as $p) {
+            $kunci3 = "{$p->gtk_id}:{$p->mata_pelajaran_id}:{$p->kelas_id}";
+            $kunciMapel = "{$p->gtk_id}:{$p->mata_pelajaran_id}";
+            $kunciJurnal = "{$p->gtk_id}:{$p->kelas_id}";
+
+            $terpenuhi = 0;
+            if ($atpKeys->has($kunci3)) {
+                $terpenuhi++;
+            }
+            if ($protaKeys->has($kunci3)) {
+                $terpenuhi++;
+            }
+            if ($prosemKeys->has($kunci3)) {
+                $terpenuhi++;
+            }
+            if ($perangkatKeys->has($kunciMapel)) {
+                $terpenuhi++;
+            }
+            if ($jurnalKeys->has($kunciJurnal)) {
+                $terpenuhi++;
+            }
+
+            $totalSkor += ($terpenuhi / 5);
+        }
+
+        return $totalSkor / $penugasan->count();
     }
 }

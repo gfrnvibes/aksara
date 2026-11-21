@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Filament\Akreditasi\Resources\AkreditasiDokumens\Pages\EditAkreditasiDokumen;
+use App\Filament\Akreditasi\Resources\AkreditasiDokumens\Pages\ListAkreditasiDokumens;
 use App\Policies\ActivityPolicy;
 use App\Policies\RolePolicy;
 use Carbon\CarbonImmutable;
@@ -46,6 +48,12 @@ class AppServiceProvider extends ServiceProvider
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_END,
             fn () => view('filament.components.sidebar-resize'),
+        );
+
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::CONTENT_START,
+            fn () => view('filament.akreditasi.partials.ai-loading-banner'),
+            scopes: [ListAkreditasiDokumens::class, EditAkreditasiDokumen::class],
         );
 
         TextColumn::configureUsing(function (TextColumn $column): void {

@@ -23,6 +23,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Js;
 
 class AkreditasiDokumenResource extends Resource
 {
@@ -165,7 +166,9 @@ class AkreditasiDokumenResource extends Resource
                 Action::make('generateAi')
                     ->label('Generate AI')
                     ->icon(Heroicon::Sparkles)
-                    ->extraAttributes(['class' => 'btn-ai-generate'])
+                    ->extraAttributes(fn (AkreditasiDokumen $record): array => [
+                        'x-on:click' => "\$dispatch('akreditasi-ai-mulai', { judul: ".Js::from($record->judul).' })',
+                    ])
                     ->visible(fn (AkreditasiDokumen $record): bool => auth()->user()?->can('Update:AkreditasiDokumen') ?? false)
                     ->action(function (AkreditasiDokumen $record): void {
                         app(PenyusunDokumenAkreditasiAi::class)->susun($record);

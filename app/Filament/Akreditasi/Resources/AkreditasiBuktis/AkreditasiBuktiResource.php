@@ -98,7 +98,7 @@ class AkreditasiBuktiResource extends Resource
                 TextColumn::make('judul')
                     ->searchable()
                     ->wrap()
-                    ->weight('bold'),
+                    ->weight('medium'),
                 TextColumn::make('sumber_tipe')
                     ->label('Sumber')
                     ->badge()
