@@ -7,6 +7,7 @@ use App\Support\PemantauanBackup;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
@@ -20,9 +21,13 @@ use Throwable;
 
 class RestoreBackup
 {
+    public const string DISK_UNGGAH = 'unggah';
+
+    public const string DIREKTORI_UNGGAH = 'restore-uploads';
+
     public function __construct(protected CatatanRestore $catatan, protected ArsipRestore $arsip, protected PemulihanDatabase $database) {}
 
-    public function mulai(User $user, string $disk, string $path, bool $files): string
+    public function mulai(User $user, string $disk, string $path, bool $files, ?string $archivePassword = null): string
     {
         $this->otorisasi($user);
         if (config('app.maintenance.driver') !== 'file') {
@@ -32,7 +37,12 @@ class RestoreBackup
         $this->database->validasi($this->connection());
 
         return $this->catatan->buat([
-            'actor_id' => $user->id, 'actor' => $user->name, 'disk' => $disk, 'path' => $path, 'files' => $files,
+            'actor_id' => $user->id,
+            'actor' => $user->name,
+            'disk' => $disk,
+            'path' => $path,
+            'files' => $files,
+            'password_arsip' => filled($archivePassword) ? Crypt::encryptString($archivePassword) : null,
         ]);
     }
 
@@ -71,7 +81,10 @@ class RestoreBackup
             File::ensureDirectoryExists($work);
             $this->catatan->ubah($id, ['status' => 'validasi']);
             $this->salinArsip((string) $record['disk'], (string) $record['path'], $work.'/archive.zip');
-            $source = $this->arsip->ekstrak($work.'/archive.zip', $work.'/source', $connection->getDriverName());
+            $archivePassword = filled($record['password_arsip'] ?? null)
+                ? Crypt::decryptString((string) $record['password_arsip'])
+                : null;
+            $source = $this->arsip->ekstrak($work.'/archive.zip', $work.'/source', $connection->getDriverName(), $archivePassword);
             if ($record['files'] && ! $source['has_files']) {
                 throw new RuntimeException('Arsip tidak memuat foto/file. Pilih restore database saja.');
             }
@@ -137,12 +150,14 @@ class RestoreBackup
             if (! $keepRecovery && $root !== false && $resolved !== false && str_starts_with($resolved, $root.DIRECTORY_SEPARATOR)) {
                 File::deleteDirectory($resolved);
             }
+            $this->bersihkanUnggahan($id);
         }
     }
 
     public function gagal(string $id, string $message): void
     {
         $this->catatan->ubah($id, ['status' => 'gagal', 'error' => app(BackupSekolah::class)->pesanKesalahan($message), 'finished_at' => now()->toDateTimeString()]);
+        $this->bersihkanUnggahan($id);
     }
 
     protected function otorisasi(User $user): void
@@ -154,17 +169,47 @@ class RestoreBackup
 
     protected function validasiLokasi(string $disk, string $path): void
     {
+        $hasUnsafePath = ! Str::endsWith($path, '.zip') || Str::contains($path, ['..', '\\', "\0"]);
+
+        if ($disk === static::DISK_UNGGAH) {
+            if ($hasUnsafePath
+                || ! Str::startsWith($path, static::DIREKTORI_UNGGAH.'/')
+                || ! Storage::disk('local')->exists($path)) {
+                throw new RuntimeException('File backup unggahan tidak ditemukan atau lokasinya tidak diizinkan.');
+            }
+
+            return;
+        }
+
         if (! in_array($disk, PemantauanBackup::getDisks(), true)
             || ! Str::startsWith($path, config()->string('backup.backup.name').'/')
-            || ! Str::endsWith($path, '.zip') || Str::contains($path, ['..', '\\', "\0"])
+            || $hasUnsafePath
             || ! Storage::disk($disk)->exists($path)) {
             throw new RuntimeException('File backup tidak ditemukan atau lokasinya tidak diizinkan.');
         }
     }
 
+    protected function storageDisk(string $disk): string
+    {
+        return $disk === static::DISK_UNGGAH ? 'local' : $disk;
+    }
+
+    protected function bersihkanUnggahan(string $id): void
+    {
+        $record = $this->catatan->ambil($id);
+
+        if (($record['password_arsip'] ?? null) !== null) {
+            $this->catatan->ubah($id, ['password_arsip' => null]);
+        }
+
+        if (($record['disk'] ?? null) === static::DISK_UNGGAH && filled($record['path'] ?? null)) {
+            Storage::disk('local')->delete((string) $record['path']);
+        }
+    }
+
     protected function salinArsip(string $disk, string $path, string $destination): void
     {
-        $input = Storage::disk($disk)->readStream($path);
+        $input = Storage::disk($this->storageDisk($disk))->readStream($path);
         $output = fopen($destination, 'wb');
         if (! is_resource($input) || $output === false) {
             if (is_resource($input)) {
@@ -212,8 +257,8 @@ class RestoreBackup
 
     protected function bersihkanStatusSementara(): void
     {
-        // Do not replay old queued jobs or revive old login sessions from the dump.
-        foreach (['jobs', 'sessions'] as $table) {
+        // Do not replay old queued jobs, revive old login sessions, or keep stale cache locks from the dump.
+        foreach (['jobs', 'sessions', 'cache_locks'] as $table) {
             if (Schema::hasTable($table)) {
                 DB::table($table)->delete();
             }
@@ -250,10 +295,18 @@ class RestoreBackup
     protected function gantiFiles(string $source, string $previous): void
     {
         $target = $this->publicDirectory();
-        if (! rename($target, $previous)) {
+        if (PHP_OS_FAMILY !== 'Windows' && @rename($target, $previous)) {
+            if (@rename($source, $target)) {
+                return;
+            }
+            @rename($previous, $target);
+        }
+
+        if (! File::copyDirectory($target, $previous)) {
             throw new RuntimeException('Folder file saat ini tidak dapat disiapkan untuk restore.');
         }
-        if (! rename($source, $target)) {
+        File::ensureDirectoryExists($target);
+        if (! File::cleanDirectory($target) || ! File::copyDirectory($source, $target)) {
             throw new RuntimeException('Folder file backup tidak dapat dipasang.');
         }
     }
@@ -264,7 +317,14 @@ class RestoreBackup
         if (! is_dir($previous)) {
             return;
         }
-        if ((is_dir($target) && ! rename($target, $failed)) || ! rename($previous, $target)) {
+        if (PHP_OS_FAMILY !== 'Windows'
+            && (! is_dir($target) || @rename($target, $failed))
+            && @rename($previous, $target)) {
+            return;
+        }
+
+        File::ensureDirectoryExists($target);
+        if (! File::cleanDirectory($target) || ! File::copyDirectory($previous, $target)) {
             throw new RuntimeException('Folder file sebelumnya tidak dapat dikembalikan.');
         }
     }

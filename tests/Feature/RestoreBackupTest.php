@@ -254,3 +254,24 @@ it('renders restore history including the failure message without relying on dat
 
     Livewire::test(RiwayatRestore::class)->assertSee('Arsip tidak valid')->assertSee('Gagal')->assertSee('Cloudflare R2');
 });
+
+it('rejects uploaded archive paths outside the restore-uploads directory', function () {
+    Storage::disk('local')->put('other/backup.zip', 'archive');
+
+    expect(fn () => $this->restore->mulai($this->admin, RestoreBackup::DISK_UNGGAH, 'other/backup.zip', false))
+        ->toThrow(RuntimeException::class, 'lokasinya tidak diizinkan');
+});
+
+it('deletes the uploaded archive and clears encrypted password when restore fails during validation', function () {
+    $uploadPath = RestoreBackup::DIREKTORI_UNGGAH.'/invalid.zip';
+    Storage::disk('local')->put($uploadPath, 'not-a-valid-zip');
+
+    $id = $this->restore->mulai($this->admin, RestoreBackup::DISK_UNGGAH, $uploadPath, false, 'rahasia');
+    expect($this->journal->ambil($id)['password_arsip'])->not->toBe('rahasia');
+
+    $this->restore->jalankan($id);
+
+    expect($this->journal->ambil($id)['status'])->toBe('gagal')
+        ->and($this->journal->ambil($id)['password_arsip'])->toBeNull()
+        ->and(Storage::disk('local')->exists($uploadPath))->toBeFalse();
+});

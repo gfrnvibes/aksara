@@ -23,6 +23,8 @@ use Illuminate\Validation\Rules\Password;
 use League\Flysystem\Filesystem;
 use Masbug\Flysystem\GoogleDriveAdapter;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\Backup\Tasks\Backup\DbDumperFactory;
+use Spatie\DbDumper\Databases\PostgreSql;
 use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
@@ -71,6 +73,35 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->registerGoogleDriveDisk();
+        $this->registerPostgreSqlDumper();
+    }
+
+    /**
+     * Preserve Windows system environment variables so PostgreSQL 18 pg_dump can generate its restrict key.
+     */
+    protected function registerPostgreSqlDumper(): void
+    {
+        if (PHP_OS_FAMILY !== 'Windows') {
+            return;
+        }
+
+        DbDumperFactory::extend('pgsql', fn (): PostgreSql => new class extends PostgreSql
+        {
+            /** @return array<string, string> */
+            protected function getEnvironmentVariablesForDumpCommand(string $temporaryCredentialsFile): array
+            {
+                $vars = parent::getEnvironmentVariablesForDumpCommand($temporaryCredentialsFile);
+
+                foreach (['SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'PATH'] as $key) {
+                    $value = getenv($key);
+                    if (is_string($value) && $value !== '') {
+                        $vars[$key] = $value;
+                    }
+                }
+
+                return $vars;
+            }
+        });
     }
 
     /**

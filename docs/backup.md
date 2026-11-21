@@ -49,7 +49,7 @@ Restore mendukung PostgreSQL dengan schema `public` dan SQLite berbasis file pad
 
 Proses dimulai setelah respons HTTP, tanpa disimpan dalam antrean database yang akan dipulihkan. Aplikasi masuk maintenance sementara, membuat backup pengaman lengkap bernama `db-and-files-pre-restore-...zip` di disk lokal, lalu memulihkan data. Jika backup pengaman atau validasi gagal, data tidak diganti. PostgreSQL menggunakan satu transaksi untuk mengganti schema; SQLite divalidasi di file sementara sebelum dipasang. Jika langkah setelah impor gagal, sistem mencoba mengembalikan database dan file sebelumnya dari backup pengaman.
 
-Pemulihan foto mengganti **storage/app/public** sesuai isi arsip. Dokumen privat yang disimpan terpisah di R2 tidak termasuk backup/restore ini. Restore tidak menerima unggahan SQL/ZIP sembarang; sumbernya hanya arsip pada lokasi backup yang terdaftar.
+Pemulihan foto mengganti **storage/app/public** sesuai isi arsip. Dokumen privat yang disimpan terpisah di R2 tidak termasuk backup/restore ini. Selain memilih arsip dari lokasi backup terdaftar, **super admin** dapat mengunggah arsip `.zip` hasil backup Aksara melalui tombol **Restore dari File** (disimpan sementara di `storage/app/private/restore-uploads` dan dihapus otomatis setelah proses selesai atau gagal; batas unggah mengikuti `upload_max_filesize`/`post_max_size` PHP dan konfigurasi Livewire). Restore tetap tidak menerima file `.sql` mentah.
 
 Struktur database disesuaikan melalui migrasi setelah impor. Antrean `jobs` dan sesi login lama dari snapshot dibersihkan agar pekerjaan tidak dijalankan ulang dan sesi lama tidak aktif kembali. Setelah selesai, muat ulang halaman dan login menggunakan akun/password yang ada dalam backup.
 

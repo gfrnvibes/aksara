@@ -70,3 +70,16 @@ it('validates encrypted archives using the configured backup password', function
     $result = app(ArsipRestore::class)->ekstrak($this->root.'/archive.zip', $this->root.'/result', 'sqlite');
     expect(file_get_contents($result['sql']))->toContain('CREATE TABLE');
 });
+
+it('validates encrypted archives using an explicit override password', function () {
+    config(['backup.backup.password' => 'server-pass']);
+    $zip = new ZipArchive;
+    $zip->open($this->root.'/archive.zip', ZipArchive::CREATE);
+    $zip->setPassword('custom-upload-pass');
+    $zip->addFromString('db-dumps/sqlite-fixture.sql', 'CREATE TABLE example (id INTEGER);');
+    $zip->setEncryptionName('db-dumps/sqlite-fixture.sql', ZipArchive::EM_AES_256);
+    $zip->close();
+
+    $result = app(ArsipRestore::class)->ekstrak($this->root.'/archive.zip', $this->root.'/result', 'sqlite', 'custom-upload-pass');
+    expect(file_get_contents($result['sql']))->toContain('CREATE TABLE');
+});

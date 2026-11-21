@@ -9,13 +9,14 @@ use ZipArchive;
 class ArsipRestore
 {
     /** @return array{sql: string, files: string, has_files: bool} */
-    public function ekstrak(string $archive, string $directory, string $driver): array
+    public function ekstrak(string $archive, string $directory, string $driver, ?string $password = null): array
     {
         $zip = new ZipArchive;
         if ($zip->open($archive, ZipArchive::RDONLY) !== true) {
             throw new RuntimeException('Arsip ZIP tidak dapat dibuka.');
         }
-        $zip->setPassword((string) config('backup.backup.password'));
+        $zipPassword = filled($password) ? $password : (string) config('backup.backup.password');
+        $zip->setPassword($zipPassword);
         $sql = null;
         $hasFiles = false;
         $seen = [];

@@ -9,17 +9,20 @@ use App\Jobs\PulihkanBackup;
 use App\Models\RiwayatBackup;
 use App\Models\User;
 use App\Services\BackupSekolah;
+use App\Services\CatatanRestore;
 use App\Services\RestoreBackup;
 use App\Support\PemantauanBackup;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\EmbeddedTable;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -27,6 +30,7 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
@@ -93,8 +97,59 @@ class BackupData extends Page implements HasTable
     public function content(Schema $schema): Schema
     {
         return $schema->components([
+            View::make('filament.pages.partials.restore-progress-banner'),
             EmbeddedTable::make(),
         ]);
+    }
+
+    /**
+     * @return array{id: string, status: string, aktif: bool, persen: int, label: string, arsip: string, error: string|null}|null
+     */
+    public function getStatusRestoreTerbaru(): ?array
+    {
+        if (! static::canRestore()) {
+            return null;
+        }
+
+        $record = app(CatatanRestore::class)->semua()->first();
+        if (! is_array($record)) {
+            return null;
+        }
+
+        $status = (string) ($record['status'] ?? '');
+        $aktif = in_array($status, ['menunggu', 'validasi', 'backup_pengaman', 'diproses'], true);
+
+        if (! $aktif) {
+            $finishedAt = $record['finished_at'] ?? null;
+            if (! is_string($finishedAt) || Carbon::parse($finishedAt)->lt(now()->subMinutes(10))) {
+                return null;
+            }
+        }
+
+        return [
+            'id' => (string) ($record['id'] ?? ''),
+            'status' => $status,
+            'aktif' => $aktif,
+            'persen' => match ($status) {
+                'menunggu' => 10,
+                'validasi' => 30,
+                'backup_pengaman' => 55,
+                'diproses' => 80,
+                'berhasil', 'gagal' => 100,
+                default => 10,
+            },
+            'label' => match ($status) {
+                'menunggu' => 'Menunggu proses restore dimulai...',
+                'validasi' => 'Memvalidasi dan mengekstrak arsip backup...',
+                'backup_pengaman' => 'Membuat backup pengaman sebelum menimpa data...',
+                'diproses' => 'Memulihkan database dan berkas...',
+                'berhasil' => 'Restore selesai dipulihkan.',
+                'gagal' => 'Restore gagal.',
+                default => ucfirst($status),
+            },
+            'arsip' => basename((string) ($record['path'] ?? '')),
+            'error' => is_string($record['error'] ?? null) ? $record['error'] : null,
+        ];
     }
 
     protected function getHeaderWidgets(): array
@@ -155,6 +210,51 @@ class BackupData extends Page implements HasTable
                         ->body('Status setiap tujuan akan diperbarui otomatis pada tabel.')
                         ->success()
                         ->send();
+                }),
+            Action::make('restoreUnggah')
+                ->label('Restore dari File')
+                ->icon(Heroicon::ArrowUpTray)
+                ->color('warning')
+                ->visible(fn (): bool => static::canRestore())
+                ->modalHeading('Restore data dari file backup?')
+                ->modalDescription('Unggah arsip .zip hasil backup Aksara. Data saat ini akan diganti setelah backup pengaman dibuat dan aplikasi masuk maintenance sementara. Akun serta password mengikuti backup; Anda mungkin perlu login ulang.')
+                ->modalSubmitActionLabel('Restore sekarang')
+                ->schema([
+                    FileUpload::make('arsip')
+                        ->label('File arsip backup (.zip)')
+                        ->disk('local')
+                        ->directory(RestoreBackup::DIREKTORI_UNGGAH)
+                        ->visibility('private')
+                        ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed', 'multipart/x-zip', 'application/x-zip'])
+                        ->maxSize(2097152)
+                        ->required(),
+                    Toggle::make('files')
+                        ->label('Pulihkan foto/file siswa juga')
+                        ->helperText('Aktifkan hanya jika arsip ZIP merupakan backup lengkap dan Anda ingin mengganti foto/file siswa.')
+                        ->default(false),
+                    TextInput::make('password_arsip')
+                        ->label('Password arsip (opsional)')
+                        ->password()
+                        ->helperText('Kosongkan jika arsip tidak berpassword atau memakai password backup server ini.')
+                        ->dehydrated(fn (?string $state): bool => filled($state)),
+                    TextInput::make('konfirmasi')
+                        ->label('Ketik RESTORE untuk melanjutkan')
+                        ->required()
+                        ->rules(['in:RESTORE']),
+                    TextInput::make('password')
+                        ->label('Password akun Anda')
+                        ->password()
+                        ->required()
+                        ->currentPassword(guard: Filament::getAuthGuard())
+                        ->dehydrated(false),
+                ])
+                ->action(function (array $data): void {
+                    static::jadwalkanRestore(
+                        RestoreBackup::DISK_UNGGAH,
+                        (string) $data['arsip'],
+                        (bool) ($data['files'] ?? false),
+                        $data['password_arsip'] ?? null,
+                    );
                 }),
             Action::make('bersihkan')
                 ->label('Bersihkan Backup Lama')
@@ -247,23 +347,7 @@ class BackupData extends Page implements HasTable
                             ->currentPassword(guard: Filament::getAuthGuard())->dehydrated(false),
                     ])
                     ->action(function (array $record, array $data): void {
-                        abort_unless(static::canRestore(), 403);
-                        $user = Filament::auth()->user();
-                        abort_unless($user instanceof User, 403);
-                        $restore = app(RestoreBackup::class);
-                        $id = null;
-                        try {
-                            $id = $restore->mulai($user, $record['disk'], $record['path'], (bool) ($data['files'] ?? false));
-                            // The queue database itself will be restored: do not enqueue this job in it.
-                            PulihkanBackup::dispatch($id)->onConnection('deferred');
-                            Notification::make()->title('Restore dijadwalkan')->body('Aplikasi masuk maintenance saat proses berjalan. Setelah selesai, muat ulang dan login kembali.')->success()->send();
-                        } catch (Throwable $exception) {
-                            if ($id !== null) {
-                                $restore->gagal($id, $exception->getMessage());
-                            }
-                            Notification::make()->title('Restore gagal dimulai')
-                                ->body(app(BackupSekolah::class)->pesanKesalahan($exception->getMessage()))->danger()->send();
-                        }
+                        static::jadwalkanRestore($record['disk'], $record['path'], (bool) ($data['files'] ?? false));
                     }),
                 Action::make('unduh')
                     ->visible(fn (array $record): bool => $record['available'])
@@ -303,8 +387,42 @@ class BackupData extends Page implements HasTable
             'local' => 'Server (lokal)',
             'google' => 'Google Drive',
             'r2' => 'Cloudflare R2',
+            RestoreBackup::DISK_UNGGAH => 'Unggahan file',
             default => ucfirst($disk),
         };
+    }
+
+    protected static function jadwalkanRestore(string $disk, string $path, bool $files, ?string $archivePassword = null): void
+    {
+        abort_unless(static::canRestore(), 403);
+        $user = Filament::auth()->user();
+        abort_unless($user instanceof User, 403);
+        $restore = app(RestoreBackup::class);
+        $id = null;
+
+        try {
+            $id = filled($archivePassword)
+                ? $restore->mulai($user, $disk, $path, $files, $archivePassword)
+                : $restore->mulai($user, $disk, $path, $files);
+            // The queue database itself will be restored: do not enqueue this job in it.
+            PulihkanBackup::dispatch($id)->onConnection('deferred');
+            Notification::make()
+                ->title('Restore dijadwalkan')
+                ->body('Aplikasi masuk maintenance saat proses berjalan. Setelah selesai, muat ulang dan login kembali.')
+                ->success()
+                ->send();
+        } catch (Throwable $exception) {
+            if ($id !== null) {
+                $restore->gagal($id, $exception->getMessage());
+            } elseif ($disk === RestoreBackup::DISK_UNGGAH) {
+                Storage::disk('local')->delete($path);
+            }
+            Notification::make()
+                ->title('Restore gagal dimulai')
+                ->body(app(BackupSekolah::class)->pesanKesalahan($exception->getMessage()))
+                ->danger()
+                ->send();
+        }
     }
 
     /**
