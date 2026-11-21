@@ -13,6 +13,11 @@ use Illuminate\Support\Carbon;
  * @property int $gtk_id
  * @property string $status
  * @property Carbon $tanggal
+ * @property float|null $latitude
+ * @property float|null $longitude
+ * @property int|null $jarak_meter
+ * @property int|null $akurasi_meter
+ * @property string|null $foto_path
  * @property-read Gtk $gtk
  * @property-read User $pencatat
  */
@@ -26,7 +31,14 @@ class PresensiGtk extends Model
 
     protected function casts(): array
     {
-        return ['tanggal' => 'date', 'dicatat_pada' => 'datetime'];
+        return [
+            'tanggal' => 'date',
+            'dicatat_pada' => 'datetime',
+            'latitude' => 'float',
+            'longitude' => 'float',
+            'jarak_meter' => 'integer',
+            'akurasi_meter' => 'integer',
+        ];
     }
 
     /** @return BelongsTo<Gtk, $this> */

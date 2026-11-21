@@ -18,6 +18,7 @@ use App\Http\Controllers\KeuanganController;
 use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\PpdbController;
 use App\Http\Controllers\UnduhBackupController;
+use App\Http\Controllers\UnduhFotoPresensiController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', LandingPageController::class)->name('home');
@@ -61,5 +62,9 @@ Route::middleware('auth')->group(function () {
     Route::get('cetak-buku-induk/{token}', [CetakBukuIndukController::class, 'massal'])->whereUuid('token')->name('buku-induk.cetak-massal');
     Route::get('backup/unduh', UnduhBackupController::class)->middleware('signed')->name('backup.unduh');
 });
+
+Route::get('/presensi-gtk/{presensiGtk}/foto', UnduhFotoPresensiController::class)
+    ->middleware('auth')
+    ->name('presensi-gtk.foto');
 
 require __DIR__.'/settings.php';

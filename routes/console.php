@@ -17,6 +17,8 @@ Schedule::command('aksara:backup')->dailyAt('01:30')->timezone('Asia/Jakarta')->
 Schedule::command('backup:monitor')->dailyAt('07:00')->timezone('Asia/Jakarta');
 
 Schedule::command('activitylog:clean --force')->weeklyOn(0, '02:30')->timezone('Asia/Jakarta')->withoutOverlapping(30);
+Schedule::command('aksara:bersihkan-foto-presensi')->monthlyOn(1, '03:00')->timezone('Asia/Jakarta')->withoutOverlapping(30);
+Schedule::command('aksara:notifikasi-pagi-guru')->dailyAt('06:15')->timezone('Asia/Jakarta')->withoutOverlapping(30);
 
 if (config('queue.run_via_scheduler')) {
     Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=1')

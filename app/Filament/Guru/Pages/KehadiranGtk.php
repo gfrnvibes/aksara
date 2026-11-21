@@ -73,7 +73,18 @@ class KehadiranGtk extends HalamanHarian implements HasTable
                 TextColumn::make('status')->badge()->formatStateUsing(fn (string $state): string => PresensiGtk::STATUS[$state])
                     ->color(fn (string $state): string => $state === 'hadir' ? 'success' : ($state === 'alpa' ? 'danger' : 'warning')),
                 TextColumn::make('dicatat_pada')->label('Waktu pencatatan')->dateTime('d M Y H:i')->timezone('Asia/Jakarta'),
+                TextColumn::make('jarak_meter')->label('Jarak')->formatStateUsing(fn (?int $state): string => $state !== null ? "{$state} m" : '—'),
                 TextColumn::make('catatan')->wrap(), TextColumn::make('pencatat.name')->label('Petugas'),
+            ])->recordActions([
+                Action::make('lihatFoto')
+                    ->label('Lihat Foto')
+                    ->icon(Heroicon::OutlinedPhoto)
+                    ->color('info')
+                    ->visible(fn (PresensiGtk $record): bool => filled($record->foto_path))
+                    ->modalHeading(fn (PresensiGtk $record): string => 'Foto Presensi — '.$record->gtk->nama)
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Tutup')
+                    ->modalContent(fn (PresensiGtk $record) => view('filament.pages.partials.foto-presensi-modal', ['record' => $record])),
             ]);
     }
 }
