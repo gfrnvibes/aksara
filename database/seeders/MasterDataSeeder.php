@@ -25,10 +25,8 @@ class MasterDataSeeder extends Seeder
             );
         }
 
-        foreach ([7 => 'VII', 8 => 'VIII', 9 => 'IX'] as $tingkat => $romawi) {
-            foreach (['A', 'B'] as $rombel) {
-                Kelas::query()->firstOrCreate(['nama' => "{$romawi}-{$rombel}"], ['tingkat' => $tingkat]);
-            }
+        foreach ([7 => 'VII', 8 => 'VIII', 9 => 'IX'] as $tingkat => $nama) {
+            Kelas::query()->firstOrCreate(['nama' => $nama], ['tingkat' => $tingkat]);
         }
 
         $mataPelajaran = [
