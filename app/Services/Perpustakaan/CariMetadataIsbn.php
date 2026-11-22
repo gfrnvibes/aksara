@@ -28,6 +28,42 @@ class CariMetadataIsbn
     }
 
     /**
+     * Look up a cover image URL by ISBN from Google Books or Open Library.
+     */
+    public function cariSampulUrl(string $isbn): ?string
+    {
+        $clean = preg_replace('/[^0-9Xx]/', '', $isbn);
+        if (! is_string($clean) || $clean === '') {
+            return null;
+        }
+
+        try {
+            $res = Http::acceptJson()->timeout(8)->get('https://www.googleapis.com/books/v1/volumes', [
+                'q' => "isbn:{$clean}",
+                'maxResults' => 1,
+            ]);
+            $thumb = $res->successful() ? $res->json('items.0.volumeInfo.imageLinks.thumbnail') : null;
+            if (is_string($thumb) && $thumb !== '') {
+                return str_replace('http://', 'https://', $thumb);
+            }
+        } catch (Throwable) {
+            // Fall through to Open Library
+        }
+
+        try {
+            $olUrl = "https://covers.openlibrary.org/b/isbn/{$clean}-L.jpg?default=false";
+            $head = Http::timeout(8)->head($olUrl);
+            if ($head->successful()) {
+                return $olUrl;
+            }
+        } catch (Throwable) {
+            // No cover found
+        }
+
+        return null;
+    }
+
+    /**
      * @return array{judul: string|null, penulis: string|null, penerbit: string|null, tahun_terbit: int|null, deskripsi: string|null}|null
      */
     protected function dariGoogleBooks(string $isbn): ?array

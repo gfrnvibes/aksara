@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BukuPerpustakaan;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -44,6 +45,16 @@ class PerpustakaanPublikController extends Controller
         ]);
     }
 
+    public function sampul(BukuPerpustakaan $buku): BinaryFileResponse
+    {
+        abort_unless($buku->is_aktif && filled($buku->sampul), 404);
+        abort_unless(Storage::disk('public')->exists((string) $buku->sampul), 404);
+
+        return response()->file(Storage::disk('public')->path((string) $buku->sampul), [
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
+    }
+
     public function viewer(BukuPerpustakaan $buku): View
     {
         abort_unless($buku->is_aktif, 404);
@@ -55,12 +66,14 @@ class PerpustakaanPublikController extends Controller
         ]);
     }
 
-    public function baca(BukuPerpustakaan $buku): BinaryFileResponse
+    public function baca(Request $request, BukuPerpustakaan $buku): BinaryFileResponse
     {
         abort_unless($buku->is_aktif, 404);
         abort_unless(Storage::disk('local')->exists($buku->file_pdf), 404);
 
-        $buku->increment('jumlah_dibaca');
+        if (! $request->boolean('thumb')) {
+            $buku->increment('jumlah_dibaca');
+        }
 
         return response()->file(
             Storage::disk('local')->path($buku->file_pdf),
@@ -70,5 +83,33 @@ class PerpustakaanPublikController extends Controller
                 'Cache-Control' => 'private, max-age=3600',
             ],
         );
+    }
+
+    public function simpanSampulOtomatis(Request $request, BukuPerpustakaan $buku): JsonResponse
+    {
+        abort_unless($buku->is_aktif, 404);
+        if (filled($buku->sampul) && Storage::disk('public')->exists((string) $buku->sampul)) {
+            return response()->json(['sampul_url' => $buku->sampulUrl()]);
+        }
+
+        $data = $request->validate([
+            'image' => ['required', 'string'],
+        ]);
+
+        $raw = (string) $data['image'];
+        if (! str_starts_with($raw, 'data:image/jpeg;base64,')) {
+            return response()->json(['message' => 'Format gambar tidak didukung.'], 422);
+        }
+
+        $binary = base64_decode(substr($raw, strlen('data:image/jpeg;base64,')), true);
+        if ($binary === false || strlen($binary) > 512000 || @getimagesizefromstring($binary) === false) {
+            return response()->json(['message' => 'Data gambar tidak valid.'], 422);
+        }
+
+        $path = "perpustakaan/sampul/buku-{$buku->id}.jpg";
+        Storage::disk('public')->put($path, $binary);
+        $buku->update(['sampul' => $path]);
+
+        return response()->json(['sampul_url' => $buku->sampulUrl()]);
     }
 }

@@ -116,6 +116,18 @@ class ImporBukuPerpustakaan
                     $filePdf = $this->unduhPdfKeStorage($pdfUrl, $judul);
                 }
 
+                $sampul = $existing?->sampul;
+                $sampulUrl = trim((string) ($row['sampul_url'] ?? $row['sampul'] ?? ''));
+                if (blank($sampul) && $sampulUrl !== '') {
+                    $sampul = $this->unduhSampulKeStorage($sampulUrl, $judul);
+                }
+                if (blank($sampul) && $isbn !== null) {
+                    $foundCover = app(CariMetadataIsbn::class)->cariSampulUrl($isbn);
+                    if ($foundCover !== null) {
+                        $sampul = $this->unduhSampulKeStorage($foundCover, $judul);
+                    }
+                }
+
                 $mapelId = null;
                 if (! empty($row['mapel'])) {
                     $mapelId = MataPelajaran::query()
@@ -145,6 +157,7 @@ class ImporBukuPerpustakaan
                         'tingkat' => $tingkat,
                         'mata_pelajaran_id' => $mapelId,
                         'deskripsi' => isset($row['deskripsi']) ? trim((string) $row['deskripsi']) : null,
+                        'sampul' => $sampul,
                         'file_pdf' => $filePdf,
                         'sumber_url' => $pdfUrl,
                         'is_aktif' => true,
@@ -163,5 +176,27 @@ class ImporBukuPerpustakaan
             'dilewati' => $skipped,
             'gagal' => $failed,
         ];
+    }
+
+    public function unduhSampulKeStorage(string $url, string $judul): ?string
+    {
+        try {
+            $res = Http::timeout(15)->get($url);
+            if (! $res->successful()) {
+                return null;
+            }
+            $contentType = strtolower((string) $res->header('Content-Type'));
+            if (! str_contains($contentType, 'image')) {
+                return null;
+            }
+            $ext = str_contains($contentType, 'png') ? 'png' : 'jpg';
+            $slug = str($judul)->slug()->limit(50, '');
+            $filename = "perpustakaan/sampul/{$slug}-".substr(sha1($url), 0, 8).".{$ext}";
+            Storage::disk('public')->put($filename, $res->body());
+
+            return $filename;
+        } catch (Throwable) {
+            return null;
+        }
     }
 }

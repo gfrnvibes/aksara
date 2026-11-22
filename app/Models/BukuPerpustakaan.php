@@ -123,6 +123,10 @@ class BukuPerpustakaan extends Model implements ProvidesActivityTitle
             return $this->sampul;
         }
 
-        return Storage::disk('public')->url($this->sampul);
+        if (! Storage::disk('public')->exists($this->sampul)) {
+            return null;
+        }
+
+        return route('perpustakaan.sampul', $this);
     }
 }

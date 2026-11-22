@@ -88,13 +88,20 @@
             <div class="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
                 @foreach ($paginator as $buku)
                     <article class="group flex flex-col overflow-hidden rounded-2xl border border-garis bg-white transition hover:-translate-y-0.5 hover:border-hutan/40 hover:shadow-md">
-                        <div class="relative aspect-[4/3] overflow-hidden border-b border-garis bg-mint/30">
+                        <div
+                            class="relative aspect-[4/3] overflow-hidden border-b border-garis bg-mint/30"
+                            @if (! $buku->sampulUrl())
+                                data-thumb-pdf="{{ route('perpustakaan.baca', ['buku' => $buku, 'thumb' => 1]) }}"
+                                data-thumb-save="{{ route('perpustakaan.sampul-otomatis', $buku) }}"
+                            @endif
+                        >
                             @if ($buku->sampulUrl())
                                 <img src="{{ $buku->sampulUrl() }}" alt="{{ $buku->judul }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
                             @else
-                                <div class="flex h-full flex-col items-center justify-center gap-2 p-4 text-center text-hutan">
-                                    <x-heroicon-o-book-open class="size-10 opacity-75" />
-                                    <span class="font-kode text-[11px] tracking-wider uppercase">{{ \App\Models\BukuPerpustakaan::KATEGORI[$buku->kategori] ?? $buku->kategori }}</span>
+                                <div class="thumb-fallback relative flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-white" style="background: linear-gradient(135deg, #064e3b 0%, #065f46 55%, #0f766e 100%);">
+                                    <div class="pola-islami-terang pointer-events-none absolute inset-0"></div>
+                                    <x-heroicon-o-book-open class="relative size-9 text-amber-300 opacity-95 sm:size-10" />
+                                    <span class="relative font-kode text-[10px] tracking-widest text-emerald-100 uppercase">E-Book PDF</span>
                                 </div>
                             @endif
                             <span class="absolute top-2 left-2 rounded-full bg-kertas/95 px-2 py-0.5 font-kode text-[9px] font-medium text-hutan shadow-xs sm:top-2.5 sm:left-2.5 sm:px-2.5 sm:text-[10px]">
@@ -128,7 +135,7 @@
                                 </p>
                             @endif
 
-                            <div class="mt-auto flex items-center justify-between gap-1.5 border-t border-garis/70 pt-2.5 mt-3 sm:pt-3 sm:mt-4">
+                            <div class="mt-auto flex items-center justify-between gap-1.5 border-t border-garis/70 pt-2.5 sm:pt-3">
                                 <span class="inline-flex items-center gap-1 text-[11px] text-stone-500 sm:text-xs">
                                     <x-heroicon-o-eye class="size-3.5" />
                                     <span>{{ number_format($buku->jumlah_dibaca) }}</span><span class="hidden sm:inline"> dibaca</span>
@@ -153,4 +160,80 @@
             </div>
         @endif
     </section>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        (() => {
+            const targets = Array.from(document.querySelectorAll('[data-thumb-pdf]'));
+            if (targets.length === 0 || typeof pdfjsLib === 'undefined') return;
+
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            const csrf = @json(csrf_token());
+            const queue = [];
+            let running = false;
+
+            async function processNext() {
+                if (running || queue.length === 0) return;
+                running = true;
+                const el = queue.shift();
+                const pdfUrl = el.dataset.thumbPdf;
+                const saveUrl = el.dataset.thumbSave;
+                delete el.dataset.thumbPdf;
+
+                try {
+                    const pdf = await pdfjsLib.getDocument({
+                        url: pdfUrl,
+                        rangeChunkSize: 65536,
+                        disableAutoFetch: true,
+                    }).promise;
+                    const page = await pdf.getPage(1);
+                    const base = page.getViewport({ scale: 1 });
+                    const scale = 360 / base.width;
+                    const viewport = page.getViewport({ scale });
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+                    const img = document.createElement('img');
+                    img.src = dataUrl;
+                    img.alt = 'Sampul buku';
+                    img.className = 'h-full w-full object-cover transition duration-300 group-hover:scale-105';
+                    const fallback = el.querySelector('.thumb-fallback');
+                    if (fallback) fallback.replaceWith(img);
+
+                    if (saveUrl) {
+                        fetch(saveUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrf,
+                            },
+                            body: JSON.stringify({ image: dataUrl }),
+                        }).catch(() => {});
+                    }
+                } catch (_) {
+                    // Keep fallback cover if thumbnail generation fails.
+                } finally {
+                    running = false;
+                    processNext();
+                }
+            }
+
+            const observer = new IntersectionObserver((entries) => {
+                for (const entry of entries) {
+                    if (entry.isIntersecting && entry.target.dataset.thumbPdf) {
+                        observer.unobserve(entry.target);
+                        queue.push(entry.target);
+                        processNext();
+                    }
+                }
+            }, { rootMargin: '200px' });
+
+            targets.forEach((t) => observer.observe(t));
+        })();
+    </script>
 </x-layouts::publik>
