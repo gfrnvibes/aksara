@@ -72,7 +72,7 @@
         </div>
     </section>
 
-    <section class="px-5 py-10 sm:px-10">
+    <section class="px-3 py-8 sm:px-10 sm:py-10">
         @if ($paginator->isEmpty())
             <div class="mx-auto max-w-xl rounded-2xl border border-dashed border-garis bg-latar/50 p-10 text-center">
                 <x-heroicon-o-book-open class="mx-auto size-10 text-stone-400" />
@@ -85,7 +85,7 @@
                 @endif
             </div>
         @else
-            <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div class="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
                 @foreach ($paginator as $buku)
                     <article class="group flex flex-col overflow-hidden rounded-2xl border border-garis bg-white transition hover:-translate-y-0.5 hover:border-hutan/40 hover:shadow-md">
                         <div class="relative aspect-[4/3] overflow-hidden border-b border-garis bg-mint/30">
@@ -97,50 +97,50 @@
                                     <span class="font-kode text-[11px] tracking-wider uppercase">{{ \App\Models\BukuPerpustakaan::KATEGORI[$buku->kategori] ?? $buku->kategori }}</span>
                                 </div>
                             @endif
-                            <span class="absolute top-2.5 left-2.5 rounded-full bg-kertas/95 px-2.5 py-0.5 font-kode text-[10px] font-medium text-hutan shadow-xs">
+                            <span class="absolute top-2 left-2 rounded-full bg-kertas/95 px-2 py-0.5 font-kode text-[9px] font-medium text-hutan shadow-xs sm:top-2.5 sm:left-2.5 sm:px-2.5 sm:text-[10px]">
                                 {{ \App\Models\BukuPerpustakaan::KATEGORI[$buku->kategori] ?? $buku->kategori }}
                             </span>
                             @if ($buku->tingkat !== null)
-                                <span class="absolute top-2.5 right-2.5 rounded-full bg-hutan px-2.5 py-0.5 font-kode text-[10px] font-medium text-white">
+                                <span class="absolute top-2 right-2 rounded-full bg-hutan px-2 py-0.5 font-kode text-[9px] font-medium text-white sm:top-2.5 sm:right-2.5 sm:px-2.5 sm:text-[10px]">
                                     {{ \App\Models\BukuPerpustakaan::TINGKAT[$buku->tingkat] ?? 'Kelas '.$buku->tingkat }}
                                 </span>
                             @endif
                         </div>
 
-                        <div class="flex flex-1 flex-col p-4">
-                            <h2 class="line-clamp-2 font-judul text-lg leading-snug font-semibold text-tinta">
+                        <div class="flex flex-1 flex-col p-3 sm:p-4">
+                            <h2 class="line-clamp-2 font-judul text-sm leading-snug font-semibold text-tinta sm:text-lg">
                                 {{ $buku->judul }}
                             </h2>
-                            <p class="mt-1 text-xs text-stone-500">
+                            <p class="mt-1 line-clamp-1 text-[11px] text-stone-500 sm:text-xs">
                                 {{ $buku->penulis ?: 'Tim Penyusun' }}
                                 @if ($buku->tahun_terbit)
                                     · {{ $buku->tahun_terbit }}
                                 @endif
                             </p>
                             @if ($buku->mataPelajaran)
-                                <p class="mt-1.5 font-kode text-[11px] text-hutan">
-                                    Mapel: {{ $buku->mataPelajaran->nama }}
+                                <p class="mt-1 line-clamp-1 font-kode text-[10px] text-hutan sm:mt-1.5 sm:text-[11px]">
+                                    {{ $buku->mataPelajaran->nama }}
                                 </p>
                             @endif
                             @if ($buku->deskripsi)
-                                <p class="mt-2 line-clamp-2 text-xs leading-relaxed text-stone-600">
+                                <p class="mt-1.5 hidden line-clamp-2 text-xs leading-relaxed text-stone-600 sm:block">
                                     {{ $buku->deskripsi }}
                                 </p>
                             @endif
 
-                            <div class="mt-auto flex items-center justify-between gap-2 border-t border-garis/70 pt-3 mt-4">
-                                <span class="inline-flex items-center gap-1 text-xs text-stone-500">
+                            <div class="mt-auto flex items-center justify-between gap-1.5 border-t border-garis/70 pt-2.5 mt-3 sm:pt-3 sm:mt-4">
+                                <span class="inline-flex items-center gap-1 text-[11px] text-stone-500 sm:text-xs">
                                     <x-heroicon-o-eye class="size-3.5" />
-                                    {{ number_format($buku->jumlah_dibaca) }} dibaca
+                                    <span>{{ number_format($buku->jumlah_dibaca) }}</span><span class="hidden sm:inline"> dibaca</span>
                                 </span>
                                 <a
-                                    href="{{ route('perpustakaan.baca', $buku) }}"
+                                    href="{{ route('perpustakaan.viewer', $buku) }}"
                                     target="_blank"
                                     rel="noopener"
-                                    class="inline-flex items-center gap-1.5 rounded-full bg-hutan px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-hutan-tua"
+                                    class="inline-flex items-center gap-1 rounded-full bg-hutan px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-hutan-tua sm:px-3 sm:py-1.5 sm:text-xs"
                                 >
-                                    <span>Baca PDF</span>
-                                    <x-heroicon-o-arrow-top-right-on-square class="size-3.5" />
+                                    <span>Baca</span>
+                                    <x-heroicon-o-book-open class="size-3 sm:size-3.5" />
                                 </a>
                             </div>
                         </div>

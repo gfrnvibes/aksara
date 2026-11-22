@@ -26,6 +26,7 @@ Route::get('/', LandingPageController::class)->name('home');
 Route::get('/galeri', GaleriPublikController::class)->name('galeri.index');
 Route::post('/galeri/{galeri}/komentar', [GaleriKomentarController::class, 'store'])->middleware('throttle:10,1')->name('galeri.komentar.store');
 Route::get('/perpustakaan', [PerpustakaanPublikController::class, 'index'])->name('perpustakaan.index');
+Route::get('/perpustakaan/{buku}/viewer', [PerpustakaanPublikController::class, 'viewer'])->name('perpustakaan.viewer');
 Route::get('/perpustakaan/{buku}/baca', [PerpustakaanPublikController::class, 'baca'])->name('perpustakaan.baca');
 Route::get('/spmb', [PpdbController::class, 'create'])->name('ppdb');
 Route::post('/spmb', [PpdbController::class, 'store'])->middleware('throttle:10,60')->name('ppdb.store');

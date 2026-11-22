@@ -20,6 +20,9 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/auth/login-siswa', [AuthController::class, 'loginSiswa'])->middleware('throttle:10,1');
     Route::get('/guru/kehadiran-gtk/{presensiGtk}/foto', [GuruHarianController::class, 'kehadiranGtkFoto'])
         ->name('api.guru.kehadiran-gtk.foto');
+    Route::get('/perpustakaan/{buku}/viewer', [PerpustakaanController::class, 'viewer'])
+        ->middleware('signed')
+        ->name('api.perpustakaan.viewer');
     Route::get('/perpustakaan/{buku}/baca', [PerpustakaanController::class, 'baca'])
         ->middleware('signed')
         ->name('api.perpustakaan.baca');

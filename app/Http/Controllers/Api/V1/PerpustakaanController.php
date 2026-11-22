@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PerpustakaanController extends Controller
@@ -54,13 +55,24 @@ class PerpustakaanController extends Controller
             'deskripsi' => $b->deskripsi,
             'sampul_url' => $b->sampulUrl(),
             'jumlah_dibaca' => $b->jumlah_dibaca,
-            'baca_url' => URL::temporarySignedRoute('api.perpustakaan.baca', now()->addHours(2), ['buku' => $b->id]),
+            'baca_url' => URL::temporarySignedRoute('api.perpustakaan.viewer', now()->addHours(2), ['buku' => $b->id]),
         ])->all();
 
         return response()->json([
             'kategori_opsi' => BukuPerpustakaan::KATEGORI,
             'tingkat_opsi' => BukuPerpustakaan::TINGKAT,
             'buku' => $buku,
+        ]);
+    }
+
+    public function viewer(BukuPerpustakaan $buku): View
+    {
+        abort_unless($buku->is_aktif, 404);
+        abort_unless(Storage::disk('local')->exists($buku->file_pdf), 404);
+
+        return view('perpustakaan-viewer', [
+            'buku' => $buku,
+            'pdfUrl' => URL::temporarySignedRoute('api.perpustakaan.baca', now()->addHours(2), ['buku' => $buku->id]),
         ]);
     }
 
@@ -76,6 +88,7 @@ class PerpustakaanController extends Controller
             [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'inline; filename="'.str($buku->judul)->slug().'.pdf"',
+                'Cache-Control' => 'private, max-age=3600',
             ],
         );
     }

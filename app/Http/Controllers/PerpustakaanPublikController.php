@@ -44,6 +44,17 @@ class PerpustakaanPublikController extends Controller
         ]);
     }
 
+    public function viewer(BukuPerpustakaan $buku): View
+    {
+        abort_unless($buku->is_aktif, 404);
+        abort_unless(Storage::disk('local')->exists($buku->file_pdf), 404);
+
+        return view('perpustakaan-viewer', [
+            'buku' => $buku,
+            'pdfUrl' => route('perpustakaan.baca', $buku),
+        ]);
+    }
+
     public function baca(BukuPerpustakaan $buku): BinaryFileResponse
     {
         abort_unless($buku->is_aktif, 404);
@@ -56,6 +67,7 @@ class PerpustakaanPublikController extends Controller
             [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'inline; filename="'.str($buku->judul)->slug().'.pdf"',
+                'Cache-Control' => 'private, max-age=3600',
             ],
         );
     }
