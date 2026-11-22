@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\GuruNotifikasiController;
 use App\Http\Controllers\Api\V1\GuruPerangkatController;
 use App\Http\Controllers\Api\V1\GuruPresensiController;
 use App\Http\Controllers\Api\V1\PengumumanController;
+use App\Http\Controllers\Api\V1\PerpustakaanController;
 use App\Http\Controllers\Api\V1\SiswaPortalController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,9 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/auth/login-siswa', [AuthController::class, 'loginSiswa'])->middleware('throttle:10,1');
     Route::get('/guru/kehadiran-gtk/{presensiGtk}/foto', [GuruHarianController::class, 'kehadiranGtkFoto'])
         ->name('api.guru.kehadiran-gtk.foto');
+    Route::get('/perpustakaan/{buku}/baca', [PerpustakaanController::class, 'baca'])
+        ->middleware('signed')
+        ->name('api.perpustakaan.baca');
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/auth/me', [AuthController::class, 'me']);
@@ -69,6 +73,7 @@ Route::prefix('v1')->group(function (): void {
         });
 
         Route::get('/pengumuman', [PengumumanController::class, 'index']);
+        Route::get('/perpustakaan', [PerpustakaanController::class, 'index']);
         Route::post('/push-token', [GuruNotifikasiController::class, 'simpanToken']);
         Route::delete('/push-token', [GuruNotifikasiController::class, 'hapusToken']);
 

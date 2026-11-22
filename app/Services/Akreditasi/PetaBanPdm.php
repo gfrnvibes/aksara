@@ -6,6 +6,7 @@ use App\Enums\StatusSiswa;
 use App\Models\AkreditasiBukti;
 use App\Models\AkreditasiDokumen;
 use App\Models\AlurTujuanPembelajaran;
+use App\Models\BukuPerpustakaan;
 use App\Models\Ekstrakurikuler;
 use App\Models\GaleriKegiatan;
 use App\Models\Gtk;
@@ -187,6 +188,14 @@ class PetaBanPdm
             'jumlah_galeri_kegiatan' => GaleriKegiatan::query()->count(),
             'jumlah_surat_keluar' => SuratKeluar::query()->count(),
             'jumlah_surat_masuk' => SuratMasuk::query()->count(),
+            'jumlah_koleksi_perpustakaan_digital' => BukuPerpustakaan::query()->aktif()->count(),
+            'total_pembaca_perpustakaan' => (int) BukuPerpustakaan::query()->sum('jumlah_dibaca'),
+            'koleksi_perpustakaan_per_kategori' => BukuPerpustakaan::query()
+                ->aktif()
+                ->selectRaw('kategori, count(*) as total')
+                ->groupBy('kategori')
+                ->pluck('total', 'kategori')
+                ->all(),
         ];
     }
 
@@ -210,6 +219,27 @@ class PetaBanPdm
                     [
                         'judul' => "Dokumentasi: {$galeri->judul}",
                         'keterangan' => $galeri->deskripsi,
+                        'user_id' => $userId,
+                    ],
+                );
+                if ($bukti->wasRecentlyCreated) {
+                    $ditambahkan++;
+                }
+            }
+
+            // Perpustakaan Digital -> Butir 08 (Pengelolaan Sarana & Prasarana / Perpustakaan)
+            foreach (BukuPerpustakaan::query()->aktif()->latest('id')->limit(30)->get() as $buku) {
+                $kategoriLabel = BukuPerpustakaan::KATEGORI[$buku->kategori] ?? $buku->kategori;
+                $bukti = AkreditasiBukti::query()->firstOrCreate(
+                    [
+                        'tahun_ajaran_id' => $tahun->id,
+                        'kode_butir' => 'butir_08',
+                        'sumber_tipe' => 'perpustakaan',
+                        'sumber_id' => $buku->id,
+                    ],
+                    [
+                        'judul' => "Koleksi Perpustakaan: {$buku->judul}",
+                        'keterangan' => "{$kategoriLabel} • Penulis: ".($buku->penulis ?: '-')." • Dibaca {$buku->jumlah_dibaca}x",
                         'user_id' => $userId,
                     ],
                 );

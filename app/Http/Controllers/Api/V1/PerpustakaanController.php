@@ -1,0 +1,82 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Controller;
+use App\Models\BukuPerpustakaan;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+
+class PerpustakaanController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $kataKunci = trim((string) $request->query('q', ''));
+        $kategori = trim((string) $request->query('kategori', ''));
+        $tingkat = $request->query('tingkat') ? (int) $request->query('tingkat') : null;
+
+        $rows = BukuPerpustakaan::query()
+            ->aktif()
+            ->with('mataPelajaran')
+            ->when($kataKunci !== '', function ($q) use ($kataKunci): void {
+                $q->where(function ($sub) use ($kataKunci): void {
+                    $sub->where('judul', 'like', "%{$kataKunci}%")
+                        ->orWhere('penulis', 'like', "%{$kataKunci}%")
+                        ->orWhere('penerbit', 'like', "%{$kataKunci}%")
+                        ->orWhere('isbn', 'like', "%{$kataKunci}%");
+                });
+            })
+            ->when($kategori !== '', fn ($q) => $q->where('kategori', $kategori))
+            ->when($tingkat !== null, fn ($q) => $q->where('tingkat', $tingkat))
+            ->orderByDesc('id')
+            ->limit(60)
+            ->get();
+
+        $buku = $rows->map(fn (BukuPerpustakaan $b): array => [
+            'id' => $b->id,
+            'judul' => $b->judul,
+            'penulis' => $b->penulis,
+            'penerbit' => $b->penerbit,
+            'tahun_terbit' => $b->tahun_terbit,
+            'isbn' => $b->isbn,
+            'kategori' => $b->kategori,
+            'kategori_label' => BukuPerpustakaan::KATEGORI[$b->kategori] ?? ucfirst($b->kategori),
+            'tingkat' => $b->tingkat,
+            'tingkat_label' => $b->tingkat !== null ? (BukuPerpustakaan::TINGKAT[$b->tingkat] ?? "Kelas {$b->tingkat}") : 'Semua Tingkat',
+            'mapel' => $b->mataPelajaran?->nama,
+            'deskripsi' => $b->deskripsi,
+            'sampul_url' => $b->sampulUrl(),
+            'jumlah_dibaca' => $b->jumlah_dibaca,
+            'baca_url' => URL::temporarySignedRoute('api.perpustakaan.baca', now()->addHours(2), ['buku' => $b->id]),
+        ])->all();
+
+        return response()->json([
+            'kategori_opsi' => BukuPerpustakaan::KATEGORI,
+            'tingkat_opsi' => BukuPerpustakaan::TINGKAT,
+            'buku' => $buku,
+        ]);
+    }
+
+    public function baca(BukuPerpustakaan $buku): BinaryFileResponse
+    {
+        abort_unless($buku->is_aktif, 404);
+        abort_unless(Storage::disk('local')->exists($buku->file_pdf), 404);
+
+        $buku->increment('jumlah_dibaca');
+
+        return response()->file(
+            Storage::disk('local')->path($buku->file_pdf),
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="'.str($buku->judul)->slug().'.pdf"',
+            ],
+        );
+    }
+}
