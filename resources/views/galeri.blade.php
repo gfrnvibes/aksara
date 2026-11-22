@@ -4,6 +4,7 @@
         route('home').'#program' => 'Program',
         route('home').'#nilai' => 'Nilai',
         route('galeri.index') => 'Galeri',
+        route('perpustakaan.index') => 'Perpustakaan',
         route('home').'#spmb' => 'SPMB',
         route('home').'#kontak' => 'Kontak',
     ];

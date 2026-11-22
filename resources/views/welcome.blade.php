@@ -10,7 +10,7 @@
         'green' => 'border-hutan/30 text-hutan bg-hutan/5',
         'orange' => 'border-[#c2410c]/30 text-[#c2410c] bg-[#c2410c]/5',
     ];
-    $bagian = ['#kurikulum' => 'Kurikulum', '#program' => 'Program', '#nilai' => 'Nilai', route('galeri.index') => 'Galeri', '#spmb' => 'SPMB', '#kontak' => 'Kontak'];
+    $bagian = ['#kurikulum' => 'Kurikulum', '#program' => 'Program', '#nilai' => 'Nilai', route('galeri.index') => 'Galeri', route('perpustakaan.index') => 'Perpustakaan', '#spmb' => 'SPMB', '#kontak' => 'Kontak'];
     $tanyaProgram = fn (string $program): string => $whatsapp
         ? $whatsapp.'?text='.rawurlencode("Assalamu'alaikum, saya ingin bertanya tentang program {$program} di {$sekolah['nama']}.")
         : '#kontak';
