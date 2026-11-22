@@ -37,6 +37,7 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
 
 /**
  * Workspace in the teacher panel for advisors of student organizations or extracurriculars.
@@ -49,6 +50,8 @@ class OrganisasiSaya extends Page implements HasSchemas, HasTable
     use InteractsWithTable;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
+
+    protected static string|UnitEnum|null $navigationGroup = 'Guru';
 
     protected static ?int $navigationSort = 5;
 

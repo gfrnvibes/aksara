@@ -8,12 +8,15 @@ use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use UnitEnum;
 
 class TugasSaya extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 
-    protected static ?int $navigationSort = 0;
+    protected static string|UnitEnum|null $navigationGroup = 'Guru';
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationLabel = 'Tugas Administrasi';
 

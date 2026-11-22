@@ -17,9 +17,9 @@ class LegerKelasSaya extends LegerNilai
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPresentationChartBar;
 
-    protected static string|UnitEnum|null $navigationGroup = null;
+    protected static string|UnitEnum|null $navigationGroup = 'Wali Kelas';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationLabel = 'Leger Kelas Saya';
 

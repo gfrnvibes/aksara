@@ -18,6 +18,7 @@ use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Collection;
+use UnitEnum;
 
 /**
  * The teacher's own lessons of the week, from the published timetable of the current semester.
@@ -26,7 +27,9 @@ class JadwalSaya extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 
-    protected static ?int $navigationSort = 1;
+    protected static string|UnitEnum|null $navigationGroup = 'Guru';
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationLabel = 'Jadwal Saya';
 

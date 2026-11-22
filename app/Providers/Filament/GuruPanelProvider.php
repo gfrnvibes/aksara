@@ -51,6 +51,7 @@ class GuruPanelProvider extends PanelProvider
             ->monoFont('Geist Mono')
             ->sidebarWidth('14rem')
             ->sidebarCollapsibleOnDesktop()
+            ->navigationGroups(['Guru', 'Wali Kelas', 'Administrasi Harian', 'Perangkat Ajar'])
             ->topbar(false)
             ->globalSearch(PencarianPanel::class, position: GlobalSearchPosition::Sidebar)
             ->userMenu(position: UserMenuPosition::Sidebar)

@@ -42,6 +42,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
+use UnitEnum;
 
 /**
  * The homeroom teacher's report cards: one row per student of their class this academic year, where they fill in
@@ -54,7 +55,9 @@ class RaporKelasSaya extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentChartBar;
 
-    protected static ?int $navigationSort = 3;
+    protected static string|UnitEnum|null $navigationGroup = 'Wali Kelas';
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationLabel = 'Rapor Kelas Saya';
 

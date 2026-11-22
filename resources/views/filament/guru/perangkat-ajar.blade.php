@@ -49,9 +49,8 @@
                     <x-filament::button
                         wire:click="generateDanSinkronkan"
                         wire:target="generateDanSinkronkan"
-                        icon="heroicon-o-bolt"
-                        color="primary"
-                        class="w-full"
+                        icon="heroicon-m-sparkles"
+                        class="btn-ai-generate w-full"
                     >
                         <span wire:loading.remove wire:target="generateDanSinkronkan">Generate & Sinkronkan</span>
                         <span wire:loading wire:target="generateDanSinkronkan">Menyusun AI...</span>
@@ -67,19 +66,26 @@
             compact
             icon="heroicon-o-identification"
             heading="Identitas & Parameter Kurikulum"
-            :description="$this->satuan_pendidikan . ' · Kelas ' . $this->kelas_teks . ' · Fase ' . $this->fase . ' · ' . $this->jp_per_minggu . ' JP/Minggu'"
         >
             <x-slot name="afterHeader">
-                <x-filament::button
-                    wire:click="simpanIdentitas"
-                    wire:target="simpanIdentitas"
-                    icon="heroicon-o-bookmark"
-                    color="gray"
-                    size="sm"
-                    @click.stop
-                >
-                    Simpan Identitas
-                </x-filament::button>
+                <div class="flex items-center gap-2" @click.stop>
+                    <x-filament::icon-button
+                        icon="heroicon-o-information-circle"
+                        color="gray"
+                        size="sm"
+                        label="Ringkasan parameter"
+                        x-tooltip.raw="{{ $this->satuan_pendidikan . ' · Kelas ' . $this->kelas_teks . ' · Fase ' . $this->fase . ' · ' . $this->jp_per_minggu . ' JP/Minggu' }}"
+                    />
+                    <x-filament::button
+                        wire:click="simpanIdentitas"
+                        wire:target="simpanIdentitas"
+                        icon="heroicon-o-bookmark"
+                        color="gray"
+                        size="sm"
+                    >
+                        Simpan Identitas
+                    </x-filament::button>
+                </div>
             </x-slot>
 
             <div class="space-y-4">
@@ -153,6 +159,19 @@
         </x-filament::section>
 
         {{-- BARIS 3: TAB INTERAKTIF FILAMENT 5 --}}
+        <div class="flex items-center gap-1.5">
+            <h2 class="text-base font-semibold text-gray-950 dark:text-white">
+                Dokumen Perangkat Pembelajaran
+            </h2>
+            <x-filament::icon-button
+                icon="heroicon-o-information-circle"
+                color="gray"
+                size="sm"
+                label="Informasi Perangkat Pembelajaran"
+                x-tooltip.raw="Kelola AME, ATP, PROTA, PROSEM, dan Modul Ajar Kurikulum Merdeka dalam satu alur kerja."
+            />
+        </div>
+
         <x-filament::tabs>
             <x-filament::tabs.item
                 :active="$activeTab === 'ame'"
@@ -470,9 +489,15 @@
         @if ($activeTab === 'modul')
             <div class="space-y-4">
                 <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
+                    <div class="flex items-center gap-1.5">
                         <h3 class="text-base font-semibold text-gray-950 dark:text-white">Daftar Modul Ajar Berdasarkan Master Tujuan Pembelajaran</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Generate modul ajar lengkap 18 komponen, LKPD, dan rubrik penilaian per Tujuan Pembelajaran.</p>
+                        <x-filament::icon-button
+                            icon="heroicon-o-information-circle"
+                            color="gray"
+                            size="sm"
+                            label="Informasi Modul Ajar"
+                            x-tooltip.raw="Generate modul ajar lengkap 18 komponen, LKPD, dan rubrik penilaian per Tujuan Pembelajaran."
+                        />
                     </div>
                     <x-filament::badge color="gray">
                         {{ count($this->modul_ajars) }} dari {{ count($this->master_tp) }} Modul Dibuat
@@ -553,10 +578,9 @@
                                         <x-filament::button
                                             wire:click="generateModulAjarItem('{{ $kode }}')"
                                             wire:target="generateModulAjarItem('{{ $kode }}')"
-                                            icon="heroicon-o-sparkles"
-                                            color="primary"
+                                            icon="heroicon-m-sparkles"
                                             size="sm"
-                                            class="w-full"
+                                            class="btn-ai-generate w-full"
                                         >
                                             @if ($sedangProses)
                                                 Menyusun Modul...
@@ -582,18 +606,26 @@
             compact
             icon="heroicon-o-calculator"
             heading="Ringkasan & Sinkronisasi Alokasi JP"
-            description="Perbandingan total jam pelajaran antara Analisis Minggu Efektif (AME), ATP/PROTA, dan Matriks PROSEM."
         >
             <x-slot name="afterHeader">
-                @if ($this->isSinkron)
-                    <x-filament::badge color="success" icon="heroicon-m-check-circle">
-                        Sinkron Mutlak ({{ $this->totalJpAme }} JP)
-                    </x-filament::badge>
-                @else
-                    <x-filament::badge color="warning" icon="heroicon-m-exclamation-triangle">
-                        Belum Sinkron / Belum Di-generate
-                    </x-filament::badge>
-                @endif
+                <div class="flex items-center gap-2">
+                    <x-filament::icon-button
+                        icon="heroicon-o-information-circle"
+                        color="gray"
+                        size="sm"
+                        label="Informasi ringkasan JP"
+                        x-tooltip.raw="Perbandingan total jam pelajaran antara Analisis Minggu Efektif (AME), ATP/PROTA, dan Matriks PROSEM."
+                    />
+                    @if ($this->isSinkron)
+                        <x-filament::badge color="success" icon="heroicon-m-check-circle">
+                            Sinkron Mutlak ({{ $this->totalJpAme }} JP)
+                        </x-filament::badge>
+                    @else
+                        <x-filament::badge color="warning" icon="heroicon-m-exclamation-triangle">
+                            Belum Sinkron / Belum Di-generate
+                        </x-filament::badge>
+                    @endif
+                </div>
             </x-slot>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -28,6 +28,8 @@ class PermintaanJadwalResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedHandRaised;
 
+    protected static string|UnitEnum|null $navigationGroup = 'Guru';
+
     protected static ?int $navigationSort = 4;
 
     protected static ?string $modelLabel = 'Permintaan Jadwal';
