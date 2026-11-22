@@ -53,7 +53,7 @@ class GuruNilaiController extends Controller
 
         return response()->json([
             'tahun_ajaran_aktif_id' => $tahunAktif?->id,
-            'semester_aktif' => Semester::berdasarkanTanggal(now())->value,
+            'semester_aktif' => Semester::berdasarkanTanggal(now('Asia/Jakarta'))->value,
             'semester_opsi' => collect(Semester::cases())->mapWithKeys(fn (Semester $s): array => [$s->value => $s->getLabel()])->all(),
             'penugasan' => $penugasan,
             'kelas_perwalian' => $kelasPerwalian,

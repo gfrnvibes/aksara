@@ -25,6 +25,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -60,7 +61,9 @@ class GuruHarianController extends Controller
                 'catatan' => $item->catatan,
                 'jarak_meter' => $item->jarak_meter,
                 'punya_foto' => filled($item->foto_path),
-                'foto_url' => filled($item->foto_path) ? url("/api/v1/guru/kehadiran-gtk/{$item->id}/foto") : null,
+                'foto_url' => filled($item->foto_path)
+                    ? $request->getSchemeAndHttpHost().URL::temporarySignedRoute('api.guru.kehadiran-gtk.foto', now()->addMinutes(15), ['presensiGtk' => $item->id], absolute: false)
+                    : null,
                 'waktu' => filled($item->dicatat_pada) ? Carbon::parse($item->dicatat_pada)->timezone('Asia/Jakarta')->format('d M Y H:i') : null,
             ];
         }
@@ -136,18 +139,22 @@ class GuruHarianController extends Controller
             'message' => 'Kehadiran hari ini tercatat.',
             'status' => $record->status,
             'jarak_meter' => $record->jarak_meter,
-            'foto_url' => filled($record->foto_path) ? url("/api/v1/guru/kehadiran-gtk/{$record->id}/foto") : null,
+            'foto_url' => filled($record->foto_path)
+                ? $request->getSchemeAndHttpHost().URL::temporarySignedRoute('api.guru.kehadiran-gtk.foto', now()->addMinutes(15), ['presensiGtk' => $record->id], absolute: false)
+                : null,
         ]);
     }
 
     public function kehadiranGtkFoto(Request $request, PresensiGtk $presensiGtk): StreamedResponse
     {
-        $user = $request->user();
-        abort_unless($user instanceof User && $user->gtk !== null && $user->gtk->is_aktif, 403);
+        if (! $request->hasValidSignature(false)) {
+            $user = auth('sanctum')->user();
+            abort_unless($user instanceof User && $user->gtk !== null && $user->gtk->is_aktif, 401);
 
-        $isOwner = $presensiGtk->gtk_id === $user->gtk->id;
-        $isPiket = AksesHarian::piket($user, $presensiGtk->tanggal->format('Y-m-d'));
-        abort_unless($isOwner || $isPiket || AksesHarian::pengelola($user), 403);
+            $isOwner = $presensiGtk->gtk_id === $user->gtk->id;
+            $isPiket = AksesHarian::piket($user, $presensiGtk->tanggal->format('Y-m-d'));
+            abort_unless($isOwner || $isPiket || AksesHarian::pengelola($user), 403);
+        }
 
         $path = $presensiGtk->foto_path;
         abort_if(blank($path) || ! Storage::disk('local')->exists($path), 404);

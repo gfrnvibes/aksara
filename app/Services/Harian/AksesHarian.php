@@ -65,4 +65,33 @@ class AksesHarian
             ->where('tahun_ajaran_id', static::tahun($tanggal)->id)
             ->whereDate('tanggal_mulai', '<=', $tanggal)->whereDate('tanggal_selesai', '>=', $tanggal)->exists();
     }
+
+    public static function keteranganLibur(string $tanggal): ?string
+    {
+        if ($tanggal === '') {
+            return null;
+        }
+
+        $date = Carbon::parse($tanggal, 'Asia/Jakarta');
+        if (Hari::dariTanggal($date) === null) {
+            return 'Hari Minggu (akhir pekan).';
+        }
+
+        try {
+            $tahun = static::tahun($tanggal);
+        } catch (ValidationException) {
+            return null;
+        }
+
+        $agenda = KalenderAkademik::query()
+            ->where('jenis', JenisAgenda::Libur)
+            ->where('tahun_ajaran_id', $tahun->id)
+            ->whereDate('tanggal_mulai', '<=', $tanggal)
+            ->whereDate('tanggal_selesai', '>=', $tanggal)
+            ->first();
+
+        return $agenda !== null
+            ? "Libur Kalender Akademik: {$agenda->nama}."
+            : null;
+    }
 }

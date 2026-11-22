@@ -158,6 +158,32 @@ it('renders the attendance form and saves through the visible action', function 
     expect(PresensiSiswa::first()->status)->toBe('hadir');
 });
 
+it('shows holiday notice and disables attendance actions on Sunday or academic calendar holiday', function () {
+    $this->travelTo(Carbon::parse('2026-11-22 08:00:00', 'Asia/Jakarta'));
+    actingAs($this->guru);
+
+    Livewire::test(PresensiKelas::class)
+        ->assertSuccessful()
+        ->assertSet('keteranganLibur', 'Hari Minggu (akhir pekan).')
+        ->assertActionDisabled('hadirSemua')
+        ->assertActionDisabled('simpan');
+
+    $this->travelTo(Carbon::parse('2026-11-11 08:00:00', 'Asia/Jakarta'));
+    KalenderAkademik::create([
+        'tahun_ajaran_id' => $this->tahun->id,
+        'nama' => 'Maulid Nabi',
+        'jenis' => JenisAgenda::Libur,
+        'tanggal_mulai' => '2026-11-11',
+        'tanggal_selesai' => '2026-11-11',
+    ]);
+
+    Livewire::test(PresensiKelas::class)
+        ->assertSuccessful()
+        ->assertSet('keteranganLibur', 'Libur Kalender Akademik: Maulid Nabi.')
+        ->assertActionDisabled('hadirSemua')
+        ->assertActionDisabled('simpan');
+});
+
 it('renders daily pages and opens the journal action', function () {
     $key = siapkanPertemuanHarian($this);
     actingAs($this->guru);

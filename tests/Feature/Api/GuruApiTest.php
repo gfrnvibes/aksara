@@ -93,6 +93,27 @@ it('authenticates an active teacher via login and supports me and logout', funct
     expect($this->user->tokens()->count())->toBe(0);
 });
 
+it('allows authenticated teachers to change their password', function (): void {
+    Sanctum::actingAs($this->user);
+
+    $this->postJson('/api/v1/auth/password', [
+        'current_password' => 'wrong-pass',
+        'password' => 'newpass123',
+        'password_confirmation' => 'newpass123',
+    ])->assertStatus(422);
+
+    $this->postJson('/api/v1/auth/password', [
+        'current_password' => 'password',
+        'password' => 'newpass123',
+        'password_confirmation' => 'newpass123',
+    ])->assertOk();
+
+    $this->postJson('/api/v1/auth/login', [
+        'login' => 'guru@aksara.test',
+        'password' => 'newpass123',
+    ])->assertOk();
+});
+
 it('returns the published teaching schedule for the authenticated teacher', function (): void {
     Sanctum::actingAs($this->user);
 
@@ -180,6 +201,13 @@ it('serves dashboard, gtk attendance, timetable preferences, grades, leger, and 
         ->assertOk()
         ->assertJsonPath('peran.is_wali_kelas', true)
         ->assertJsonFragment(['kelas' => 'VII', 'mapel' => 'Matematika']);
+
+    Carbon::setTestNow(Carbon::create(2026, 11, 22, 6, 0, 0, 'Asia/Jakarta'));
+    $this->getJson('/api/v1/guru/beranda')
+        ->assertOk()
+        ->assertJsonPath('hari_ini', 'Ahad')
+        ->assertJsonPath('jadwal_hari_ini', []);
+    Carbon::setTestNow(Carbon::create(2026, 11, 21, 10, 0, 0, 'Asia/Jakarta'));
 
     PengaturanPresensi::aktif()->update([
         'aktif' => false,

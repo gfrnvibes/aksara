@@ -11,6 +11,7 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
@@ -37,6 +38,9 @@ class PresensiKelas extends HalamanHarian
 
     #[Locked]
     public string $versi = '';
+
+    #[Locked]
+    public ?string $keteranganLibur = null;
 
     public function mount(): void
     {
@@ -69,17 +73,30 @@ class PresensiKelas extends HalamanHarian
                 Select::make('kelas_id')->label('Kelas')->options(fn (): array => $this->kelasOptions((string) ($this->data['tanggal'] ?? AksesHarian::hariIni())))
                     ->required()->live()->afterStateUpdated(fn () => $this->muat()),
             ]),
-            Section::make('Daftar Kehadiran')->description('Terlambat tetap berstatus hadir. Alasan koreksi wajib jika mengubah data tersimpan.')->schema([
-                Repeater::make('baris')->hiddenLabel()->addable(false)->deletable(false)->reorderable(false)->compact()
-                    ->table([TableColumn::make('Nama'), TableColumn::make('Kehadiran'), TableColumn::make('Terlambat (menit)'), TableColumn::make('Catatan')])
-                    ->schema([
-                        Hidden::make('siswa_id'), TextInput::make('nama')->disabled()->dehydrated(false),
-                        Select::make('status')->options(PresensiSiswa::STATUS)->placeholder('Belum diisi')->required(),
-                        TextInput::make('terlambat_menit')->numeric()->integer()->minValue(0)->maxValue(600)->default(0)->required(),
-                        TextInput::make('catatan')->maxLength(500),
-                    ]),
-                TextInput::make('alasan')->label('Alasan koreksi / pencatatan tanggal lampau')->maxLength(500),
-            ]),
+            Section::make('Hari Libur')
+                ->description(fn (): string => ($this->keteranganLibur ?? '').' Presensi siswa tidak dicatat pada hari libur.')
+                ->icon(Heroicon::OutlinedCalendarDays)
+                ->iconColor('warning')
+                ->visible(fn (): bool => $this->keteranganLibur !== null)
+                ->schema([
+                    Placeholder::make('info_libur')
+                        ->hiddenLabel()
+                        ->content('Pilih tanggal hari aktif sekolah untuk mencatat atau mengoreksi presensi siswa.'),
+                ]),
+            Section::make('Daftar Kehadiran')
+                ->description('Terlambat tetap berstatus hadir. Alasan koreksi wajib jika mengubah data tersimpan.')
+                ->hidden(fn (): bool => $this->keteranganLibur !== null)
+                ->schema([
+                    Repeater::make('baris')->hiddenLabel()->addable(false)->deletable(false)->reorderable(false)->compact()
+                        ->table([TableColumn::make('Nama'), TableColumn::make('Kehadiran'), TableColumn::make('Terlambat (menit)'), TableColumn::make('Catatan')])
+                        ->schema([
+                            Hidden::make('siswa_id'), TextInput::make('nama')->disabled()->dehydrated(false),
+                            Select::make('status')->options(PresensiSiswa::STATUS)->placeholder('Belum diisi')->required(),
+                            TextInput::make('terlambat_menit')->numeric()->integer()->minValue(0)->maxValue(600)->default(0)->required(),
+                            TextInput::make('catatan')->maxLength(500),
+                        ]),
+                    TextInput::make('alasan')->label('Alasan koreksi / pencatatan tanggal lampau')->maxLength(500),
+                ]),
         ]);
     }
 
@@ -87,12 +104,20 @@ class PresensiKelas extends HalamanHarian
     {
         $this->data['baris'] = [];
         $this->data['alasan'] = null;
+        $this->keteranganLibur = null;
         $tanggal = (string) ($this->data['tanggal'] ?? '');
         $kelas = Kelas::query()->find((int) ($this->data['kelas_id'] ?? 0));
         if ($kelas === null || $tanggal === '') {
             return;
         }
         abort_unless(AksesHarian::kelas(static::user(), $kelas, $tanggal), 403);
+        $this->keteranganLibur = AksesHarian::keteranganLibur($tanggal);
+        if ($this->keteranganLibur !== null) {
+            $this->versi = '';
+            $this->form->fill($this->data);
+
+            return;
+        }
         try {
             $tahun = AksesHarian::tahun($tanggal);
         } catch (ValidationException) {
@@ -112,8 +137,44 @@ class PresensiKelas extends HalamanHarian
 
     public function simpan(): void
     {
-        $data = $this->form->getState();
-        app(PresensiHarian::class)->simpanKelas(static::user(), Kelas::query()->findOrFail((int) $data['kelas_id']), $data['tanggal'], array_values($data['baris']), $this->versi, $data['alasan'] ?? null);
+        if ($this->keteranganLibur !== null) {
+            Notification::make()
+                ->warning()
+                ->title('Tanggal ini hari libur')
+                ->body($this->keteranganLibur.' Presensi siswa tidak dicatat.')
+                ->send();
+
+            return;
+        }
+
+        try {
+            $data = $this->form->getState();
+            app(PresensiHarian::class)->simpanKelas(
+                static::user(),
+                Kelas::query()->findOrFail((int) $data['kelas_id']),
+                $data['tanggal'],
+                array_values($data['baris']),
+                $this->versi,
+                $data['alasan'] ?? null,
+            );
+        } catch (ValidationException $e) {
+            $firstMessage = collect($e->errors())->flatten()->first();
+            if (is_string($firstMessage) && $firstMessage !== '') {
+                Notification::make()
+                    ->danger()
+                    ->title('Gagal menyimpan presensi')
+                    ->body($firstMessage)
+                    ->send();
+            }
+
+            $prefixed = [];
+            foreach ($e->errors() as $key => $messages) {
+                $prefixed[str_starts_with($key, 'data.') ? $key : "data.{$key}"] = $messages;
+            }
+
+            throw ValidationException::withMessages($prefixed);
+        }
+
         $this->muat();
         Notification::make()->title('Presensi tersimpan dan rapor yang belum dikunci diperbarui')->success()->send();
     }
@@ -121,15 +182,24 @@ class PresensiKelas extends HalamanHarian
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('hadirSemua')->label('Tandai semua hadir')->color('gray')->action(function (): void {
-                foreach ($this->data['baris'] ?? [] as $key => $row) {
-                    if (blank($row['status'] ?? null)) {
-                        $this->data['baris'][$key]['status'] = 'hadir';
+            Action::make('hadirSemua')
+                ->label('Tandai semua hadir')
+                ->color('gray')
+                ->disabled(fn (): bool => $this->keteranganLibur !== null)
+                ->action(function (): void {
+                    foreach ($this->data['baris'] ?? [] as $key => $row) {
+                        if (blank($row['status'] ?? null)) {
+                            $this->data['baris'][$key]['status'] = 'hadir';
+                        }
                     }
-                }
-            }),
+                    $this->form->fill($this->data);
+                }),
             Action::make('muat')->label('Muat ulang')->color('gray')->action(fn () => $this->muat()),
-            Action::make('simpan')->label('Simpan Presensi')->icon(Heroicon::OutlinedCheck)->action(fn () => $this->simpan()),
+            Action::make('simpan')
+                ->label('Simpan Presensi')
+                ->icon(Heroicon::OutlinedCheck)
+                ->disabled(fn (): bool => $this->keteranganLibur !== null)
+                ->action(fn () => $this->simpan()),
         ];
     }
 }

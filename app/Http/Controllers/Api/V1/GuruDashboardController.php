@@ -18,6 +18,7 @@ use Filament\Facades\Filament;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\URL;
 
 class GuruDashboardController extends Controller
 {
@@ -31,7 +32,7 @@ class GuruDashboardController extends Controller
         $hariIniStr = AksesHarian::hariIni();
         $jadwal = JadwalSaya::jadwalTerbit();
         $perHari = JadwalSaya::pelajaranPerHari($jadwal, $gtk);
-        $hariIni = Hari::dariTanggal(now());
+        $hariIni = Hari::dariTanggal(now('Asia/Jakarta'));
         $pola = PolaJam::muat();
 
         $pelajaranHariIni = $hariIni === null
@@ -90,7 +91,9 @@ class GuruDashboardController extends Controller
                 'dicatat_pada' => filled($presensiGtk->dicatat_pada) ? Carbon::parse($presensiGtk->dicatat_pada)->timezone('Asia/Jakarta')->format('H:i') : null,
                 'jarak_meter' => $presensiGtk->jarak_meter,
                 'punya_foto' => filled($presensiGtk->foto_path),
-                'foto_url' => filled($presensiGtk->foto_path) ? url("/api/v1/guru/kehadiran-gtk/{$presensiGtk->id}/foto") : null,
+                'foto_url' => filled($presensiGtk->foto_path)
+                    ? $request->getSchemeAndHttpHost().URL::temporarySignedRoute('api.guru.kehadiran-gtk.foto', now()->addMinutes(15), ['presensiGtk' => $presensiGtk->id], absolute: false)
+                    : null,
             ],
             'pengaturan_presensi' => $lokasiPresensi->ringkasanPengaturan(PengaturanPresensi::aktif()),
             'tugas' => $ringkasan->untuk($user),

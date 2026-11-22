@@ -21,7 +21,7 @@ class GuruJadwalController extends Controller
         $jadwal = JadwalSaya::jadwalTerbit();
         $perHari = JadwalSaya::pelajaranPerHari($jadwal, $user->gtk);
         $pola = PolaJam::muat();
-        $hariIni = Hari::dariTanggal(now());
+        $hariIni = Hari::dariTanggal(now('Asia/Jakarta'));
 
         $daftarHari = collect(Hari::cases())->map(function (Hari $hari) use ($perHari, $pola): array {
             $pelajaran = $perHari->get($hari->value, collect())->map(function (IsiJadwal $isi) use ($hari, $pola): array {
