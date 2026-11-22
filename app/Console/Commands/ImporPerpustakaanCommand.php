@@ -54,8 +54,12 @@ class ImporPerpustakaanCommand extends Command
             return self::FAILURE;
         }
 
-        $count = $importer->imporDariBaris($rows);
-        $this->info("Berhasil mengimpor {$count} buku ke perpustakaan digital Aksara.");
+        $hasil = $importer->imporDariBaris($rows);
+        $this->info("Berhasil mengimpor {$hasil['berhasil']} buku (dilewati: {$hasil['dilewati']}, gagal: ".count($hasil['gagal']).').');
+
+        foreach ($hasil['gagal'] as $err) {
+            $this->warn("Gagal: {$err}");
+        }
 
         return self::SUCCESS;
     }

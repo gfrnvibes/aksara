@@ -39,36 +39,49 @@ class ManageBukuPerpustakaans extends ManageRecords
                     $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
                     $rows = [];
 
-                    if ($ext === 'json') {
-                        $decoded = json_decode((string) file_get_contents($fullPath), true);
-                        if (is_array($decoded)) {
-                            $rows = array_values(array_filter($decoded, 'is_array'));
-                        }
-                    } else {
-                        $handle = fopen($fullPath, 'r');
-                        if ($handle !== false) {
-                            $header = fgetcsv($handle);
-                            if (is_array($header)) {
-                                $keys = array_map(fn ($h): string => trim((string) $h), $header);
-                                while (($line = fgetcsv($handle)) !== false) {
-                                    if (count($line) === count($keys)) {
-                                        $rows[] = array_combine($keys, $line);
+                    try {
+                        if ($ext === 'json') {
+                            $decoded = json_decode((string) file_get_contents($fullPath), true);
+                            if (is_array($decoded)) {
+                                $rows = array_values(array_filter($decoded, 'is_array'));
+                            }
+                        } else {
+                            $handle = fopen($fullPath, 'r');
+                            if ($handle !== false) {
+                                $header = fgetcsv($handle);
+                                if (is_array($header)) {
+                                    $keys = array_map(fn ($h): string => trim((string) $h), $header);
+                                    while (($line = fgetcsv($handle)) !== false) {
+                                        if (count($line) === count($keys)) {
+                                            $rows[] = array_combine($keys, $line);
+                                        }
                                     }
                                 }
+                                fclose($handle);
                             }
-                            fclose($handle);
                         }
+                    } finally {
+                        Storage::disk('local')->delete($relPath);
                     }
 
-                    Storage::disk('local')->delete($relPath);
-
                     $user = auth()->user();
-                    $count = $importer->imporDariBaris($rows, $user instanceof User ? $user->id : null);
+                    $hasil = $importer->imporDariBaris($rows, $user instanceof User ? $user->id : null);
 
-                    Notification::make()
-                        ->success()
-                        ->title("Berhasil mengimpor {$count} buku ke storage madrasah")
-                        ->send();
+                    $notif = Notification::make()
+                        ->title("Impor selesai: {$hasil['berhasil']} buku berhasil")
+                        ->body(
+                            $hasil['gagal'] !== []
+                                ? count($hasil['gagal']).' buku gagal: '.implode(' | ', array_slice($hasil['gagal'], 0, 3))
+                                : ($hasil['dilewati'] > 0 ? "{$hasil['dilewati']} baris dilewati (bukan jenjang MTs 7–9)." : null)
+                        );
+
+                    if ($hasil['gagal'] !== []) {
+                        $notif->warning();
+                    } else {
+                        $notif->success();
+                    }
+
+                    $notif->send();
                 }),
             CreateAction::make()
                 ->mutateDataUsing(function (array $data): array {

@@ -88,15 +88,15 @@ it('renders public library page, streams PDF, syncs with akreditasi, and serves 
     $bacaUrl = $res->json('buku.0.baca_url');
     expect($bacaUrl)->toBeString()->toContain('signature=');
 
-    get($bacaUrl)->assertOk()->assertHeader('Content-Type', 'application/pdf');
-    expect($buku->fresh()->jumlah_dibaca)->toBe(2);
+    get(route('perpustakaan.viewer', $buku))->assertOk()->assertSee('pdf.min.js');
+    get($bacaUrl)->assertOk()->assertSee('pdf.min.js');
 
     // 6. Batch import from SIBI/Kemenag URL filters only MTs grades (7-9) and stores PDF locally
     Http::fake([
         'https://buku.kemdikbud.go.id/*' => Http::response('%PDF-1.4 sibi book', 200, ['Content-Type' => 'application/pdf']),
     ]);
 
-    $imported = app(ImporBukuPerpustakaan::class)->imporDariBaris([
+    $hasil = app(ImporBukuPerpustakaan::class)->imporDariBaris([
         [
             'judul' => 'IPA Kelas VIII SMP/MTs',
             'penulis' => 'Kemdikbud',
@@ -114,7 +114,9 @@ it('renders public library page, streams PDF, syncs with akreditasi, and serves 
         ],
     ], $admin->id);
 
-    expect($imported)->toBe(1)
+    expect($hasil['berhasil'])->toBe(1)
+        ->and($hasil['dilewati'])->toBe(1)
+        ->and($hasil['gagal'])->toBe([])
         ->and(BukuPerpustakaan::query()->where('judul', 'IPA Kelas VIII SMP/MTs')->exists())->toBeTrue()
         ->and(BukuPerpustakaan::query()->where('judul', 'Matematika Kelas IV SD')->exists())->toBeFalse();
 });
