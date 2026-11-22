@@ -4,6 +4,7 @@ use App\Enums\Hari;
 use App\Enums\Semester;
 use App\Enums\SifatPermintaanJadwal;
 use App\Enums\StatusJadwal;
+use App\Models\GajiGuru;
 use App\Models\Gtk;
 use App\Models\IsiJadwal;
 use App\Models\Jadwal;
@@ -17,6 +18,7 @@ use App\Models\PushToken;
 use App\Models\RiwayatKelas;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Models\TransaksiKeuangan;
 use App\Models\User;
 use App\Services\Notifikasi\KlienExpoPush;
 use Illuminate\Http\UploadedFile;
@@ -359,4 +361,43 @@ it('registers push tokens, returns today teaching sessions, and dispatches morni
 
     $this->deleteJson('/api/v1/guru/push-token', ['token' => $token])->assertOk();
     expect(PushToken::query()->where('token', $token)->exists())->toBeFalse();
+});
+
+it('returns teacher salary slips and totals on guru keuangan endpoint', function (): void {
+    Sanctum::actingAs($this->user);
+
+    $slip = GajiGuru::query()->create([
+        'gtk_id' => $this->gtk->id,
+        'pencatat_id' => $this->user->id,
+        'periode' => '2026-11',
+        'nama_guru' => $this->gtk->nama,
+        'nip' => $this->gtk->nip,
+        'gaji_pokok' => 2500000,
+        'tunjangan' => 500000,
+        'potongan' => 100000,
+        'catatan' => 'Gaji November',
+    ]);
+
+    TransaksiKeuangan::query()->create([
+        'nomor' => 'TRX-2026-001',
+        'gaji_guru_id' => $slip->id,
+        'jenis' => 'keluar',
+        'kategori' => 'Gaji Guru',
+        'uraian' => 'Transfer gaji November',
+        'metode' => 'transfer',
+        'tanggal' => '2026-11-20',
+        'nominal' => 2900000,
+        'pencatat_id' => $this->user->id,
+    ]);
+
+    $this->getJson('/api/v1/guru/keuangan')
+        ->assertOk()
+        ->assertJsonPath('ringkasan.total_diterima', 2900000)
+        ->assertJsonPath('ringkasan.total_belum_dibayar', 0)
+        ->assertJsonPath('ringkasan.jumlah_slip', 1)
+        ->assertJsonFragment([
+            'periode' => '2026-11',
+            'bersih' => 2900000,
+            'sudah_dibayar' => true,
+        ]);
 });

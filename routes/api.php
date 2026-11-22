@@ -5,10 +5,12 @@ use App\Http\Controllers\Api\V1\GuruDashboardController;
 use App\Http\Controllers\Api\V1\GuruHarianController;
 use App\Http\Controllers\Api\V1\GuruJadwalController;
 use App\Http\Controllers\Api\V1\GuruJurnalController;
+use App\Http\Controllers\Api\V1\GuruKeuanganController;
 use App\Http\Controllers\Api\V1\GuruNilaiController;
 use App\Http\Controllers\Api\V1\GuruNotifikasiController;
 use App\Http\Controllers\Api\V1\GuruPerangkatController;
 use App\Http\Controllers\Api\V1\GuruPresensiController;
+use App\Http\Controllers\Api\V1\PengumumanController;
 use App\Http\Controllers\Api\V1\SiswaPortalController;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +59,7 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/rapor/{id}', [GuruNilaiController::class, 'raporUpdate']);
 
             Route::get('/perangkat', [GuruPerangkatController::class, 'index']);
+            Route::get('/keuangan', [GuruKeuanganController::class, 'index']);
             Route::get('/organisasi', [GuruPerangkatController::class, 'organisasiIndex']);
             Route::post('/organisasi/kegiatan', [GuruPerangkatController::class, 'organisasiKegiatanStore']);
 
@@ -65,13 +68,20 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/sesi-hari-ini', [GuruNotifikasiController::class, 'sesiHariIni']);
         });
 
+        Route::get('/pengumuman', [PengumumanController::class, 'index']);
+        Route::post('/push-token', [GuruNotifikasiController::class, 'simpanToken']);
+        Route::delete('/push-token', [GuruNotifikasiController::class, 'hapusToken']);
+
         Route::prefix('siswa')->group(function (): void {
             Route::get('/beranda', [SiswaPortalController::class, 'beranda']);
             Route::get('/presensi', [SiswaPortalController::class, 'presensi']);
             Route::get('/nilai', [SiswaPortalController::class, 'nilai']);
+            Route::post('/nilai/catatan-orang-tua', [SiswaPortalController::class, 'simpanCatatanOrangTua']);
             Route::get('/ekstrakurikuler', [SiswaPortalController::class, 'ekstrakurikuler']);
             Route::get('/catatan', [SiswaPortalController::class, 'catatan']);
             Route::get('/keuangan', [SiswaPortalController::class, 'keuangan']);
+            Route::get('/notifikasi', [SiswaPortalController::class, 'notifikasi']);
+            Route::post('/notifikasi/baca', [SiswaPortalController::class, 'bacaNotifikasi']);
         });
     });
 });
