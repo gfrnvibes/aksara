@@ -9,13 +9,18 @@ use App\Http\Controllers\Api\V1\GuruNilaiController;
 use App\Http\Controllers\Api\V1\GuruNotifikasiController;
 use App\Http\Controllers\Api\V1\GuruPerangkatController;
 use App\Http\Controllers\Api\V1\GuruPresensiController;
+use App\Http\Controllers\Api\V1\SiswaPortalController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+    Route::post('/auth/login-siswa', [AuthController::class, 'loginSiswa'])->middleware('throttle:10,1');
+    Route::get('/guru/kehadiran-gtk/{presensiGtk}/foto', [GuruHarianController::class, 'kehadiranGtkFoto'])
+        ->name('api.guru.kehadiran-gtk.foto');
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/auth/me', [AuthController::class, 'me']);
+        Route::post('/auth/password', [AuthController::class, 'updatePassword']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
 
         Route::prefix('guru')->group(function (): void {
@@ -33,7 +38,6 @@ Route::prefix('v1')->group(function (): void {
 
             Route::get('/kehadiran-gtk', [GuruHarianController::class, 'kehadiranGtkIndex']);
             Route::post('/kehadiran-gtk/hadir', [GuruHarianController::class, 'kehadiranGtkHadir']);
-            Route::get('/kehadiran-gtk/{presensiGtk}/foto', [GuruHarianController::class, 'kehadiranGtkFoto']);
             Route::post('/kehadiran-gtk', [GuruHarianController::class, 'kehadiranGtkStore']);
 
             Route::get('/piket', [GuruHarianController::class, 'piketIndex']);
@@ -59,6 +63,15 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/push-token', [GuruNotifikasiController::class, 'simpanToken']);
             Route::delete('/push-token', [GuruNotifikasiController::class, 'hapusToken']);
             Route::get('/sesi-hari-ini', [GuruNotifikasiController::class, 'sesiHariIni']);
+        });
+
+        Route::prefix('siswa')->group(function (): void {
+            Route::get('/beranda', [SiswaPortalController::class, 'beranda']);
+            Route::get('/presensi', [SiswaPortalController::class, 'presensi']);
+            Route::get('/nilai', [SiswaPortalController::class, 'nilai']);
+            Route::get('/ekstrakurikuler', [SiswaPortalController::class, 'ekstrakurikuler']);
+            Route::get('/catatan', [SiswaPortalController::class, 'catatan']);
+            Route::get('/keuangan', [SiswaPortalController::class, 'keuangan']);
         });
     });
 });

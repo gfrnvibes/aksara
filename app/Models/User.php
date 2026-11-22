@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,6 +22,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 /**
  * @property int $id
+ * @property int|null $siswa_id
  * @property string $name
  * @property string|null $email Optional for teachers, who sign in with their NIP, NUPTK or phone number.
  * @property Carbon|null $email_verified_at
@@ -33,8 +35,9 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Gtk|null $gtk
+ * @property-read Siswa|null $siswa
  */
-#[Fillable(['name', 'email', 'password', 'wajib_ganti_password'])]
+#[Fillable(['siswa_id', 'name', 'email', 'password', 'wajib_ganti_password'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, ProvidesActivityTitle
 {
@@ -100,6 +103,14 @@ class User extends Authenticatable implements FilamentUser, ProvidesActivityTitl
     public function gtk(): HasOne
     {
         return $this->hasOne(Gtk::class);
+    }
+
+    /**
+     * @return BelongsTo<Siswa, $this>
+     */
+    public function siswa(): BelongsTo
+    {
+        return $this->belongsTo(Siswa::class);
     }
 
     /**
