@@ -87,56 +87,50 @@
         @else
             <div class="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
                 @foreach ($paginator as $buku)
-                    <article class="group flex flex-col overflow-hidden rounded-2xl border border-garis bg-white transition hover:-translate-y-0.5 hover:border-hutan/40 hover:shadow-md">
-                        <div
-                            class="relative aspect-[4/3] overflow-hidden border-b border-garis bg-mint/30"
-                            @if (! $buku->sampulUrl())
-                                data-thumb-pdf="{{ route('perpustakaan.baca', ['buku' => $buku, 'thumb' => 1]) }}"
-                                data-thumb-save="{{ route('perpustakaan.sampul-otomatis', $buku) }}"
-                            @endif
-                        >
-                            @if ($buku->sampulUrl())
-                                <img src="{{ $buku->sampulUrl() }}" alt="{{ $buku->judul }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
-                            @else
-                                <div class="thumb-fallback relative flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-white" style="background: linear-gradient(135deg, #064e3b 0%, #065f46 55%, #0f766e 100%);">
-                                    <div class="pola-islami-terang pointer-events-none absolute inset-0"></div>
-                                    <x-heroicon-o-book-open class="relative size-9 text-amber-300 opacity-95 sm:size-10" />
-                                    <span class="relative font-kode text-[10px] tracking-widest text-emerald-100 uppercase">E-Book PDF</span>
-                                </div>
-                            @endif
-                            <span class="absolute top-2 left-2 rounded-full bg-kertas/95 px-2 py-0.5 font-kode text-[9px] font-medium text-hutan shadow-xs sm:top-2.5 sm:left-2.5 sm:px-2.5 sm:text-[10px]">
-                                {{ \App\Models\BukuPerpustakaan::KATEGORI[$buku->kategori] ?? $buku->kategori }}
-                            </span>
-                            @if ($buku->tingkat !== null)
-                                <span class="absolute top-2 right-2 rounded-full bg-hutan px-2 py-0.5 font-kode text-[9px] font-medium text-white sm:top-2.5 sm:right-2.5 sm:px-2.5 sm:text-[10px]">
-                                    {{ \App\Models\BukuPerpustakaan::TINGKAT[$buku->tingkat] ?? 'Kelas '.$buku->tingkat }}
-                                </span>
-                            @endif
-                        </div>
+                    <article
+                        class="group relative aspect-[3/4] overflow-hidden rounded-2xl border border-garis bg-hutan-tua shadow-xs transition hover:-translate-y-0.5 hover:shadow-lg"
+                        @if (! $buku->sampulUrl())
+                            data-thumb-pdf="{{ route('perpustakaan.baca', ['buku' => $buku, 'thumb' => 1]) }}"
+                            data-thumb-save="{{ route('perpustakaan.sampul-otomatis', $buku) }}"
+                        @endif
+                    >
+                        @if ($buku->sampulUrl())
+                            <img src="{{ $buku->sampulUrl() }}" alt="{{ $buku->judul }}" class="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105">
+                        @else
+                            <div class="thumb-fallback absolute inset-0 flex flex-col items-center justify-center gap-2 p-3 pb-24 text-center text-white" style="background: linear-gradient(135deg, #064e3b 0%, #065f46 55%, #0f766e 100%);">
+                                <div class="pola-islami-terang pointer-events-none absolute inset-0"></div>
+                                <x-heroicon-o-book-open class="relative size-9 text-amber-300 opacity-95 sm:size-10" />
+                                <span class="relative font-kode text-[10px] tracking-widest text-emerald-100 uppercase">E-Book PDF</span>
+                            </div>
+                        @endif
 
-                        <div class="flex flex-1 flex-col p-3 sm:p-4">
-                            <h2 class="line-clamp-2 font-judul text-sm leading-snug font-semibold text-tinta sm:text-lg">
+                        <span class="absolute top-2 left-2 z-10 rounded-full bg-kertas/95 px-2 py-0.5 font-kode text-[9px] font-medium text-hutan shadow-xs sm:top-2.5 sm:left-2.5 sm:px-2.5 sm:text-[10px]">
+                            {{ \App\Models\BukuPerpustakaan::KATEGORI[$buku->kategori] ?? $buku->kategori }}
+                        </span>
+                        @if ($buku->tingkat !== null)
+                            <span class="absolute top-2 right-2 z-10 rounded-full bg-hutan px-2 py-0.5 font-kode text-[9px] font-medium text-white shadow-xs sm:top-2.5 sm:right-2.5 sm:px-2.5 sm:text-[10px]">
+                                {{ \App\Models\BukuPerpustakaan::TINGKAT[$buku->tingkat] ?? 'Kelas '.$buku->tingkat }}
+                            </span>
+                        @endif
+
+                        <div class="absolute inset-x-0 bottom-0 z-10 flex flex-col justify-end p-3 pt-16 sm:p-4 sm:pt-20" style="background: linear-gradient(to top, rgba(6, 78, 59, 0.94) 0%, rgba(6, 78, 59, 0.76) 55%, rgba(6, 78, 59, 0) 100%);">
+                            <h2 class="line-clamp-2 font-judul text-xs leading-snug font-semibold text-white drop-shadow-xs sm:text-base">
                                 {{ $buku->judul }}
                             </h2>
-                            <p class="mt-1 line-clamp-1 text-[11px] text-stone-500 sm:text-xs">
+                            <p class="mt-0.5 line-clamp-1 text-[10px] text-emerald-100/90 sm:text-xs">
                                 {{ $buku->penulis ?: 'Tim Penyusun' }}
                                 @if ($buku->tahun_terbit)
                                     · {{ $buku->tahun_terbit }}
                                 @endif
                             </p>
                             @if ($buku->mataPelajaran)
-                                <p class="mt-1 line-clamp-1 font-kode text-[10px] text-hutan sm:mt-1.5 sm:text-[11px]">
+                                <p class="mt-0.5 line-clamp-1 font-kode text-[9px] text-amber-200 sm:text-[11px]">
                                     {{ $buku->mataPelajaran->nama }}
                                 </p>
                             @endif
-                            @if ($buku->deskripsi)
-                                <p class="mt-1.5 hidden line-clamp-2 text-xs leading-relaxed text-stone-600 sm:block">
-                                    {{ $buku->deskripsi }}
-                                </p>
-                            @endif
 
-                            <div class="mt-auto flex items-center justify-between gap-1.5 border-t border-garis/70 pt-2.5 sm:pt-3">
-                                <span class="inline-flex items-center gap-1 text-[11px] text-stone-500 sm:text-xs">
+                            <div class="mt-2 flex items-center justify-between gap-1.5 border-t border-white/20 pt-2 sm:mt-2.5 sm:pt-2.5">
+                                <span class="inline-flex items-center gap-1 text-[10px] text-emerald-100 sm:text-xs">
                                     <x-heroicon-o-eye class="size-3.5" />
                                     <span>{{ number_format($buku->jumlah_dibaca) }}</span><span class="hidden sm:inline"> dibaca</span>
                                 </span>
@@ -144,7 +138,7 @@
                                     href="{{ route('perpustakaan.viewer', $buku) }}"
                                     target="_blank"
                                     rel="noopener"
-                                    class="inline-flex items-center gap-1 rounded-full bg-hutan px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-hutan-tua sm:px-3 sm:py-1.5 sm:text-xs"
+                                    class="inline-flex items-center gap-1 rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-semibold text-emerald-950 transition hover:bg-amber-300 sm:px-3 sm:py-1.5 sm:text-xs"
                                 >
                                     <span>Baca</span>
                                     <x-heroicon-o-book-open class="size-3 sm:size-3.5" />
@@ -200,7 +194,7 @@
                     const img = document.createElement('img');
                     img.src = dataUrl;
                     img.alt = 'Sampul buku';
-                    img.className = 'h-full w-full object-cover transition duration-300 group-hover:scale-105';
+                    img.className = 'absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105';
                     const fallback = el.querySelector('.thumb-fallback');
                     if (fallback) fallback.replaceWith(img);
 
