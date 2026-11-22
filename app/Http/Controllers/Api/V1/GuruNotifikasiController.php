@@ -15,7 +15,9 @@ class GuruNotifikasiController extends Controller
     public function simpanToken(Request $request): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user instanceof User && $user->gtk !== null && $user->gtk->is_aktif, 403);
+        $isGuru = $user instanceof User && $user->gtk !== null && $user->gtk->is_aktif;
+        $isSiswa = $user instanceof User && $user->siswa_id !== null;
+        abort_unless($isGuru || $isSiswa, 403);
 
         $data = $request->validate([
             'token' => ['required', 'string', 'max:255', 'regex:/^Expo(nent)?PushToken\[.+\]$/'],

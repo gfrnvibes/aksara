@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AnggotaOrganisasi;
 use App\Models\NilaiEkstrakurikuler;
 use App\Models\NilaiRapor;
+use App\Models\NotifikasiSiswa;
 use App\Models\PelanggaranSiswa;
 use App\Models\PresensiSiswa;
 use App\Models\PrestasiSiswa;
@@ -179,8 +180,48 @@ class SiswaPortalController extends Controller
             'jumlah' => $jumlah,
             'rata_rata' => $rataRata,
             'catatan_wali_kelas' => $rapor?->catatan,
+            'catatan_orang_tua' => $rapor?->catatan_orang_tua,
             'keputusan' => $rapor?->keputusan?->getLabel(),
             'mapel' => $mapel,
+        ]);
+    }
+
+    public function simpanCatatanOrangTua(Request $request): JsonResponse
+    {
+        $siswa = $this->siswaAktif($request);
+        $tahun = TahunAjaran::query()->where('is_aktif', true)->first();
+        abort_if($tahun === null, 422, 'Tahun ajaran aktif belum tersedia.');
+
+        $data = $request->validate([
+            'semester' => ['nullable', 'integer'],
+            'catatan_orang_tua' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $semesterVal = (int) ($data['semester'] ?? Semester::berdasarkanTanggal(now('Asia/Jakarta'))->value);
+        $semester = Semester::tryFrom($semesterVal) ?? Semester::berdasarkanTanggal(now('Asia/Jakarta'));
+
+        $kelasId = $siswa->kelasPadaTahunAjaran($tahun->id);
+        abort_if($kelasId === null, 422, 'Siswa belum terdaftar pada kelas di tahun ajaran aktif.');
+
+        $rapor = Rapor::query()->firstOrCreate(
+            [
+                'siswa_id' => $siswa->id,
+                'tahun_ajaran_id' => $tahun->id,
+                'semester' => $semester,
+            ],
+            [
+                'kelas_id' => $kelasId,
+            ],
+        );
+
+        $catatan = trim((string) ($data['catatan_orang_tua'] ?? ''));
+        $rapor->update([
+            'catatan_orang_tua' => $catatan === '' ? null : $catatan,
+        ]);
+
+        return response()->json([
+            'message' => 'Catatan orang tua tersimpan.',
+            'catatan_orang_tua' => $rapor->catatan_orang_tua,
         ]);
     }
 
@@ -324,6 +365,53 @@ class SiswaPortalController extends Controller
             'saldo_tabungan' => TabunganSiswa::saldoUntuk($siswa->id),
             'tabungan' => $tabungan,
         ]);
+    }
+
+    public function notifikasi(Request $request): JsonResponse
+    {
+        $siswa = $this->siswaAktif($request);
+
+        $rows = NotifikasiSiswa::query()
+            ->where('siswa_id', $siswa->id)
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get();
+
+        $unreadCount = NotifikasiSiswa::query()
+            ->where('siswa_id', $siswa->id)
+            ->whereNull('dibaca_at')
+            ->count();
+
+        $items = $rows->map(fn (NotifikasiSiswa $n): array => [
+            'id' => $n->id,
+            'kategori' => $n->kategori,
+            'judul' => $n->judul,
+            'isi' => $n->isi,
+            'dibaca_at' => $n->dibaca_at?->toIso8601String(),
+            'created_at' => $n->created_at?->timezone('Asia/Jakarta')->format('d-m-Y H:i'),
+        ])->all();
+
+        return response()->json([
+            'unread_count' => $unreadCount,
+            'items' => $items,
+        ]);
+    }
+
+    public function bacaNotifikasi(Request $request): JsonResponse
+    {
+        $siswa = $this->siswaAktif($request);
+
+        $data = $request->validate([
+            'id' => ['nullable', 'integer'],
+        ]);
+
+        NotifikasiSiswa::query()
+            ->where('siswa_id', $siswa->id)
+            ->whereNull('dibaca_at')
+            ->when(isset($data['id']), fn ($q) => $q->whereKey((int) $data['id']))
+            ->update(['dibaca_at' => now()]);
+
+        return response()->json(['message' => 'Notifikasi ditandai sudah dibaca.']);
     }
 
     protected function siswaAktif(Request $request): Siswa

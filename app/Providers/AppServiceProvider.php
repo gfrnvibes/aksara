@@ -4,8 +4,17 @@ namespace App\Providers;
 
 use App\Filament\Akreditasi\Resources\AkreditasiDokumens\Pages\EditAkreditasiDokumen;
 use App\Filament\Akreditasi\Resources\AkreditasiDokumens\Pages\ListAkreditasiDokumens;
+use App\Models\PelanggaranSiswa;
+use App\Models\Pengumuman;
+use App\Models\PresensiSiswa;
+use App\Models\PrestasiSiswa;
+use App\Models\Rapor;
+use App\Models\TabunganSiswa;
+use App\Models\TagihanSiswa;
+use App\Models\TransaksiKeuangan;
 use App\Policies\ActivityPolicy;
 use App\Policies\RolePolicy;
+use App\Services\Notifikasi\NotifikasiAktivitasSiswa;
 use Carbon\CarbonImmutable;
 use Filament\Support\Facades\FilamentView;
 use Filament\Tables\Columns\TextColumn;
@@ -74,6 +83,7 @@ class AppServiceProvider extends ServiceProvider
 
         $this->registerGoogleDriveDisk();
         $this->registerPostgreSqlDumper();
+        $this->registerNotifikasiSiswaListeners();
     }
 
     /**
@@ -141,5 +151,103 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    protected function registerNotifikasiSiswaListeners(): void
+    {
+        PresensiSiswa::saved(function (PresensiSiswa $presensi): void {
+            if (! $presensi->wasRecentlyCreated && ! $presensi->wasChanged('status')) {
+                return;
+            }
+            $label = PresensiSiswa::STATUS[$presensi->status] ?? ucfirst($presensi->status);
+            app(NotifikasiAktivitasSiswa::class)->kirimKeSiswa(
+                $presensi->siswa_id,
+                'presensi',
+                'Presensi Harian',
+                "Kehadiran tanggal {$presensi->tanggal->format('d-m-Y')}: {$label}.",
+                ['tanggal' => $presensi->tanggal->format('Y-m-d'), 'status' => $presensi->status],
+            );
+        });
+
+        PelanggaranSiswa::created(function (PelanggaranSiswa $pelanggaran): void {
+            app(NotifikasiAktivitasSiswa::class)->kirimKeSiswa(
+                $pelanggaran->siswa_id,
+                'pelanggaran',
+                'Catatan Pelanggaran',
+                "{$pelanggaran->pelanggaran} (+{$pelanggaran->poin} poin).",
+                ['id' => $pelanggaran->id],
+            );
+        });
+
+        PrestasiSiswa::created(function (PrestasiSiswa $prestasi): void {
+            app(NotifikasiAktivitasSiswa::class)->kirimKeSiswa(
+                $prestasi->siswa_id,
+                'prestasi',
+                'Catatan Prestasi',
+                "{$prestasi->nama_prestasi}".($prestasi->peringkat ? " ({$prestasi->peringkat})" : '').'.',
+                ['id' => $prestasi->id],
+            );
+        });
+
+        TabunganSiswa::created(function (TabunganSiswa $tabungan): void {
+            $jenis = $tabungan->jenis === 'setor' ? 'Setoran Tabungan' : 'Penarikan Tabungan';
+            $nominal = number_format($tabungan->nominal, 0, ',', '.');
+            app(NotifikasiAktivitasSiswa::class)->kirimKeSiswa(
+                $tabungan->siswa_id,
+                'tabungan',
+                $jenis,
+                "{$jenis} sebesar Rp {$nominal}.",
+                ['id' => $tabungan->id, 'jenis' => $tabungan->jenis],
+            );
+        });
+
+        TagihanSiswa::created(function (TagihanSiswa $tagihan): void {
+            $nominal = number_format($tagihan->nominal, 0, ',', '.');
+            app(NotifikasiAktivitasSiswa::class)->kirimKeSiswa(
+                $tagihan->siswa_id,
+                'tagihan',
+                'Tagihan Sekolah Baru',
+                "{$tagihan->nama} ({$tagihan->periode}) sebesar Rp {$nominal}.",
+                ['id' => $tagihan->id],
+            );
+        });
+
+        TransaksiKeuangan::created(function (TransaksiKeuangan $transaksi): void {
+            if ($transaksi->tagihan_siswa_id === null) {
+                return;
+            }
+            $tagihan = $transaksi->tagihan;
+            if ($tagihan === null) {
+                return;
+            }
+            $nominal = number_format($transaksi->nominal, 0, ',', '.');
+            app(NotifikasiAktivitasSiswa::class)->kirimKeSiswa(
+                $tagihan->siswa_id,
+                'tagihan',
+                'Pembayaran Tagihan',
+                "Pembayaran {$tagihan->nama} sebesar Rp {$nominal} telah dicatat.",
+                ['tagihan_id' => $tagihan->id, 'transaksi_id' => $transaksi->id],
+            );
+        });
+
+        Rapor::saved(function (Rapor $rapor): void {
+            if (! $rapor->wasChanged(['catatan', 'keputusan'])) {
+                return;
+            }
+            if (blank($rapor->catatan) && $rapor->keputusan === null) {
+                return;
+            }
+            app(NotifikasiAktivitasSiswa::class)->kirimKeSiswa(
+                $rapor->siswa_id,
+                'nilai',
+                'Pembaruan Rapor',
+                'Catatan wali kelas atau status rapor semester telah diperbarui.',
+                ['rapor_id' => $rapor->id],
+            );
+        });
+
+        Pengumuman::created(function (Pengumuman $pengumuman): void {
+            app(NotifikasiAktivitasSiswa::class)->kirimPengumuman($pengumuman);
+        });
     }
 }

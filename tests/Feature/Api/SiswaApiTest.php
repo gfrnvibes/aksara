@@ -8,6 +8,7 @@ use App\Models\MataPelajaran;
 use App\Models\NilaiEkstrakurikuler;
 use App\Models\NilaiRapor;
 use App\Models\PelanggaranSiswa;
+use App\Models\Pengumuman;
 use App\Models\PresensiSiswa;
 use App\Models\PrestasiSiswa;
 use App\Models\Rapor;
@@ -169,4 +170,42 @@ it('authenticates student/parent via NIS and birth date and serves all student p
         ->assertJsonPath('saldo_tabungan', 75000)
         ->assertJsonPath('total_sisa_tagihan', 150000)
         ->assertJsonFragment(['nama' => 'SPP November 2026']);
+
+    $this->withToken($token)->postJson('/api/v1/siswa/nilai/catatan-orang-tua', [
+        'catatan_orang_tua' => 'Mohon bimbingan lebih pada pelajaran tajwid.',
+    ])->assertOk()->assertJsonPath('catatan_orang_tua', 'Mohon bimbingan lebih pada pelajaran tajwid.');
+
+    $this->withToken($token)->getJson('/api/v1/siswa/nilai')
+        ->assertOk()
+        ->assertJsonPath('catatan_orang_tua', 'Mohon bimbingan lebih pada pelajaran tajwid.');
+
+    $this->withToken($token)->getJson('/api/v1/siswa/notifikasi')
+        ->assertOk()
+        ->assertJsonStructure(['unread_count', 'items'])
+        ->assertJsonFragment(['kategori' => 'tabungan']);
+
+    $this->withToken($token)->postJson('/api/v1/siswa/notifikasi/baca')
+        ->assertOk();
+
+    $this->withToken($token)->getJson('/api/v1/siswa/notifikasi')
+        ->assertOk()
+        ->assertJsonPath('unread_count', 0);
+
+    Pengumuman::create([
+        'judul' => 'Libur Awal Ramadhan',
+        'isi' => 'Madrasah libur selama 3 hari.',
+        'tujuan' => 'semua',
+        'is_aktif' => true,
+    ]);
+    Pengumuman::create([
+        'judul' => 'Rapat Dewan Guru',
+        'isi' => 'Khusus guru dan staf.',
+        'tujuan' => 'guru',
+        'is_aktif' => true,
+    ]);
+
+    $this->withToken($token)->getJson('/api/v1/pengumuman')
+        ->assertOk()
+        ->assertJsonFragment(['judul' => 'Libur Awal Ramadhan'])
+        ->assertJsonMissing(['judul' => 'Rapat Dewan Guru']);
 });

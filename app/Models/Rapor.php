@@ -33,6 +33,7 @@ use Illuminate\Validation\ValidationException;
  * @property string|null $nilai_kepribadian
  * @property array<int, array{prestasi: string|null, nilai: string|null, keterangan: string|null}>|null $prestasi
  * @property string|null $catatan
+ * @property string|null $catatan_orang_tua
  * @property string|null $wali_kelas
  * @property string|null $nip_wali_kelas
  * @property Carbon|null $presensi_dikunci_at
