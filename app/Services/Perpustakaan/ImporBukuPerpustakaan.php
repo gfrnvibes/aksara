@@ -12,10 +12,14 @@ use Throwable;
 class ImporBukuPerpustakaan
 {
     /**
-     * Download an official PDF (SIBI/Kemenag) by streaming directly to disk.
+     * Download an official PDF (SIBI/Kemenag) by streaming directly to disk, or import from a local PDF path.
      */
     public function unduhPdfKeStorage(string $url, string $judul): string
     {
+        if (is_file($url)) {
+            return $this->simpanPdfStreamKeStorage($url, $judul, $url);
+        }
+
         $tempPath = tempnam(sys_get_temp_dir(), 'aksara_pdf_');
         if ($tempPath === false) {
             throw ValidationException::withMessages([
@@ -35,40 +39,51 @@ class ImporBukuPerpustakaan
                 ]);
             }
 
-            $handle = fopen($tempPath, 'rb');
-            $headerBytes = $handle !== false ? (string) fread($handle, 5) : '';
-            if ($handle !== false) {
-                fclose($handle);
-            }
-
             $contentType = strtolower((string) $response->header('Content-Type'));
-            if (! str_contains($contentType, 'pdf') && ! str_starts_with($headerBytes, '%PDF')) {
-                throw ValidationException::withMessages([
-                    'sumber_url' => 'URL yang diberikan bukan file PDF yang valid.',
-                ]);
-            }
+            $isContentTypePdf = str_contains($contentType, 'pdf');
 
-            $slug = str($judul)->slug()->limit(60, '');
-            $filename = "perpustakaan/pdf/{$slug}-".substr(sha1($url.microtime()), 0, 8).'.pdf';
-            $stream = fopen($tempPath, 'rb');
-            if ($stream === false) {
-                throw ValidationException::withMessages([
-                    'sumber_url' => 'Gagal membaca file PDF yang telah diunduh.',
-                ]);
-            }
-
-            try {
-                Storage::disk(BukuPerpustakaan::diskName())->put($filename, $stream);
-            } finally {
-                fclose($stream);
-            }
-
-            return $filename;
+            return $this->simpanPdfStreamKeStorage($tempPath, $judul, $url, $isContentTypePdf);
         } finally {
             if (is_file($tempPath)) {
                 @unlink($tempPath);
             }
         }
+    }
+
+    protected function simpanPdfStreamKeStorage(
+        string $localPath,
+        string $judul,
+        string $hashSource,
+        bool $isContentTypePdf = false,
+    ): string {
+        $handle = fopen($localPath, 'rb');
+        $headerBytes = $handle !== false ? (string) fread($handle, 5) : '';
+        if ($handle !== false) {
+            fclose($handle);
+        }
+
+        if (! $isContentTypePdf && ! str_starts_with($headerBytes, '%PDF')) {
+            throw ValidationException::withMessages([
+                'sumber_url' => 'URL atau file yang diberikan bukan file PDF yang valid.',
+            ]);
+        }
+
+        $slug = str($judul)->slug()->limit(60, '');
+        $filename = "perpustakaan/pdf/{$slug}-".substr(sha1($hashSource.microtime()), 0, 8).'.pdf';
+        $stream = fopen($localPath, 'rb');
+        if ($stream === false) {
+            throw ValidationException::withMessages([
+                'sumber_url' => 'Gagal membaca file PDF.',
+            ]);
+        }
+
+        try {
+            Storage::disk(BukuPerpustakaan::diskName())->put($filename, $stream);
+        } finally {
+            fclose($stream);
+        }
+
+        return $filename;
     }
 
     /**
@@ -159,7 +174,7 @@ class ImporBukuPerpustakaan
                         'deskripsi' => isset($row['deskripsi']) ? trim((string) $row['deskripsi']) : null,
                         'sampul' => $sampul,
                         'file_pdf' => $filePdf,
-                        'sumber_url' => $pdfUrl,
+                        'sumber_url' => trim((string) ($row['sumber_url'] ?? '')) ?: $pdfUrl,
                         'is_aktif' => true,
                         'pengunggah_id' => $userId,
                     ],
