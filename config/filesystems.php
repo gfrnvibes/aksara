@@ -103,6 +103,9 @@ return [
     // Question-bank images; "local" keeps them on this server, "r2" in the cloud. Follows the archive by default.
     'cbt' => env('CBT_DISK') ?: env('ARSIP_DISK', 'local'),
 
+    // Digital library e-books and covers; "local" keeps them on this server, "r2" in the cloud. Follows the archive by default.
+    'perpustakaan' => env('PERPUSTAKAAN_DISK') ?: env('ARSIP_DISK', 'local'),
+
     /*
     |--------------------------------------------------------------------------
     | Symbolic Links

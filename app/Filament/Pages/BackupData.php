@@ -90,7 +90,7 @@ class BackupData extends Page implements HasTable
     {
         return [
             BackupType::ONLY_DATABASE->value => 'Database saja',
-            BackupType::DATABASE_AND_FILES->value => 'Database + file (foto siswa)',
+            BackupType::DATABASE_AND_FILES->value => 'Database + semua berkas',
         ];
     }
 
@@ -338,8 +338,8 @@ class BackupData extends Page implements HasTable
                     ->modalDescription('Data saat ini akan diganti. Sistem membuat backup pengaman terlebih dahulu dan masuk maintenance sementara. Akun serta password mengikuti backup; Anda mungkin perlu login ulang.')
                     ->modalSubmitActionLabel('Restore sekarang')
                     ->schema([
-                        Toggle::make('files')->label('Pulihkan foto/file siswa juga')
-                            ->helperText('Mengganti foto/file siswa sesuai backup. Dokumen privat yang disimpan di R2 tidak termasuk.')
+                        Toggle::make('files')->label('Pulihkan semua berkas juga')
+                            ->helperText('Mengganti seluruh berkas di storage (public & private) sesuai backup.')
                             ->visible(fn (array $record): bool => $record['type'] === BackupType::DATABASE_AND_FILES->value)
                             ->default(false),
                         TextInput::make('konfirmasi')->label('Ketik RESTORE untuk melanjutkan')->required()->rules(['in:RESTORE']),

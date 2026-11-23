@@ -32,6 +32,7 @@ return [
                  */
                 'include' => [
                     storage_path('app/public'),
+                    storage_path('app/private'),
                 ],
 
                 /*
@@ -39,7 +40,12 @@ return [
                  *
                  * Directories used by the backup process will automatically be excluded.
                  */
-                'exclude' => [],
+                'exclude' => [
+                    storage_path('app/private/livewire-tmp'),
+                    storage_path('app/private/'.env('BACKUP_NAME', 'buku-induk')),
+                    storage_path('app/backup-temp'),
+                    storage_path('app/restore-temp'),
+                ],
 
                 /*
                  * Determines if symlinks should be followed.

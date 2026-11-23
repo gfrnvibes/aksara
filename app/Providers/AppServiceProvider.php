@@ -15,6 +15,7 @@ use App\Models\TransaksiKeuangan;
 use App\Policies\ActivityPolicy;
 use App\Policies\RolePolicy;
 use App\Services\Notifikasi\NotifikasiAktivitasSiswa;
+use App\Support\WindowsPostgreSqlDumper;
 use Carbon\CarbonImmutable;
 use Filament\Support\Facades\FilamentView;
 use Filament\Tables\Columns\TextColumn;
@@ -95,23 +96,7 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        DbDumperFactory::extend('pgsql', fn (): PostgreSql => new class extends PostgreSql
-        {
-            /** @return array<string, string> */
-            protected function getEnvironmentVariablesForDumpCommand(string $temporaryCredentialsFile): array
-            {
-                $vars = parent::getEnvironmentVariablesForDumpCommand($temporaryCredentialsFile);
-
-                foreach (['SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'PATH'] as $key) {
-                    $value = getenv($key);
-                    if (is_string($value) && $value !== '') {
-                        $vars[$key] = $value;
-                    }
-                }
-
-                return $vars;
-            }
-        });
+        DbDumperFactory::extend('pgsql', fn (): PostgreSql => new WindowsPostgreSqlDumper);
     }
 
     /**
@@ -216,7 +201,7 @@ class AppServiceProvider extends ServiceProvider
             if ($transaksi->tagihan_siswa_id === null) {
                 return;
             }
-            $tagihan = $transaksi->tagihan;
+            $tagihan = $transaksi->tagihanSiswa;
             if ($tagihan === null) {
                 return;
             }

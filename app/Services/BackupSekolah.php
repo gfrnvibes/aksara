@@ -82,6 +82,10 @@ class BackupSekolah
         $filename = $riwayat->jenis.'-'.now()->format('Y-m-d-H-i-s').'-'.$riwayat->batch.'.zip';
         $path = $config->backup->name.'/'.$config->backup->destination->filenamePrefix.$filename;
 
+        if ($riwayat->disk === 'google') {
+            Storage::disk($riwayat->disk)->makeDirectory($config->backup->name);
+        }
+
         $job = BackupJobFactory::createFromConfig($config)->disableSignals()->setFilename($filename);
         if ($riwayat->jenis === BackupType::ONLY_DATABASE->value) {
             $job->dontBackupFilesystem();
