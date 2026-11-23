@@ -212,3 +212,66 @@ it('displays shortened author (dkk), publisher, and source metadata on ebook car
         ->assertSee('Pusat Kurikulum dan Perbukuan · SIBI Kemendikbud')
         ->assertDontSee('Victoriani Inabuy, Cece Sutia, Okky Fajar Tri Maryana');
 });
+
+it('supports daftar (lightweight default), tabel, and grid view modes', function (): void {
+    BukuPerpustakaan::query()->create([
+        'judul' => 'Matematika Kelas VII',
+        'penulis' => 'Tim Kemdikbud',
+        'penerbit' => 'Pusat Perbukuan',
+        'sumber' => 'sibi',
+        'kategori' => 'paket',
+        'tingkat' => 7,
+        'file_pdf' => 'perpustakaan/pdf/mtk-7.pdf',
+        'is_aktif' => true,
+    ]);
+
+    // Default mode (daftar): lightweight, no pdf.js thumbnail script or cover thumb attributes
+    get(route('perpustakaan.index'))
+        ->assertOk()
+        ->assertViewHas('modeAktif', 'daftar')
+        ->assertSee('Matematika Kelas VII')
+        ->assertDontSee('pdf.min.js')
+        ->assertDontSee('data-thumb-pdf');
+
+    // Table mode: lightweight table without pdf.js
+    get(route('perpustakaan.index', ['mode' => 'tabel']))
+        ->assertOk()
+        ->assertViewHas('modeAktif', 'tabel')
+        ->assertSee('<table', false)
+        ->assertSee('Matematika Kelas VII')
+        ->assertDontSee('pdf.min.js');
+
+    // Grid mode: visual cover cards with pdf.js thumbnail generator
+    get(route('perpustakaan.index', ['mode' => 'grid']))
+        ->assertOk()
+        ->assertViewHas('modeAktif', 'grid')
+        ->assertSee('Matematika Kelas VII')
+        ->assertSee('pdf.min.js')
+        ->assertSee('data-thumb-pdf');
+});
+
+it('provides same-origin proxyPdfUrl in viewer and streams PDF on proxy=1', function (): void {
+    config(['filesystems.perpustakaan' => 'local']);
+    Storage::fake('local');
+
+    $pdfPath = 'perpustakaan/pdf/pjok-7.pdf';
+    Storage::disk('local')->put($pdfPath, '%PDF-1.4 pjok content');
+
+    $buku = BukuPerpustakaan::query()->create([
+        'judul' => 'Pendidikan Jasmani Kelas VII',
+        'kategori' => 'paket',
+        'tingkat' => 7,
+        'file_pdf' => $pdfPath,
+        'is_aktif' => true,
+    ]);
+
+    get(route('perpustakaan.viewer', $buku))
+        ->assertOk()
+        ->assertViewHas('proxyPdfUrl', route('perpustakaan.baca', ['buku' => $buku, 'proxy' => 1]));
+
+    get(route('perpustakaan.baca', ['buku' => $buku, 'proxy' => 1]))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf');
+
+    expect($buku->fresh()->jumlah_dibaca)->toBe(0);
+});

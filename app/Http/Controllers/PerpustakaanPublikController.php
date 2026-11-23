@@ -16,6 +16,10 @@ class PerpustakaanPublikController extends Controller
         $kataKunci = $request->string('q')->trim()->toString();
         $kategoriAktif = $request->string('kategori')->trim()->toString();
         $tingkatAktif = $request->integer('tingkat') ?: null;
+        $modeAktif = $request->string('mode')->trim()->toString();
+        if (! in_array($modeAktif, ['daftar', 'tabel', 'grid'], true)) {
+            $modeAktif = 'daftar';
+        }
 
         $paginator = BukuPerpustakaan::query()
             ->aktif()
@@ -40,6 +44,7 @@ class PerpustakaanPublikController extends Controller
             'kataKunci' => $kataKunci,
             'kategoriAktif' => $kategoriAktif,
             'tingkatAktif' => $tingkatAktif,
+            'modeAktif' => $modeAktif,
             'daftarKategori' => BukuPerpustakaan::KATEGORI,
             'daftarTingkat' => BukuPerpustakaan::TINGKAT,
         ]);
@@ -68,6 +73,7 @@ class PerpustakaanPublikController extends Controller
         abort_unless(Storage::disk($disk)->exists($buku->file_pdf), 404);
 
         $pdfUrl = route('perpustakaan.baca', $buku);
+        $proxyPdfUrl = route('perpustakaan.baca', ['buku' => $buku, 'proxy' => 1]);
         if (BukuPerpustakaan::adalahCloudDisk($disk)) {
             $buku->increment('jumlah_dibaca');
             $pdfUrl = Storage::disk($disk)->temporaryUrl($buku->file_pdf, now()->addHours(2), [
@@ -78,6 +84,7 @@ class PerpustakaanPublikController extends Controller
         return view('perpustakaan-viewer', [
             'buku' => $buku,
             'pdfUrl' => $pdfUrl,
+            'proxyPdfUrl' => $proxyPdfUrl,
         ]);
     }
 
@@ -87,11 +94,30 @@ class PerpustakaanPublikController extends Controller
         $disk = BukuPerpustakaan::diskName();
         abort_unless(Storage::disk($disk)->exists($buku->file_pdf), 404);
 
-        if (! $request->boolean('thumb')) {
+        $isThumb = $request->boolean('thumb');
+        $isProxy = $request->boolean('proxy');
+
+        if (! $isThumb && ! $isProxy) {
             $buku->increment('jumlah_dibaca');
         }
 
         if (BukuPerpustakaan::adalahCloudDisk($disk)) {
+            if ($isProxy || $isThumb) {
+                $stream = Storage::disk($disk)->readStream($buku->file_pdf);
+                abort_if($stream === null, 404);
+
+                return response()->stream(function () use ($stream): void {
+                    fpassthru($stream);
+                    if (is_resource($stream)) {
+                        fclose($stream);
+                    }
+                }, 200, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="'.str($buku->judul)->slug().'.pdf"',
+                    'Cache-Control' => 'private, max-age=3600',
+                ]);
+            }
+
             return redirect()->away(
                 Storage::disk($disk)->temporaryUrl($buku->file_pdf, now()->addHours(2), [
                     'ResponseContentType' => 'application/pdf',

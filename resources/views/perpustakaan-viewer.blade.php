@@ -219,6 +219,7 @@
     <script>
         (() => {
             const pdfUrl = @json($pdfUrl);
+            const proxyPdfUrl = @json($proxyPdfUrl ?? $pdfUrl);
             const statusEl = document.getElementById('status');
             const canvas = document.getElementById('pdf-canvas');
             const ctx = canvas.getContext('2d');
@@ -334,14 +335,26 @@
                 if (e.key === 'ArrowRight' && currentPage < totalPages) renderPage(currentPage + 1);
             });
 
+            async function loadPdfDocument(url) {
+                return pdfjsLib.getDocument({
+                    url,
+                    rangeChunkSize: 65536,
+                    disableAutoFetch: true,
+                }).promise;
+            }
+
             (async () => {
                 try {
                     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-                    pdfDoc = await pdfjsLib.getDocument({
-                        url: pdfUrl,
-                        rangeChunkSize: 65536,
-                        disableAutoFetch: true,
-                    }).promise;
+                    try {
+                        pdfDoc = await loadPdfDocument(pdfUrl);
+                    } catch (primaryErr) {
+                        if (proxyPdfUrl && proxyPdfUrl !== pdfUrl) {
+                            pdfDoc = await loadPdfDocument(proxyPdfUrl);
+                        } else {
+                            throw primaryErr;
+                        }
+                    }
 
                     totalPages = pdfDoc.numPages;
                     pageInput.max = String(totalPages);
@@ -358,7 +371,14 @@
                     }
                 } catch (err) {
                     pageBadge.textContent = 'Gagal';
-                    statusEl.textContent = 'Gagal memuat PDF. Pastikan koneksi internet aktif.';
+                    statusEl.innerHTML = '';
+                    const msg = document.createElement('p');
+                    msg.textContent = 'Gagal memuat pratinjau PDF di viewer.';
+                    const link = document.createElement('a');
+                    link.href = proxyPdfUrl || pdfUrl;
+                    link.textContent = 'Buka / Unduh PDF Langsung';
+                    link.style.cssText = 'display:inline-block;margin-top:12px;padding:10px 16px;border-radius:10px;background:#059669;color:#fff;font-weight:600;text-decoration:none;';
+                    statusEl.append(msg, link);
                 }
             })();
         })();

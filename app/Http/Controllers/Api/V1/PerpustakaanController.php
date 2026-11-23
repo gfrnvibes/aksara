@@ -72,6 +72,7 @@ class PerpustakaanController extends Controller
         abort_unless(Storage::disk($disk)->exists($buku->file_pdf), 404);
 
         $pdfUrl = URL::temporarySignedRoute('api.perpustakaan.baca', now()->addHours(2), ['buku' => $buku->id]);
+        $proxyPdfUrl = URL::temporarySignedRoute('api.perpustakaan.baca', now()->addHours(2), ['buku' => $buku->id, 'proxy' => 1]);
         if (BukuPerpustakaan::adalahCloudDisk($disk)) {
             $buku->increment('jumlah_dibaca');
             $pdfUrl = Storage::disk($disk)->temporaryUrl($buku->file_pdf, now()->addHours(2), [
@@ -82,18 +83,38 @@ class PerpustakaanController extends Controller
         return view('perpustakaan-viewer', [
             'buku' => $buku,
             'pdfUrl' => $pdfUrl,
+            'proxyPdfUrl' => $proxyPdfUrl,
         ]);
     }
 
-    public function baca(BukuPerpustakaan $buku): Response
+    public function baca(Request $request, BukuPerpustakaan $buku): Response
     {
         abort_unless($buku->is_aktif, 404);
         $disk = BukuPerpustakaan::diskName();
         abort_unless(Storage::disk($disk)->exists($buku->file_pdf), 404);
 
-        $buku->increment('jumlah_dibaca');
+        $isProxy = $request->boolean('proxy');
+        if (! $isProxy) {
+            $buku->increment('jumlah_dibaca');
+        }
 
         if (BukuPerpustakaan::adalahCloudDisk($disk)) {
+            if ($isProxy) {
+                $stream = Storage::disk($disk)->readStream($buku->file_pdf);
+                abort_if($stream === null, 404);
+
+                return response()->stream(function () use ($stream): void {
+                    fpassthru($stream);
+                    if (is_resource($stream)) {
+                        fclose($stream);
+                    }
+                }, 200, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="'.str($buku->judul)->slug().'.pdf"',
+                    'Cache-Control' => 'private, max-age=3600',
+                ]);
+            }
+
             return redirect()->away(
                 Storage::disk($disk)->temporaryUrl($buku->file_pdf, now()->addHours(2), [
                     'ResponseContentType' => 'application/pdf',
