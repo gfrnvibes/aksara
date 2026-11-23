@@ -121,3 +121,94 @@ it('renders public library page, streams PDF, syncs with akreditasi, and serves 
         ->and(BukuPerpustakaan::query()->where('judul', 'IPA Kelas VIII SMP/MTs')->exists())->toBeTrue()
         ->and(BukuPerpustakaan::query()->where('judul', 'Matematika Kelas IV SD')->exists())->toBeFalse();
 });
+
+it('sorts buku paket and smp/mts books first on public library and mobile api', function (): void {
+    $umum = BukuPerpustakaan::query()->create([
+        'judul' => 'Ensiklopedia Umum Terbaru',
+        'kategori' => 'ensiklopedia',
+        'sumber' => 'elipski',
+        'tingkat' => null,
+        'file_pdf' => 'perpustakaan/pdf/ensiklopedia.pdf',
+        'is_aktif' => true,
+    ]);
+
+    $paiSmp = BukuPerpustakaan::query()->create([
+        'judul' => 'Akidah Akhlak Kelas VIII MTs',
+        'kategori' => 'pai',
+        'sumber' => 'kemenag',
+        'tingkat' => 8,
+        'file_pdf' => 'perpustakaan/pdf/akidah-8.pdf',
+        'is_aktif' => true,
+    ]);
+
+    $paket9 = BukuPerpustakaan::query()->create([
+        'judul' => 'Bahasa Indonesia Kelas IX',
+        'kategori' => 'paket',
+        'sumber' => 'sibi',
+        'tingkat' => 9,
+        'file_pdf' => 'perpustakaan/pdf/bindo-9.pdf',
+        'is_aktif' => true,
+    ]);
+
+    $paket7 = BukuPerpustakaan::query()->create([
+        'judul' => 'Matematika Kelas VII',
+        'kategori' => 'paket',
+        'sumber' => 'sibi',
+        'tingkat' => 7,
+        'file_pdf' => 'perpustakaan/pdf/mtk-7.pdf',
+        'is_aktif' => true,
+    ]);
+
+    // Tambah buku umum dengan ID paling besar agar memastikan tidak mengalahkan buku paket/SMP
+    $umumTerbaru = BukuPerpustakaan::query()->create([
+        'judul' => 'Dakwah Populer Terbaru',
+        'kategori' => 'dakwah',
+        'sumber' => 'elipski',
+        'tingkat' => null,
+        'file_pdf' => 'perpustakaan/pdf/dakwah.pdf',
+        'is_aktif' => true,
+    ]);
+
+    $response = get(route('perpustakaan.index'))->assertOk();
+    $paginator = $response->viewData('paginator');
+    $urutanPublik = $paginator->getCollection()->pluck('id')->all();
+
+    expect($urutanPublik)->toBe([
+        $paket7->id,
+        $paket9->id,
+        $paiSmp->id,
+        $umumTerbaru->id,
+        $umum->id,
+    ]);
+
+    $siswa = Siswa::factory()->create();
+    $siswaUser = User::factory()->create(['siswa_id' => $siswa->id]);
+    Sanctum::actingAs($siswaUser);
+
+    $apiRes = getJson('/api/v1/perpustakaan')->assertOk();
+    $urutanApi = collect($apiRes->json('buku'))->pluck('id')->all();
+
+    expect($urutanApi)->toBe($urutanPublik);
+});
+
+it('displays shortened author (dkk), publisher, and source metadata on ebook cards', function (): void {
+    $bukuMulti = BukuPerpustakaan::query()->create([
+        'judul' => 'Ilmu Pengetahuan Alam Kelas VII',
+        'penulis' => 'Victoriani Inabuy, Cece Sutia, Okky Fajar Tri Maryana',
+        'penerbit' => 'Pusat Kurikulum dan Perbukuan',
+        'sumber' => 'sibi',
+        'kategori' => 'paket',
+        'tingkat' => 7,
+        'file_pdf' => 'perpustakaan/pdf/ipa-7.pdf',
+        'is_aktif' => true,
+    ]);
+
+    expect($bukuMulti->penulisRingkas())->toBe('Victoriani Inabuy, dkk.')
+        ->and($bukuMulti->sumberLabel())->toBe('SIBI Kemendikbud');
+
+    get(route('perpustakaan.index'))
+        ->assertOk()
+        ->assertSee('Victoriani Inabuy, dkk.')
+        ->assertSee('Pusat Kurikulum dan Perbukuan · SIBI Kemendikbud')
+        ->assertDontSee('Victoriani Inabuy, Cece Sutia, Okky Fajar Tri Maryana');
+});

@@ -118,11 +118,13 @@
                                 {{ $buku->judul }}
                             </h2>
                             <p class="mt-0.5 line-clamp-1 text-[10px] text-emerald-100/90 sm:text-xs">
-                                {{ $buku->penulis ?: 'Tim Penyusun' }}
-                                @if ($buku->tahun_terbit)
-                                    · {{ $buku->tahun_terbit }}
-                                @endif
+                                {{ $buku->penulisRingkas() }}@if ($buku->tahun_terbit) · {{ $buku->tahun_terbit }}@endif
                             </p>
+                            @if ($buku->penerbit || $buku->sumberLabel() !== '')
+                                <p class="mt-0.5 line-clamp-1 text-[9px] text-emerald-100/75 sm:text-[11px]">
+                                    {{ collect([$buku->penerbit, $buku->sumberLabel()])->filter()->implode(' · ') }}
+                                </p>
+                            @endif
                             @if ($buku->mataPelajaran)
                                 <p class="mt-0.5 line-clamp-1 font-kode text-[9px] text-amber-200 sm:text-[11px]">
                                     {{ $buku->mataPelajaran->nama }}

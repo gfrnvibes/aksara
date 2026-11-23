@@ -30,7 +30,7 @@ class PerpustakaanPublikController extends Controller
             })
             ->when($kategoriAktif !== '', fn ($q) => $q->where('kategori', $kategoriAktif))
             ->when($tingkatAktif !== null, fn ($q) => $q->where('tingkat', $tingkatAktif))
-            ->orderByDesc('id')
+            ->urutkanUtama()
             ->paginate(12)
             ->withQueryString();
 

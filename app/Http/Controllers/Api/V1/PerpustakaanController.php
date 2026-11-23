@@ -36,7 +36,7 @@ class PerpustakaanController extends Controller
             })
             ->when($kategori !== '', fn ($q) => $q->where('kategori', $kategori))
             ->when($tingkat !== null, fn ($q) => $q->where('tingkat', $tingkat))
-            ->orderByDesc('id')
+            ->urutkanUtama()
             ->limit(60)
             ->get();
 

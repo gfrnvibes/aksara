@@ -118,6 +118,20 @@ class BukuPerpustakaan extends Model implements ProvidesActivityTitle
         $query->where('is_aktif', true);
     }
 
+    /**
+     * Prioritaskan buku paket dan jenjang SMP/MTs (kelas VII-IX) di urutan teratas.
+     *
+     * @param  Builder<BukuPerpustakaan>  $query
+     */
+    #[Scope]
+    protected function urutkanUtama(Builder $query): void
+    {
+        $query
+            ->orderByRaw("CASE WHEN kategori = 'paket' THEN 0 WHEN tingkat IN (7, 8, 9) THEN 1 ELSE 2 END ASC")
+            ->orderByRaw('COALESCE(tingkat, 99) ASC')
+            ->orderByDesc('id');
+    }
+
     public static function diskName(): string
     {
         return (string) (config('filesystems.perpustakaan') ?: 'local');
@@ -140,6 +154,34 @@ class BukuPerpustakaan extends Model implements ProvidesActivityTitle
     public function activityTitle(): string
     {
         return $this->judul;
+    }
+
+    public function penulisRingkas(): string
+    {
+        $teks = trim((string) $this->penulis);
+        if ($teks === '') {
+            return 'Tim Penyusun';
+        }
+
+        if (preg_match('/\bdkk\.?$/i', $teks) === 1) {
+            return $teks;
+        }
+
+        $daftar = preg_split('/\s*[,;&]\s*/', $teks) ?: [];
+        $daftar = array_values(array_filter(array_map('trim', $daftar), fn (string $v): bool => $v !== ''));
+
+        if (count($daftar) > 1) {
+            return $daftar[0].', dkk.';
+        }
+
+        return $teks;
+    }
+
+    public function sumberLabel(): string
+    {
+        $sumber = (string) $this->sumber;
+
+        return self::SUMBER[$sumber] ?? ($sumber !== '' ? strtoupper($sumber) : '');
     }
 
     public function sampulUrl(): ?string
