@@ -24,6 +24,7 @@ use function Pest\Laravel\getJson;
 uses(RefreshDatabase::class);
 
 it('renders public library page, streams PDF, syncs with akreditasi, and serves mobile API', function (): void {
+    config(['filesystems.perpustakaan' => 'local']);
     Storage::fake('local');
     Storage::fake('public');
 

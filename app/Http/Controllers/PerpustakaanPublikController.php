@@ -7,7 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class PerpustakaanPublikController extends Controller
 {
@@ -45,12 +45,18 @@ class PerpustakaanPublikController extends Controller
         ]);
     }
 
-    public function sampul(BukuPerpustakaan $buku): BinaryFileResponse
+    public function sampul(BukuPerpustakaan $buku): Response
     {
         abort_unless($buku->is_aktif && filled($buku->sampul), 404);
-        abort_unless(Storage::disk('public')->exists((string) $buku->sampul), 404);
+        $disk = BukuPerpustakaan::sampulDiskName();
+        $path = (string) $buku->sampul;
+        abort_unless(Storage::disk($disk)->exists($path), 404);
 
-        return response()->file(Storage::disk('public')->path((string) $buku->sampul), [
+        if (BukuPerpustakaan::adalahCloudDisk($disk)) {
+            return redirect()->away(Storage::disk($disk)->temporaryUrl($path, now()->addHours(6)));
+        }
+
+        return response()->file(Storage::disk($disk)->path($path), [
             'Cache-Control' => 'public, max-age=86400',
         ]);
     }
@@ -58,25 +64,44 @@ class PerpustakaanPublikController extends Controller
     public function viewer(BukuPerpustakaan $buku): View
     {
         abort_unless($buku->is_aktif, 404);
-        abort_unless(Storage::disk('local')->exists($buku->file_pdf), 404);
+        $disk = BukuPerpustakaan::diskName();
+        abort_unless(Storage::disk($disk)->exists($buku->file_pdf), 404);
+
+        $pdfUrl = route('perpustakaan.baca', $buku);
+        if (BukuPerpustakaan::adalahCloudDisk($disk)) {
+            $buku->increment('jumlah_dibaca');
+            $pdfUrl = Storage::disk($disk)->temporaryUrl($buku->file_pdf, now()->addHours(2), [
+                'ResponseContentType' => 'application/pdf',
+            ]);
+        }
 
         return view('perpustakaan-viewer', [
             'buku' => $buku,
-            'pdfUrl' => route('perpustakaan.baca', $buku),
+            'pdfUrl' => $pdfUrl,
         ]);
     }
 
-    public function baca(Request $request, BukuPerpustakaan $buku): BinaryFileResponse
+    public function baca(Request $request, BukuPerpustakaan $buku): Response
     {
         abort_unless($buku->is_aktif, 404);
-        abort_unless(Storage::disk('local')->exists($buku->file_pdf), 404);
+        $disk = BukuPerpustakaan::diskName();
+        abort_unless(Storage::disk($disk)->exists($buku->file_pdf), 404);
 
         if (! $request->boolean('thumb')) {
             $buku->increment('jumlah_dibaca');
         }
 
+        if (BukuPerpustakaan::adalahCloudDisk($disk)) {
+            return redirect()->away(
+                Storage::disk($disk)->temporaryUrl($buku->file_pdf, now()->addHours(2), [
+                    'ResponseContentType' => 'application/pdf',
+                    'ResponseContentDisposition' => 'inline; filename="'.str($buku->judul)->slug().'.pdf"',
+                ]),
+            );
+        }
+
         return response()->file(
-            Storage::disk('local')->path($buku->file_pdf),
+            Storage::disk($disk)->path($buku->file_pdf),
             [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'inline; filename="'.str($buku->judul)->slug().'.pdf"',
@@ -88,7 +113,8 @@ class PerpustakaanPublikController extends Controller
     public function simpanSampulOtomatis(Request $request, BukuPerpustakaan $buku): JsonResponse
     {
         abort_unless($buku->is_aktif, 404);
-        if (filled($buku->sampul) && Storage::disk('public')->exists((string) $buku->sampul)) {
+        $disk = BukuPerpustakaan::sampulDiskName();
+        if (filled($buku->sampul) && Storage::disk($disk)->exists((string) $buku->sampul)) {
             return response()->json(['sampul_url' => $buku->sampulUrl()]);
         }
 
@@ -107,7 +133,7 @@ class PerpustakaanPublikController extends Controller
         }
 
         $path = "perpustakaan/sampul/buku-{$buku->id}.jpg";
-        Storage::disk('public')->put($path, $binary);
+        Storage::disk($disk)->put($path, $binary);
         $buku->update(['sampul' => $path]);
 
         return response()->json(['sampul_url' => $buku->sampulUrl()]);

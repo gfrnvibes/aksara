@@ -145,7 +145,7 @@ class BukuPerpustakaanResource extends Resource
                     ->inline(false),
                 FileUpload::make('file_pdf')
                     ->label('File E-Book (PDF)')
-                    ->disk('local')
+                    ->disk(fn (): string => BukuPerpustakaan::diskName())
                     ->directory('perpustakaan/pdf')
                     ->acceptedFileTypes(['application/pdf'])
                     ->maxSize(51200)
@@ -159,7 +159,7 @@ class BukuPerpustakaanResource extends Resource
                     ->helperText('Jika diisi dan file belum diunggah, Aksara otomatis mengunduh PDF sekali ke storage lokal.'),
                 FileUpload::make('sampul')
                     ->label('Sampul Buku (Opsional)')
-                    ->disk('public')
+                    ->disk(fn (): string => BukuPerpustakaan::sampulDiskName())
                     ->directory('perpustakaan/sampul')
                     ->image(),
                 Textarea::make('deskripsi')

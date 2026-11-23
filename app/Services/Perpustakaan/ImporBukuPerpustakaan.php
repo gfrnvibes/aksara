@@ -58,7 +58,7 @@ class ImporBukuPerpustakaan
             }
 
             try {
-                Storage::disk('local')->put($filename, $stream);
+                Storage::disk(BukuPerpustakaan::diskName())->put($filename, $stream);
             } finally {
                 fclose($stream);
             }
@@ -112,7 +112,7 @@ class ImporBukuPerpustakaan
                     ->first();
 
                 $filePdf = $existing?->file_pdf;
-                if ($filePdf === null || ! Storage::disk('local')->exists($filePdf)) {
+                if ($filePdf === null || ! Storage::disk(BukuPerpustakaan::diskName())->exists($filePdf)) {
                     $filePdf = $this->unduhPdfKeStorage($pdfUrl, $judul);
                 }
 
@@ -135,12 +135,12 @@ class ImporBukuPerpustakaan
                         ->value('id');
                 }
 
-                $kategori = (string) ($row['kategori'] ?? 'paket');
+                $kategori = strtolower(trim((string) ($row['kategori'] ?? 'paket')));
                 if (! array_key_exists($kategori, BukuPerpustakaan::KATEGORI)) {
                     $kategori = 'paket';
                 }
 
-                $sumber = (string) ($row['sumber'] ?? 'sibi');
+                $sumber = strtolower(trim((string) ($row['sumber'] ?? 'sibi')));
                 if (! array_key_exists($sumber, BukuPerpustakaan::SUMBER)) {
                     $sumber = 'sibi';
                 }
@@ -192,7 +192,7 @@ class ImporBukuPerpustakaan
             $ext = str_contains($contentType, 'png') ? 'png' : 'jpg';
             $slug = str($judul)->slug()->limit(50, '');
             $filename = "perpustakaan/sampul/{$slug}-".substr(sha1($url), 0, 8).".{$ext}";
-            Storage::disk('public')->put($filename, $res->body());
+            Storage::disk(BukuPerpustakaan::sampulDiskName())->put($filename, $res->body());
 
             return $filename;
         } catch (Throwable) {

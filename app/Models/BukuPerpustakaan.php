@@ -63,12 +63,22 @@ class BukuPerpustakaan extends Model implements ProvidesActivityTitle
         'pai' => 'PAI & Bahasa Arab',
         'literasi' => 'Literasi & Bacaan',
         'referensi' => 'Referensi & Modul',
+        'ensiklopedia' => 'Ensiklopedia',
+        'dakwah' => 'Dakwah',
+        'populer' => 'Populer',
+        'akhlak dan tasawuf' => 'Akhlak & Tasawuf',
+        'fiqh' => 'Fiqh',
+        'hadits' => 'Hadits',
+        'tarbiyah' => 'Tarbiyah',
+        'aqidah' => 'Aqidah',
+        'sejarah' => 'Sejarah',
     ];
 
     /** @var array<string, string> */
     public const array SUMBER = [
         'sibi' => 'SIBI Kemendikbud',
         'kemenag' => 'Kemenag (PAI & B. Arab)',
+        'elipski' => 'ELIPSKI Kemenag',
         'manual' => 'Modul / Internal Madrasah',
     ];
 
@@ -108,6 +118,25 @@ class BukuPerpustakaan extends Model implements ProvidesActivityTitle
         $query->where('is_aktif', true);
     }
 
+    public static function diskName(): string
+    {
+        return (string) (config('filesystems.perpustakaan') ?: 'local');
+    }
+
+    public static function sampulDiskName(): string
+    {
+        $disk = static::diskName();
+
+        return static::adalahCloudDisk($disk) ? $disk : 'public';
+    }
+
+    public static function adalahCloudDisk(?string $disk = null): bool
+    {
+        $disk ??= static::diskName();
+
+        return config("filesystems.disks.{$disk}.driver") === 's3';
+    }
+
     public function activityTitle(): string
     {
         return $this->judul;
@@ -123,7 +152,7 @@ class BukuPerpustakaan extends Model implements ProvidesActivityTitle
             return $this->sampul;
         }
 
-        if (! Storage::disk('public')->exists($this->sampul)) {
+        if (! Storage::disk(static::sampulDiskName())->exists($this->sampul)) {
             return null;
         }
 

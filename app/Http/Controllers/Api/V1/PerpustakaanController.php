@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class PerpustakaanController extends Controller
 {
@@ -68,23 +68,42 @@ class PerpustakaanController extends Controller
     public function viewer(BukuPerpustakaan $buku): View
     {
         abort_unless($buku->is_aktif, 404);
-        abort_unless(Storage::disk('local')->exists($buku->file_pdf), 404);
+        $disk = BukuPerpustakaan::diskName();
+        abort_unless(Storage::disk($disk)->exists($buku->file_pdf), 404);
+
+        $pdfUrl = URL::temporarySignedRoute('api.perpustakaan.baca', now()->addHours(2), ['buku' => $buku->id]);
+        if (BukuPerpustakaan::adalahCloudDisk($disk)) {
+            $buku->increment('jumlah_dibaca');
+            $pdfUrl = Storage::disk($disk)->temporaryUrl($buku->file_pdf, now()->addHours(2), [
+                'ResponseContentType' => 'application/pdf',
+            ]);
+        }
 
         return view('perpustakaan-viewer', [
             'buku' => $buku,
-            'pdfUrl' => URL::temporarySignedRoute('api.perpustakaan.baca', now()->addHours(2), ['buku' => $buku->id]),
+            'pdfUrl' => $pdfUrl,
         ]);
     }
 
-    public function baca(BukuPerpustakaan $buku): BinaryFileResponse
+    public function baca(BukuPerpustakaan $buku): Response
     {
         abort_unless($buku->is_aktif, 404);
-        abort_unless(Storage::disk('local')->exists($buku->file_pdf), 404);
+        $disk = BukuPerpustakaan::diskName();
+        abort_unless(Storage::disk($disk)->exists($buku->file_pdf), 404);
 
         $buku->increment('jumlah_dibaca');
 
+        if (BukuPerpustakaan::adalahCloudDisk($disk)) {
+            return redirect()->away(
+                Storage::disk($disk)->temporaryUrl($buku->file_pdf, now()->addHours(2), [
+                    'ResponseContentType' => 'application/pdf',
+                    'ResponseContentDisposition' => 'inline; filename="'.str($buku->judul)->slug().'.pdf"',
+                ]),
+            );
+        }
+
         return response()->file(
-            Storage::disk('local')->path($buku->file_pdf),
+            Storage::disk($disk)->path($buku->file_pdf),
             [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'inline; filename="'.str($buku->judul)->slug().'.pdf"',
