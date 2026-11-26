@@ -230,9 +230,9 @@
                                         <td><strong>{{ $item->siswa?->nama_lengkap }}</strong></td>
                                     </tr>
                                     <tr>
-                                        <td class="lbl">NIS / NISN</td>
+                                        <td class="lbl">NISN</td>
                                         <td class="sep">:</td>
-                                        <td>{{ $item->siswa?->nis ?: '-' }} / {{ $item->siswa?->nisn ?: '-' }}</td>
+                                        <td>{{ $item->siswa?->nisn ?: '-' }}</td>
                                     </tr>
                                     <tr>
                                         <td class="lbl">Kelas</td>

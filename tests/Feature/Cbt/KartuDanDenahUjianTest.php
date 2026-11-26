@@ -151,6 +151,8 @@ it('renders bulk A4 exam cards with cut guides and room seating plan for authori
         ->assertSee('Drs. H. Ahmad Kepala')
         ->assertSee('H. Ketua Panitia, S.Pd')
         ->assertSee('Ketua Panitia Ujian,')
+        ->assertSee('NISN')
+        ->assertDontSee('NIS / NISN')
         ->assertDontSee('Harap membawa kartu ini selama ujian berlangsung.')
         ->assertSee('border: 1px dashed');
 
