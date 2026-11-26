@@ -195,8 +195,9 @@ class GtkResource extends Resource
                                     Text::make('Simpan perubahan identitas GTK sebelum mengatur akun. Akun baru atau akun yang direset wajib mengganti password saat masuk pertama kali.')
                                         ->color('gray')->visibleOn('edit'),
                                     TextInput::make('password_akun')->label('Password awal / password baru')->password()->revealable()
+                                        ->default(AkunGtk::PASSWORD_BAWAAN)
                                         ->autocomplete('new-password')->minLength(6)->maxLength(255)->dehydrated(false)
-                                        ->helperText('Minimal 6 karakter. Tekan Buat akun login atau Reset password untuk menerapkannya.')
+                                        ->helperText('Minimal 6 karakter (bawaan: '.AkunGtk::PASSWORD_BAWAAN.'). Tekan Buat akun login atau Reset password untuk menerapkannya.')
                                         ->visible(fn (?Gtk $record): bool => $record !== null && static::canEdit($record) && ($record->user_id === null || AkunGtk::bolehDireset($record, auth()->user()))),
                                     Actions::make(fn (?Gtk $record): array => $record === null ? [] : [static::aksiAkunDalamForm(static::aksiBuatAkun()), static::aksiAkunDalamForm(static::aksiResetPassword())])
                                         ->key('aksiAkun')->visibleOn('edit'),
@@ -296,19 +297,22 @@ class GtkResource extends Resource
     protected static function aksiAkunDalamForm(Action $action): Action
     {
         return $action->schema([])->mutateDataUsing(function (Get $get): array {
-            $valid = Validator::make(['data' => ['password_akun' => $get('password_akun')]], [
+            $isian = $get('password_akun');
+            $password = ($isian === null || $isian === '') ? AkunGtk::PASSWORD_BAWAAN : $isian;
+            $valid = Validator::make(['data' => ['password_akun' => $password]], [
                 'data.password_akun' => ['required', 'string', 'min:6', 'max:255'],
             ])->validate();
 
             return ['password_awal' => $valid['data']['password_akun']];
-        })->after(fn (Set $set) => $set('password_akun', null));
+        })->after(fn (Set $set) => $set('password_akun', AkunGtk::PASSWORD_BAWAAN));
     }
 
     protected static function fieldPasswordAwal(): TextInput
     {
         return TextInput::make('password_awal')
             ->label('Password awal')
-            ->helperText('Sampaikan password ini kepada guru. Guru wajib menggantinya saat pertama kali masuk.')
+            ->default(AkunGtk::PASSWORD_BAWAAN)
+            ->helperText('Minimal 6 karakter (bawaan: '.AkunGtk::PASSWORD_BAWAAN.'). Guru wajib menggantinya saat pertama kali masuk.')
             ->required()
             ->minLength(6)
             ->maxLength(255);
@@ -323,7 +327,7 @@ class GtkResource extends Resource
             ->modalWidth('md')
             ->modalDescription(fn (Gtk $record): string => AkunGtk::punyaIdentitasLogin($record)
                 ? 'Guru masuk ke panel guru dengan: '.implode(' / ', AkunGtk::identitasLogin($record)).'.'
-                : 'Isi dulu NIP, NUPTK, No. HP, atau email GTK ini supaya ada yang bisa dipakai untuk masuk.')
+                : 'Akun tetap dibuat dengan password bawaan. Lengkapi NIP, NUPTK, No. HP, atau email agar guru bisa login.')
             ->schema([static::fieldPasswordAwal()])
             ->action(function (array $data, Gtk $record, Action $action): void {
                 $record->refresh();
@@ -332,16 +336,15 @@ class GtkResource extends Resource
                     Notification::make()->warning()->title('GTK sudah memiliki akun login')->send();
                     $action->halt();
                 }
-                if (! AkunGtk::punyaIdentitasLogin($record)) {
-                    Notification::make()->danger()->title('Akun belum bisa dibuat')->body('Isi dulu NIP, NUPTK, No. HP, atau email GTK ini.')->send();
 
-                    $action->halt();
-                }
-
-                app(AkunGtk::class)->buat($record, $data['password_awal']);
+                app(AkunGtk::class)->buat($record, $data['password_awal'] ?: AkunGtk::PASSWORD_BAWAAN);
                 $record->refresh();
 
-                Notification::make()->success()->title('Akun login dibuat')->send();
+                $notifikasi = Notification::make()->success()->title('Akun login dibuat');
+                if (! AkunGtk::punyaIdentitasLogin($record)) {
+                    $notifikasi->body('Password bawaan sudah aktif. Lengkapi NIP, NUPTK, No. HP, atau email GTK ini agar bisa digunakan untuk login.');
+                }
+                $notifikasi->send();
             });
     }
 
@@ -385,14 +388,12 @@ class GtkResource extends Resource
                         continue;
                     }
 
+                    $akun->buat($gtk, $data['password_awal'] ?: AkunGtk::PASSWORD_BAWAAN);
+                    $dibuat++;
+
                     if (! AkunGtk::punyaIdentitasLogin($gtk)) {
                         $tanpaIdentitas[] = $gtk->nama;
-
-                        continue;
                     }
-
-                    $akun->buat($gtk, $data['password_awal']);
-                    $dibuat++;
                 }
 
                 $notifikasi = Notification::make()
@@ -401,7 +402,7 @@ class GtkResource extends Resource
 
                 if ($tanpaIdentitas !== []) {
                     $notifikasi->warning()
-                        ->body('Belum dibuat karena NIP, NUPTK, No. HP, dan email kosong: '.implode(', ', $tanpaIdentitas).'.')
+                        ->body('Akun dibuat dengan password bawaan, lengkapi NIP/NUPTK/No. HP/email agar bisa login: '.implode(', ', $tanpaIdentitas).'.')
                         ->persistent();
                 }
 

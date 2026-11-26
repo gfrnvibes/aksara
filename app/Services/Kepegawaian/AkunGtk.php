@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\DB;
  */
 class AkunGtk
 {
+    public const string PASSWORD_BAWAAN = '123456';
+
     /**
      * Whether the GTK has something to sign in with: an NIP, NUPTK, phone number or email address.
      */
@@ -31,7 +33,7 @@ class AkunGtk
         return array_values(array_filter([$gtk->nip, $gtk->nuptk, $gtk->nomor_hp, $gtk->user->email ?? $gtk->email]));
     }
 
-    public function buat(Gtk $gtk, string $passwordAwal): User
+    public function buat(Gtk $gtk, string $passwordAwal = self::PASSWORD_BAWAAN): User
     {
         return DB::transaction(function () use ($gtk, $passwordAwal): User {
             $emailBebas = filled($gtk->email) && ! User::query()->where('email', $gtk->email)->exists();
@@ -39,7 +41,7 @@ class AkunGtk
             $user = User::query()->create([
                 'name' => $gtk->nama,
                 'email' => $emailBebas ? $gtk->email : null,
-                'password' => $passwordAwal,
+                'password' => $passwordAwal !== '' ? $passwordAwal : self::PASSWORD_BAWAAN,
                 'wajib_ganti_password' => true,
             ]);
 
@@ -49,10 +51,10 @@ class AkunGtk
         });
     }
 
-    public function resetPassword(Gtk $gtk, string $passwordAwal): void
+    public function resetPassword(Gtk $gtk, string $passwordAwal = self::PASSWORD_BAWAAN): void
     {
         $gtk->user?->forceFill([
-            'password' => $passwordAwal,
+            'password' => $passwordAwal !== '' ? $passwordAwal : self::PASSWORD_BAWAAN,
             'wajib_ganti_password' => true,
         ])->save();
     }

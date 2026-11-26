@@ -51,7 +51,8 @@ class PertemuanMengajar
                         'nama_guru' => $assignment->gtk->nama, 'nama_kelas' => $row->kelas->nama, 'nama_mapel' => $assignment->mataPelajaran->nama,
                         'jp_mulai' => $row->jp_ke, 'jp_selesai' => $row->jp_ke, 'mulai' => $pola->jamUntuk($hari, $row->jp_ke)?->mulai,
                         'waktu' => $pola->jamUntuk($hari, $row->jp_ke)?->rentang(), 'status' => 'belum_dicatat',
-                        'id' => null, 'materi' => null, 'kegiatan' => null, 'refleksi' => null, 'tindak_lanjut' => null, 'catatan_asli' => null,
+                        'id' => null, 'materi' => null, 'metode_pembelajaran' => null, 'media_pembelajaran' => null, 'pakai_buku_teks' => true,
+                        'kegiatan' => null, 'refleksi' => null, 'tindak_lanjut' => null, 'catatan_asli' => null,
                         'pelaksana_id' => null, 'alasan' => null, 'dibantu_ai' => false,
                     ]);
                 } else {
@@ -93,6 +94,7 @@ class PertemuanMengajar
             'catatan_asli' => ['nullable', 'string', 'max:3000'], 'kegiatan' => ['nullable', 'string', 'max:5000'],
             'refleksi' => ['nullable', 'string', 'max:3000'], 'tindak_lanjut' => ['nullable', 'string', 'max:3000'],
             'alasan' => ['nullable', 'string', 'max:500'], 'pelaksana_id' => ['nullable', 'integer', 'exists:gtks,id'], 'dibantu_ai' => ['nullable', 'boolean'],
+            'metode_pembelajaran' => ['nullable', 'string', 'max:60'], 'media_pembelajaran' => ['nullable', 'string', 'max:60'], 'pakai_buku_teks' => ['nullable', 'boolean'],
         ])->validate();
         if (($tanggal !== AksesHarian::hariIni() || ! $own || in_array($status, ['digantikan', 'tidak_terlaksana', 'kegiatan_pengganti'])) && blank($data['alasan'] ?? null)) {
             throw ValidationException::withMessages(['alasan' => 'Isi alasan pencatatan pengganti, kegiatan khusus, atau tanggal lampau.']);
@@ -117,7 +119,10 @@ class PertemuanMengajar
                 $record->alasan = $data['alasan'] ?? null;
             }
             if (! $hadirSaja) {
-                $record->fill(array_intersect_key($data, array_flip(['catatan_asli', 'materi', 'kegiatan', 'refleksi', 'tindak_lanjut', 'alasan', 'dibantu_ai'])));
+                $record->fill(array_intersect_key($data, array_flip([
+                    'catatan_asli', 'materi', 'metode_pembelajaran', 'media_pembelajaran', 'pakai_buku_teks',
+                    'kegiatan', 'refleksi', 'tindak_lanjut', 'alasan', 'dibantu_ai',
+                ])));
             }
             if ($record->exists && $record->getRawOriginal('status') !== 'hadir' && $record->isDirty() && blank($data['alasan'] ?? null)) {
                 throw ValidationException::withMessages(['alasan' => 'Isi alasan koreksi untuk mengubah jurnal tersimpan.']);

@@ -12,6 +12,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -85,6 +86,13 @@ class PrestasiSiswaResource extends Resource
                 Textarea::make('keterangan')
                     ->label('Keterangan')
                     ->rows(3)
+                    ->columnSpanFull(),
+                FileUpload::make('berkas_path')
+                    ->label('Foto Piala / Piagam / Sertifikat (Opsional)')
+                    ->disk(fn (): string => (string) (config('filesystems.arsip') ?: 'local'))
+                    ->directory('prestasi-siswa')
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+                    ->maxSize(5120)
                     ->columnSpanFull(),
             ])
             ->columns(2);

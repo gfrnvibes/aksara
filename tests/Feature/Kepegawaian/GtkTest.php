@@ -15,6 +15,7 @@ use App\Services\Kepegawaian\AkunGtk;
 use Database\Seeders\RoleSeeder;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -62,18 +63,38 @@ it('creates login accounts with a starting password the teacher must change', fu
         ->and(Hash::check('rahasia123', $user->password))->toBeTrue();
 });
 
-it('creates accounts in bulk and skips GTK with nothing to sign in with', function () {
+it('creates accounts in bulk with default password even when GTK has no login identity yet', function () {
     $siapAkun = Gtk::factory()->create();
     $tanpaIdentitas = Gtk::factory()->create(['nip' => null, 'nuptk' => null, 'nomor_hp' => null, 'email' => null]);
     $sudahPunya = Gtk::factory()->denganAkun()->create();
 
     Livewire::test(ManageGtks::class)
         ->selectTableRecords([$siapAkun, $tanpaIdentitas, $sudahPunya])
-        ->callAction(TestAction::make('buatAkunMassal')->table()->bulk(), ['password_awal' => 'rahasia123']);
+        ->callAction(TestAction::make('buatAkunMassal')->table()->bulk());
 
     expect($siapAkun->refresh()->user_id)->not->toBeNull()
-        ->and($tanpaIdentitas->refresh()->user_id)->toBeNull()
-        ->and(User::query()->count())->toBe(3);
+        ->and($tanpaIdentitas->refresh()->user_id)->not->toBeNull()
+        ->and(Hash::check(AkunGtk::PASSWORD_BAWAAN, $tanpaIdentitas->user->password))->toBeTrue()
+        ->and(User::query()->count())->toBe(4);
+});
+
+it('creates a single account with default password even when GTK has no login identity and enforces min 6 chars only', function () {
+    $tanpaIdentitas = Gtk::factory()->create(['nip' => null, 'nuptk' => null, 'nomor_hp' => null, 'email' => null]);
+
+    Livewire::test(ManageGtks::class)
+        ->callAction(TestAction::make('buatAkun')->table($tanpaIdentitas))
+        ->assertHasNoActionErrors();
+
+    $user = $tanpaIdentitas->refresh()->user;
+    expect($user)->not->toBeNull()
+        ->and($user->wajib_ganti_password)->toBeTrue()
+        ->and(Hash::check(AkunGtk::PASSWORD_BAWAAN, $user->password))->toBeTrue();
+
+    $validatorPendek = validator(['password' => '12345'], ['password' => [Password::default()]]);
+    $validatorSederhana = validator(['password' => 'abcdef'], ['password' => [Password::default()]]);
+
+    expect($validatorPendek->fails())->toBeTrue()
+        ->and($validatorSederhana->passes())->toBeTrue();
 });
 
 it('lets an operator reset teacher accounts but not accounts holding an admin role', function () {
@@ -177,11 +198,14 @@ it('creates and resets a teacher account from the account tab using the existing
     expect(Hash::check('Baru12345', $user->refresh()->password))->toBeTrue()->and($user->wajib_ganti_password)->toBeTrue();
 });
 
-it('requires a saved login identifier before creating an account from the tab', function () {
+it('creates an account with default password from the tab even without a saved login identifier', function () {
     $gtk = Gtk::factory()->create(['nip' => null, 'nuptk' => null, 'nomor_hp' => null, 'email' => null]);
     Livewire::test(EditGtk::class, ['record' => $gtk->getRouteKey()])
-        ->fillForm(['password_akun' => 'Awal12345'])->callAction(TestAction::make('buatAkun')->schemaComponent('aksiAkun', 'form'));
-    expect($gtk->refresh()->user_id)->toBeNull();
+        ->callAction(TestAction::make('buatAkun')->schemaComponent('aksiAkun', 'form'))
+        ->assertHasNoActionErrors();
+    $user = $gtk->refresh()->user;
+    expect($user)->not->toBeNull()
+        ->and(Hash::check(AkunGtk::PASSWORD_BAWAAN, $user->password))->toBeTrue();
 });
 
 it('protects admin accounts in the account tab and allows super admin resets', function () {

@@ -5,6 +5,9 @@ namespace App\Filament\Widgets;
 use App\Enums\JenisKelamin;
 use App\Enums\Semester;
 use App\Enums\StatusSiswa;
+use App\Filament\Resources\MutasiSiswas\MutasiSiswaResource;
+use App\Filament\Resources\Rapors\RaporResource;
+use App\Filament\Resources\Siswas\SiswaResource;
 use App\Models\MutasiSiswa;
 use App\Models\Rapor;
 use App\Models\Siswa;
@@ -44,16 +47,20 @@ class StatistikBukuInduk extends StatsOverviewWidget
             Stat::make('Siswa Aktif', $jumlahAktif)
                 ->description('L '.($perJenisKelamin[JenisKelamin::LakiLaki->value] ?? 0).' · P '.($perJenisKelamin[JenisKelamin::Perempuan->value] ?? 0))
                 ->icon('heroicon-o-user-group')
-                ->color('success'),
+                ->color('success')
+                ->url(SiswaResource::getUrl()),
             Stat::make('Alumni (Lulus)', Siswa::query()->where('status', StatusSiswa::Lulus)->count())
-                ->icon('heroicon-o-academic-cap'),
+                ->icon('heroicon-o-academic-cap')
+                ->url(SiswaResource::getUrl()),
             Stat::make('Rapor Semester Ini', "{$raporSemesterIni} / {$jumlahAktif}")
                 ->description($tahunAjaranAktif ? "{$tahunAjaranAktif->nama} · {$semester->getLabel()}" : 'Belum ada tahun ajaran aktif')
                 ->color($jumlahAktif > 0 && $raporSemesterIni >= $jumlahAktif ? 'success' : 'warning')
-                ->icon('heroicon-o-document-chart-bar'),
+                ->icon('heroicon-o-document-chart-bar')
+                ->url(RaporResource::getUrl()),
             Stat::make('Mutasi Tahun Ajaran Ini', $tahunAjaranAktif ? MutasiSiswa::query()->whereBelongsTo($tahunAjaranAktif)->count() : 0)
                 ->description('Pindah masuk, pindah keluar, dan keluar')
-                ->icon('heroicon-o-arrows-right-left'),
+                ->icon('heroicon-o-arrows-right-left')
+                ->url(MutasiSiswaResource::getUrl()),
         ];
     }
 }

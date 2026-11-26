@@ -28,9 +28,27 @@ class JurnalMengajar extends Model
 
     public const array STATUS = ['hadir' => 'Hadir, jurnal belum lengkap', 'terlaksana' => 'Terlaksana', 'digantikan' => 'Digantikan', 'tidak_terlaksana' => 'Tidak terlaksana', 'kegiatan_pengganti' => 'Kegiatan pengganti'];
 
+    /** @var array<string, string> */
+    public const array METODE = [
+        'ceramah' => 'Ceramah',
+        'diskusi' => 'Diskusi / Kerja Kelompok',
+        'demonstrasi' => 'Demonstrasi / Praktik',
+        'simulasi' => 'Simulasi / Studi Kasus',
+        'belajar_mandiri' => 'Belajar Mandiri / Penugasan',
+        'tutorial' => 'Tutorial / Pendampingan',
+    ];
+
+    /** @var array<string, string> */
+    public const array MEDIA = [
+        'buku_teks' => 'Buku Teks / Cetak',
+        'digital_tik' => 'Media Digital / TIK / E-Book',
+        'alat_peraga' => 'Alat Peraga Non-Digital',
+        'papan_tulis' => 'Papan Tulis / LKS',
+    ];
+
     protected function casts(): array
     {
-        return ['tanggal' => 'date', 'hadir_pada' => 'datetime', 'dibantu_ai' => 'boolean'];
+        return ['tanggal' => 'date', 'hadir_pada' => 'datetime', 'dibantu_ai' => 'boolean', 'pakai_buku_teks' => 'boolean'];
     }
 
     /** @return BelongsTo<Gtk, $this> */

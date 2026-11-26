@@ -7,6 +7,7 @@ use App\Filament\Resources\GaleriKegiatans\Pages\EditGaleriKegiatan;
 use App\Filament\Resources\GaleriKegiatans\Pages\ListGaleriKegiatans;
 use App\Filament\Resources\GaleriKegiatans\RelationManagers\KomentarRelationManager;
 use App\Models\GaleriKegiatan;
+use App\Services\Akreditasi\KatalogEdm2026;
 use App\Services\Galeri\PenyusunDeskripsiGaleriGemini;
 use App\Services\Gemini\KlienGemini;
 use BackedEnum;
@@ -97,6 +98,15 @@ class GaleriKegiatanResource extends Resource
                         ->inline(false)
                         ->hintIcon(Heroicon::OutlinedInformationCircle, tooltip: 'Jika aktif, foto/video kegiatan ini akan muncul di galeri Pinterest pada halaman depan.')
                         ->default(true),
+
+                    Select::make('kode_butir_edm')
+                        ->label('Tautkan ke Butir EDM (Opsional)')
+                        ->options(KatalogEdm2026::opsiButir())
+                        ->multiple()
+                        ->searchable()
+                        ->placeholder('Pilih butir EDM, misal A1 untuk sholat berjamaah...')
+                        ->helperText('Foto kegiatan ini otomatis masuk sebagai bukti gambar pada butir EDM yang dipilih.')
+                        ->columnSpanFull(),
 
                     Textarea::make('deskripsi')
                         ->label('Deskripsi / Cerita Singkat')

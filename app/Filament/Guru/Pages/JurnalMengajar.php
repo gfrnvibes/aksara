@@ -14,6 +14,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\EmbeddedTable;
 use Filament\Schemas\Components\Utilities\Get;
@@ -108,6 +109,9 @@ class JurnalMengajar extends HalamanHarian implements HasTable
                                     }
                                 })),
                         Textarea::make('materi')->label('Materi')->rows(2)->maxLength(3000),
+                        Select::make('metode_pembelajaran')->label('Metode pembelajaran (opsional)')->options(Jurnal::METODE)->native(false),
+                        Select::make('media_pembelajaran')->label('Media pembelajaran (opsional)')->options(Jurnal::MEDIA)->native(false),
+                        Toggle::make('pakai_buku_teks')->label('Menggunakan buku teks cetak / digital')->default(true),
                         Textarea::make('kegiatan')->label('Kegiatan pembelajaran')->rows(3)->maxLength(5000),
                         Textarea::make('refleksi')->rows(2)->maxLength(3000),
                         Textarea::make('tindak_lanjut')->label('Tindak lanjut / usulan')->rows(2)->maxLength(3000),

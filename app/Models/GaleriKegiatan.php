@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Storage;
  * @property int $id
  * @property string $judul
  * @property string|null $kategori
+ * @property array<int, string>|null $kode_butir_edm
  * @property Carbon|null $tanggal_kegiatan
  * @property string|null $deskripsi
  * @property array<int, string> $berkas
@@ -30,7 +31,7 @@ use Illuminate\Support\Facades\Storage;
  * @property Carbon|null $updated_at
  * @property-read User|null $user
  */
-#[Fillable(['judul', 'kategori', 'tanggal_kegiatan', 'deskripsi', 'berkas', 'is_publik', 'user_id'])]
+#[Fillable(['judul', 'kategori', 'kode_butir_edm', 'tanggal_kegiatan', 'deskripsi', 'berkas', 'is_publik', 'user_id'])]
 class GaleriKegiatan extends Model implements ProvidesActivityTitle
 {
     use CatatAktivitas;
@@ -57,6 +58,7 @@ class GaleriKegiatan extends Model implements ProvidesActivityTitle
     protected function casts(): array
     {
         return [
+            'kode_butir_edm' => 'array',
             'berkas' => 'array',
             'tanggal_kegiatan' => 'date',
             'is_publik' => 'boolean',

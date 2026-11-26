@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Akreditasi\EdmController;
 use App\Http\Controllers\CetakAkreditasiController;
 use App\Http\Controllers\CetakAtpController;
 use App\Http\Controllers\CetakBukuIndukController;
@@ -65,6 +66,9 @@ Route::middleware('auth')->group(function () {
     Route::get('cetak-paket-ujian/{kegiatan}', [CetakDenahDanKartuController::class, 'semuanya'])->name('ujian.semuanya');
     Route::get('akreditasi/dokumen/{dokumen}/cetak', [CetakAkreditasiController::class, 'dokumen'])->name('akreditasi.dokumen.cetak');
     Route::get('akreditasi/bundel/{tahunAjaran}', [CetakAkreditasiController::class, 'bundel'])->name('akreditasi.bundel');
+    Route::get('akreditasi/edm/butir/{indikator}/cetak', [EdmController::class, 'cetakButir'])->name('akreditasi.edm.cetak');
+    Route::get('akreditasi/edm/butir/{indikator}/unduh-zip', [EdmController::class, 'unduhZipButir'])->name('akreditasi.edm.unduh-zip');
+    Route::get('akreditasi/edm/butir/{indikator}/gambar/{indeks}', [EdmController::class, 'gambarBukti'])->name('akreditasi.edm.gambar');
     Route::get('cetak-buku-induk/{token}', [CetakBukuIndukController::class, 'massal'])->whereUuid('token')->name('buku-induk.cetak-massal');
     Route::get('backup/unduh', UnduhBackupController::class)->middleware('signed')->name('backup.unduh');
 });
