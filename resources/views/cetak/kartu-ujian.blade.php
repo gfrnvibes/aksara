@@ -71,8 +71,8 @@
         }
         .kartu {
             border: 1.2px solid #111;
-            padding: 1.8mm 2.2mm;
-            height: 65mm;
+            padding: 2mm 2.4mm;
+            height: 66mm;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -81,40 +81,40 @@
         .kartu-header {
             text-align: center;
             border-bottom: 1.5px double #111;
-            padding-bottom: 1mm;
-            margin-bottom: 1mm;
+            padding-bottom: 0.8mm;
+            margin-bottom: 0.8mm;
         }
         .kartu-header .instansi {
-            font-size: 7pt;
+            font-size: 8pt;
             font-weight: 700;
             letter-spacing: 0.2px;
         }
         .kartu-header .judul {
-            font-size: 8pt;
+            font-size: 9pt;
             font-weight: 700;
-            margin-top: 0.3mm;
+            margin-top: 0.2mm;
             text-transform: uppercase;
         }
         .kartu-header .sub {
-            font-size: 6.5pt;
+            font-size: 7.5pt;
             color: #374151;
         }
         .kartu-body {
             display: flex;
-            gap: 2mm;
-            align-items: flex-start;
+            gap: 2.5mm;
+            align-items: center;
             flex: 1;
         }
         .foto {
-            width: 17mm;
-            height: 22mm;
+            width: 18mm;
+            height: 23mm;
             border: 1px solid #4b5563;
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
-            font-size: 6pt;
+            font-size: 6.8pt;
             color: #6b7280;
             overflow: hidden;
             background: #f9fafb;
@@ -127,15 +127,15 @@
         .identitas {
             width: 100%;
             border-collapse: collapse;
-            font-size: 7.2pt;
-            line-height: 1.18;
+            font-size: 8.5pt;
+            line-height: 1.24;
         }
         .identitas td {
-            padding: 0.25mm 0.4mm;
+            padding: 0.35mm 0.4mm;
             vertical-align: top;
         }
         .identitas td.lbl {
-            width: 20mm;
+            width: 22mm;
             color: #374151;
         }
         .identitas td.sep {
@@ -143,7 +143,7 @@
         }
         .no-peserta {
             font-weight: 700;
-            font-size: 8pt;
+            font-size: 9.2pt;
             letter-spacing: 0.3px;
         }
         .kartu-footer {
@@ -151,22 +151,22 @@
             justify-content: space-between;
             align-items: flex-end;
             gap: 2mm;
-            font-size: 6.2pt;
+            font-size: 7pt;
             margin-top: 0.5mm;
         }
         .catatan {
-            font-size: 5.8pt;
+            font-size: 6.8pt;
             color: #4b5563;
-            line-height: 1.1;
-            margin-top: 0.5mm;
+            line-height: 1.15;
+            margin-top: 0.4mm;
         }
         .ttd {
             text-align: left;
-            min-width: 32mm;
-            line-height: 1.12;
+            min-width: 34mm;
+            line-height: 1.15;
         }
         .ttd .nama {
-            margin-top: 4.5mm;
+            margin-top: 4mm;
             font-weight: 700;
             text-decoration: underline;
         }

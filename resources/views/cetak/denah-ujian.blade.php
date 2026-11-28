@@ -14,7 +14,7 @@
     <title>Denah Ruang Ujian - {{ $kegiatan->nama }}</title>
     <style>
         @page {
-            size: A4 portrait;
+            size: A4 landscape;
             margin: 8mm;
         }
         * {
@@ -22,7 +22,7 @@
         }
         body {
             font-family: "Arial", "Helvetica", sans-serif;
-            font-size: 8.5pt;
+            font-size: 9.5pt;
             color: #111;
             margin: 0;
             padding: 0;
@@ -50,7 +50,7 @@
             cursor: pointer;
         }
         .halaman {
-            width: 194mm;
+            width: 281mm;
             margin: 12px auto;
             background: #fff;
             padding: 6mm;
@@ -63,31 +63,31 @@
         }
         .judul-denah {
             text-align: center;
-            margin: 2mm 0 4mm;
+            margin: 1.5mm 0 3.5mm;
         }
         .judul-denah h1 {
-            font-size: 11pt;
+            font-size: 13pt;
             margin: 0;
             text-transform: uppercase;
         }
         .judul-denah p {
             margin: 1mm 0 0;
-            font-size: 9pt;
+            font-size: 10pt;
             color: #374151;
         }
         .pengawas {
             border: 1.5px solid #111;
             text-align: center;
             font-weight: 700;
-            padding: 2mm 6mm;
-            width: 65mm;
+            padding: 2.5mm 8mm;
+            width: 85mm;
             margin: 0 auto 4mm;
             background: #f9fafb;
-            font-size: 8.5pt;
+            font-size: 9.5pt;
         }
         .denah-grid {
             display: grid;
-            gap: 2.5mm;
+            gap: 3mm;
         }
         .meja {
             border: 1.2px solid #111;
@@ -96,13 +96,13 @@
             break-inside: avoid;
         }
         .kursi {
-            padding: 1.5mm;
-            min-height: 18mm;
+            padding: 2mm;
+            min-height: 22mm;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            font-size: 7.2pt;
-            line-height: 1.2;
+            font-size: 8.5pt;
+            line-height: 1.25;
         }
         .kursi + .kursi {
             border-left: 1px dashed #9ca3af;
@@ -112,15 +112,15 @@
             justify-content: space-between;
             font-weight: 700;
             border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 0.6mm;
-            margin-bottom: 0.6mm;
+            padding-bottom: 0.8mm;
+            margin-bottom: 0.8mm;
         }
         .kursi-no {
             background: #111;
             color: #fff;
-            padding: 0.2mm 1.2mm;
+            padding: 0.4mm 1.6mm;
             border-radius: 2px;
-            font-size: 6.8pt;
+            font-size: 8pt;
         }
         .kursi-nama {
             font-weight: 600;
@@ -128,14 +128,14 @@
         }
         .kursi-kelas {
             color: #4b5563;
-            font-size: 6.8pt;
+            font-size: 7.8pt;
         }
         .footer-denah {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-top: 5mm;
-            font-size: 8pt;
+            font-size: 8.5pt;
         }
         .rekap-kelas {
             border-collapse: collapse;
