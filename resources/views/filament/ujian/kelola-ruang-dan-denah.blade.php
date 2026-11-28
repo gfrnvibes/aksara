@@ -101,6 +101,15 @@
                                 <x-filament::dropdown.list.item
                                     tag="a"
                                     target="_blank"
+                                    icon="heroicon-o-users"
+                                    :href="route('ujian.daftar-peserta', ['kegiatan' => $this->record, 'ruang_id' => $ruangAktif->id])"
+                                >
+                                    Daftar Peserta Ruangan
+                                </x-filament::dropdown.list.item>
+
+                                <x-filament::dropdown.list.item
+                                    tag="a"
+                                    target="_blank"
                                     icon="heroicon-o-clipboard-document-check"
                                     :href="route('ujian.daftar-hadir', ['kegiatan' => $this->record, 'ruang_id' => $ruangAktif->id])"
                                 >

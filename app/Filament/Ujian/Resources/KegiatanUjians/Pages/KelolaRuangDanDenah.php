@@ -3,8 +3,8 @@
 namespace App\Filament\Ujian\Resources\KegiatanUjians\Pages;
 
 use App\Filament\Ujian\Resources\KegiatanUjians\KegiatanUjianResource;
-use App\Models\Kelas;
 use App\Models\KegiatanUjian;
+use App\Models\Kelas;
 use App\Models\PenempatanUjian;
 use App\Models\RuangUjian;
 use App\Models\User;
@@ -17,6 +17,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
+use Filament\Schemas\Components\Component;
 use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Collection;
@@ -160,7 +161,7 @@ class KelolaRuangDanDenah extends Page
     }
 
     /**
-     * @return list<\Filament\Schemas\Components\Component>
+     * @return list<Component>
      */
     protected function skemaFormRuang(bool $isEdit = false): array
     {
@@ -332,6 +333,12 @@ class KelolaRuangDanDenah extends Page
                     ->icon(Heroicon::OutlinedSquares2x2)
                     ->visible(fn (): bool => $this->kegiatan()->ruang()->exists())
                     ->url(fn (): string => route('ujian.denah', $this->kegiatan()))
+                    ->openUrlInNewTab(),
+                Action::make('cetakDaftarPeserta')
+                    ->label('Daftar Peserta Ruangan')
+                    ->icon(Heroicon::OutlinedUsers)
+                    ->visible(fn (): bool => $this->kegiatan()->ruang()->exists())
+                    ->url(fn (): string => route('ujian.daftar-peserta', $this->kegiatan()))
                     ->openUrlInNewTab(),
                 Action::make('cetakDaftarHadir')
                     ->label('Daftar Hadir Peserta')

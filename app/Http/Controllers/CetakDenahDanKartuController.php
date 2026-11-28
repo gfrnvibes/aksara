@@ -64,6 +64,29 @@ class CetakDenahDanKartuController extends Controller
         ]);
     }
 
+    public function daftarPeserta(Request $request, KegiatanUjian $kegiatan): View
+    {
+        Gate::authorize('view', $kegiatan);
+
+        $kegiatan->load(['tahunAjaran', 'penandaTangan', 'ketuaPanitia', 'kopSurat']);
+        $ruangId = $request->integer('ruang_id') ?: null;
+
+        $ruangList = $kegiatan->ruang()
+            ->when($ruangId !== null, fn ($q) => $q->whereKey($ruangId))
+            ->with(['penempatan' => fn ($q) => $q->with(['siswa', 'kelas'])])
+            ->get();
+
+        $kop = $kegiatan->kopSurat !== null
+            ? $kegiatan->kopSurat->konfigurasi
+            : PengaturanKop::untuk('surat_keterangan');
+
+        return view('cetak.daftar-peserta-ujian', [
+            'kegiatan' => $kegiatan,
+            'ruangList' => $ruangList,
+            'kop' => $kop,
+        ]);
+    }
+
     public function daftarHadir(Request $request, KegiatanUjian $kegiatan): View
     {
         Gate::authorize('view', $kegiatan);

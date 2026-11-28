@@ -155,6 +155,12 @@ class KegiatanUjianResource extends Resource
                         ->url(fn (KegiatanUjian $record): string => route('ujian.denah', $record))
                         ->openUrlInNewTab()
                         ->visible(fn (KegiatanUjian $record): bool => $record->ruang()->exists()),
+                    Action::make('cetakDaftarPeserta')
+                        ->label('Cetak Daftar Peserta Ruangan')
+                        ->icon(Heroicon::OutlinedUsers)
+                        ->url(fn (KegiatanUjian $record): string => route('ujian.daftar-peserta', $record))
+                        ->openUrlInNewTab()
+                        ->visible(fn (KegiatanUjian $record): bool => $record->ruang()->exists()),
                     Action::make('cetakDaftarHadir')
                         ->label('Cetak Daftar Hadir Peserta')
                         ->icon(Heroicon::OutlinedClipboardDocumentList)
